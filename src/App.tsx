@@ -80,7 +80,7 @@ const requestTypeClass=(s:string)=>({ordinaria:'blue',straordinaria:'amber',da_v
 
 function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:number;setRefresh:(x:number)=>void}){
  const [rows,setRows]=useState<RequestRow[]>([]); const [buildings,setBuildings]=useState<any[]>([]);
- const [ambiti,setAmbiti]=useState<any[]>([]); const [q,setQ]=useState(''); const [filter,setFilter]=useState('tutte');
+ const [ambiti,setAmbiti]=useState<any[]>([]); const [q,setQ]=useState(''); const [filter,setFilter]=useState('tutte'); const [buildingFilter,setBuildingFilter]=useState('all'); const [ambitoFilter,setAmbitoFilter]=useState('all');
  const [show,setShow]=useState(false); const [editing,setEditing]=useState<RequestRow|null>(null); const [detail,setDetail]=useState<RequestRow|null>(null);
  const [message,setMessage]=useState(''); const [loading,setLoading]=useState(false); const [advanced,setAdvanced]=useState(false);
  const write=canWrite(access); const enteId=access[0]?.ente_id;
@@ -102,7 +102,9 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   const text=(x.codice_richiesta+' '+x.titolo_sintetico+' '+(x.numero_protocollo||'')+' '+(x.richieste_intervento_sedi||[])).toLowerCase();
   const matchesQ=text.includes(q.toLowerCase()) || JSON.stringify(x).toLowerCase().includes(q.toLowerCase());
   const matches=filter==='tutte'||(filter==='risolte'&&x.risolto)||(filter==='aperte'&&!x.risolto)||(filter===x.tipo_intervento);
-  return matchesQ&&matches;
+  const matchesBuilding=buildingFilter==='all'||(x.richieste_intervento_sedi||[]).some((s:any)=>s.edificio_id===buildingFilter);
+  const matchesAmbito=ambitoFilter==='all'||(x.richieste_intervento_ambiti||[]).some((a:any)=>a.ambito_id===ambitoFilter);
+  return matchesQ&&matches&&matchesBuilding&&matchesAmbito;
  });
  const save=async(e:any)=>{
   e.preventDefault(); if(!enteId)return;
@@ -135,7 +137,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
    <button className="btn secondary" onClick={()=>setAdvanced(!advanced)}><SlidersHorizontal size={16}/> Filtri</button>
    {write&&<button className="btn primary" onClick={()=>{setEditing(null);setShow(true)}}><Plus size={17}/> Nuova richiesta</button>}
   </div>
-  {advanced&&<div className="request-filters card"><label>Stato<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="tutte">Tutte</option><option value="da_valutare">Da valutare</option><option value="ordinaria">Ordinarie</option><option value="straordinaria">Straordinarie</option><option value="aperte">Aperte</option><option value="risolte">Risolte</option></select></label></div>}
+  {advanced&&<div className="request-filters card"><label>Stato<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="tutte">Tutte</option><option value="da_valutare">Da valutare</option><option value="ordinaria">Ordinarie</option><option value="straordinaria">Straordinarie</option><option value="aperte">Aperte</option><option value="risolte">Risolte</option></select></label><label>Edificio / sede<select value={buildingFilter} onChange={e=>setBuildingFilter(e.target.value)}><option value="all">Tutti gli edifici</option>{buildings.map((b:any)=><option key={b.id} value={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}</select></label><label>Ambito di intervento<select value={ambitoFilter} onChange={e=>setAmbitoFilter(e.target.value)}><option value="all">Tutti gli ambiti</option>{ambiti.map((a:any)=><option key={a.id} value={a.id}>{a.denominazione}</option>)}</select></label><button type="button" className="btn secondary filter-reset" onClick={()=>{setFilter('tutte');setBuildingFilter('all');setAmbitoFilter('all');setQ('')}}><RotateCcw size={15}/> Azzera filtri</button></div>}
   <div className="request-tabs"><button className={filter==='tutte'?'active':''} onClick={()=>setFilter('tutte')}>Tutte <b>{rows.length}</b></button><button className={filter==='da_valutare'?'active':''} onClick={()=>setFilter('da_valutare')}>Da valutare <b>{rows.filter(x=>x.tipo_intervento==='da_valutare'&&!x.risolto).length}</b></button><button className={filter==='aperte'?'active':''} onClick={()=>setFilter('aperte')}>Aperte <b>{rows.filter(x=>!x.risolto).length}</b></button><button className={filter==='risolte'?'active':''} onClick={()=>setFilter('risolte')}>Risolte <b>{rows.filter(x=>x.risolto).length}</b></button></div>
   {message&&<div className="notice success">{message}</div>}
   <section className="card table-card">
