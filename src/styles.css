@@ -167,3 +167,5 @@
 .chart-footer{display:flex;justify-content:space-between;align-items:center;padding-top:11px;color:#718096;font-size:11px}
 @media(max-width:900px){.request-kpis{grid-template-columns:1fr 1fr}.chart-toolbar{align-items:stretch;flex-direction:column}.chart-building select{min-width:0;width:100%}.chart-building{width:100%}}
 @media(max-width:600px){.multiselect-grid{grid-template-columns:1fr}.request-kpis{grid-template-columns:1fr}.request-protocol{width:100%;margin-left:0}.request-chart{height:230px}.chart-footer{align-items:flex-start;gap:10px;flex-direction:column}}
+
+.upload-doc-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}.doc-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.doc-row>div:first-child{min-width:0}.doc-row b{word-break:break-word}.doc-row .row-actions{flex-shrink:0}
