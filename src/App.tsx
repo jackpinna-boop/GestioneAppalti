@@ -333,24 +333,40 @@ function AdminPage({access}:{access:Access[]}){
  const [selectedPermUser,setSelectedPermUser]=useState('');
  const [permForm,setPermForm]=useState({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true});
  const [auditRows,setAuditRows]=useState<any[]>([]);
+ const [requestDomains,setRequestDomains]=useState<any[]>([]);const [domainForm,setDomainForm]=useState({id:'',codice:'',denominazione:'',attivo:true});const [domainMessage,setDomainMessage]=useState('');
 
  const manage=access.some(x=>['superadmin','admin_ente'].includes(x.ruolo));
  const superadmin=access.some(x=>x.ruolo==='superadmin');
  const currentEnteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
  const load=async()=>{
-   const [a,b,c,d]=await Promise.all([
+   const [a,b,c,d,e]=await Promise.all([
      supabase.from('profiles').select('id,nome,cognome,email,telefono,attivo').order('cognome'),
      supabase.from('enti').select('id,denominazione').order('denominazione'),
      supabase.from('enti').select('id,denominazione,codice_ipa,codice_fiscale,tipo_ente,pec,email,telefono,attivo').eq('id',currentEnteId).maybeSingle(),
-     supabase.from('edifici').select('id,codice_edificio,denominazione').eq('ente_id',currentEnteId).order('denominazione')
+     supabase.from('edifici').select('id,codice_edificio,denominazione').eq('ente_id',currentEnteId).order('denominazione'),
+     supabase.from('ambiti_richiesta_intervento').select('id,codice,denominazione,attivo').order('denominazione')
    ]);
    if(a.error)console.error('Errore caricamento profili:',a.error);
    if(b.error)console.error('Errore caricamento enti:',b.error);
    if(c.error)console.error('Errore caricamento anagrafica ente:',c.error);
    if(d.error)console.error('Errore caricamento edifici:',d.error);
-   setUsers(a.data||[]);setEntities(b.data||[]);setBuildings(d.data||[]);
+   if(e.error)console.error('Errore caricamento ambiti:',e.error);
+   setUsers(a.data||[]);setEntities(b.data||[]);setBuildings(d.data||[]);setRequestDomains(e.data||[]);
    if(c.data)setEntity(c.data);
    if(manage)await loadManagedUsers();
+ };
+ const saveRequestDomain=async(e:any)=>{
+   e.preventDefault();setDomainMessage('');
+   const codice=String(domainForm.codice||'').trim().toUpperCase().replace(/[^A-Z0-9_]+/g,'_');const denominazione=String(domainForm.denominazione||'').trim();
+   if(!codice||!denominazione){setDomainMessage('Codice e denominazione sono obbligatori.');return}
+   const payload={codice,denominazione,attivo:domainForm.attivo};
+   const result=domainForm.id?await supabase.from('ambiti_richiesta_intervento').update(payload).eq('id',domainForm.id):await supabase.from('ambiti_richiesta_intervento').insert(payload);
+   if(result.error){setDomainMessage('Salvataggio non riuscito: '+result.error.message);return}
+   setDomainForm({id:'',codice:'',denominazione:'',attivo:true});setDomainMessage(domainForm.id?'Ambito modificato.':'Ambito aggiunto.');await load();
+ };
+ const deleteRequestDomain=async(x:any)=>{
+   if(!confirm('Disattivare l’ambito "'+x.denominazione+'"? Le richieste già classificate conserveranno il collegamento.'))return;
+   const {error}=await supabase.from('ambiti_richiesta_intervento').update({attivo:false}).eq('id',x.id);if(error){setDomainMessage('Operazione non riuscita: '+error.message);return}setDomainMessage('Ambito disattivato.');await load();
  };
  const loadManagedUsers=async()=>{
    const {data,error}=await supabase.functions.invoke('admin-users',{body:{action:'list'}});
@@ -445,7 +461,7 @@ function AdminPage({access}:{access:Access[]}){
  const setField=(name:string,value:any)=>setEntity((p:any)=>({...p,[name]:value}));
  const roleText=(u:any)=>u.roles?.length?u.roles.map((r:any)=>r.ruolo+' — '+(r.ente||'')).join(' | '):'Nessun ruolo';
  return <PageHead title="Amministrazione" subtitle="Utenti, enti, ruoli e configurazione di accesso.">
-   <DashboardConfig access={access}/><div className="admin-subnav">
+   <DashboardConfig access={access}/><section id="admin-ambiti" className="card request-domain-admin"><div className="card-head"><div><h2>Ambiti delle richieste di intervento</h2><p>Gestisci le categorie utilizzabili nella classificazione delle richieste.</p></div><SlidersHorizontal size={20}/></div>{superadmin&&<form className="domain-form" onSubmit={saveRequestDomain}><input placeholder="CODICE_INTERNO" value={domainForm.codice} onChange={e=>setDomainForm({...domainForm,codice:e.target.value})}/><input placeholder="Denominazione dell’ambito" value={domainForm.denominazione} onChange={e=>setDomainForm({...domainForm,denominazione:e.target.value})}/><label className="checkbox-label"><input type="checkbox" checked={domainForm.attivo} onChange={e=>setDomainForm({...domainForm,attivo:e.target.checked})}/> Attivo</label><button className="btn primary"><Plus size={15}/>{domainForm.id?'Salva modifica':'Aggiungi ambito'}</button>{domainForm.id&&<button type="button" className="btn secondary" onClick={()=>setDomainForm({id:'',codice:'',denominazione:'',attivo:true})}>Annulla</button>}</form>}{domainMessage&&<div className="notice success">{domainMessage}</div>}<div className="domain-list">{requestDomains.map(x=><div className={'domain-row '+(!x.attivo?'disabled':'')} key={x.id}><div><b>{x.codice}</b><span>{x.denominazione}</span></div><span className={'badge '+(x.attivo?'green':'gray')}>{x.attivo?'Attivo':'Disattivo'}</span>{superadmin&&<div className="row-actions"><button className="icon-btn dark-icon" onClick={()=>setDomainForm({id:x.id,codice:x.codice,denominazione:x.denominazione,attivo:x.attivo})}><Pencil size={15}/></button>{x.attivo&&<button className="icon-btn dark-icon" onClick={()=>deleteRequestDomain(x)}><Trash2 size={15}/></button>}</div>}</div>)}</div></section><div className="admin-subnav">
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-ente')?.scrollIntoView({behavior:'smooth',block:'start'})}><Building2 size={16}/> Anagrafica ente</button>
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-utenti')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserCog size={16}/> Utenti</button>
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-ruoli')?.scrollIntoView({behavior:'smooth',block:'start'})}><ShieldCheck size={16}/> Ruoli</button>
