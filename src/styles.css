@@ -196,3 +196,64 @@
 .building-request-kpi{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:53px}.building-request-kpi .request-total{font-size:18px!important;line-height:1;color:#0f2742}.building-request-kpi small{font-size:8px;color:#6f7f92;font-weight:700}.building-request-kpi>div{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:2px;flex-wrap:wrap}.building-request-kpi em{font-style:normal;font-size:8px;font-weight:800;display:inline-flex;align-items:center;gap:3px}.building-request-kpi em i{display:inline-block;width:6px;height:6px;border-radius:50%}.building-request-kpi .request-open{color:#9a6a00}.building-request-kpi .request-open i{background:#d8a900}.building-request-kpi .request-closed{color:#b23a35}.building-request-kpi .request-closed i{background:#c94b45}
 
 .building-request-summary{display:flex;align-items:center;gap:7px}.building-request-summary>div{min-width:54px;padding:6px 9px;border-radius:8px;background:#f2f5f8;text-align:center}.building-request-summary b{display:block;font-size:16px;line-height:1.05;color:#173b5d}.building-request-summary span{display:block;margin-top:2px;font-size:8px;font-weight:800;color:#718096;text-transform:uppercase}.building-request-summary .open{background:#fff7df}.building-request-summary .open b{color:#9a6a00}.building-request-summary .open span{color:#9a6a00}.building-request-summary .closed{background:#fff0ef}.building-request-summary .closed b{color:#b23a35}.building-request-summary .closed span{color:#b23a35}@media(max-width:650px){.building-request-summary{width:100%;justify-content:flex-start;margin-top:8px}}
+
+/* Provincia del Sulcis Iglesiente — palette istituzionale ispirata al portale */
+:root{
+ --psi-navy:#123b5d;
+ --psi-blue:#176b93;
+ --psi-blue-dark:#0d4f72;
+ --psi-cyan:#2b879d;
+ --psi-sand:#d5a84a;
+ --psi-bg:#f4f7f8;
+ --psi-surface:#ffffff;
+ --psi-line:#dbe5e9;
+ --psi-text:#263b4a;
+ --psi-muted:#687d89;
+}
+body{background:var(--psi-bg);color:var(--psi-text)}
+.topbar{background:var(--psi-navy)}
+.brand-mark{background:var(--psi-blue-dark)}
+.avatar{background:var(--psi-blue)}
+.sidebar{border-right-color:var(--psi-line)}
+.nav-item{color:#607783}
+.nav-item:hover{background:#edf5f7;color:var(--psi-blue-dark)}
+.nav-item.active{background:#e6f1f4;color:var(--psi-blue-dark);box-shadow:inset 3px 0 0 var(--psi-cyan)}
+.main{background:transparent}
+.page-head h1,.auth-title h1,.auth-screen h1{color:var(--psi-navy)}
+.page-head p,.card-head p,.muted,.table-sub{color:var(--psi-muted)}
+.card,.stat-card,.auth-card,.modal{border-color:var(--psi-line);background:var(--psi-surface)}
+.card-head h2,.stat-card strong,.file-hero strong,.maintenance-summary h2,.maintenance-system-head h3{color:var(--psi-navy)}
+.stat-icon{background:#e6f1f4;color:var(--psi-blue-dark)}
+.progress-track i{background:var(--psi-blue)}
+.btn.primary{background:var(--psi-blue-dark);border-color:var(--psi-blue-dark)}
+.btn.primary:hover{background:var(--psi-blue);border-color:var(--psi-blue)}
+.link-btn,.auth-screen .auth-links button{color:var(--psi-blue-dark)}
+.input-icon,.search,.form-grid input,.form-grid select,.form-grid textarea{border-color:#cfdde3}
+.form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus,.auth-screen form input:focus{border-color:var(--psi-cyan);box-shadow:0 0 0 3px #2b879d1c}
+.tabs{background:#e8f0f3;border-color:#d5e1e6}
+.tabs button{color:#607783}
+.tabs button:hover{color:var(--psi-navy)}
+.tabs button.active{background:var(--psi-navy)}
+th{background:#eef4f6;color:#5e7480;border-bottom-color:#d6e1e5}
+td{color:#344b59;border-bottom-color:#e6edef}
+.clickable:hover td{background:#f2f8fa}
+.timeline-dot{background:var(--psi-cyan)}
+.badge.blue{background:#e1f0f5;color:#155a79}
+.badge.amber{background:#fff3d8;color:#896100}
+.badge.green{background:#e5f3ec;color:#236c4a}
+.badge.red{background:#fde9e7;color:#a23b34}
+.badge.purple{background:#eeeaf7;color:#654b91}
+.maintenance-icon{background:#e6f1f4;color:var(--psi-blue-dark)}
+.maintenance-building-list button:hover,.maintenance-building-list button.selected{background:#e6f1f4}
+.maintenance-building-list button.selected{border-color:#bcd6df;color:var(--psi-blue-dark)}
+.admin-subnav{background:#eef4f6;border-color:#dbe5e9}
+.admin-subnav-item:hover{color:var(--psi-blue-dark)}
+.permission-check{background:#f5f9fa;border-color:#dbe5e9}
+.permission-summary>div,.maintenance-grid>div{background:#f7fafb;border-color:#dbe5e9}
+.security-note{background:#eef5f7;color:#5e7480}
+.auth-screen,.auth-shell{background:linear-gradient(135deg,#eaf3f5 0%,#f6f9fa 100%)}
+.notice.success{background:#e8f5ef;border-color:#b8dccb;color:#256346}
+.loader span{background:var(--psi-blue)}
+.building-request-kpi .request-total{color:var(--psi-navy)}
+.building-request-summary>div{background:#eef4f6}
+.sort-header:hover,.sort-header.active,.sort-header.active .sort-indicator{color:var(--psi-blue-dark)}
