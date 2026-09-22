@@ -73,7 +73,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  useEffect(()=>{load()},[refresh,access[0]?.ente_id]);
 
  const filtered=rows.filter(x=>{
-  const text=(x.codice_richiesta+' '+x.titolo_sintetico+' '+(x.numero_protocollo||'')+' '+(x.richiestE_intervento_sedi||[])).toLowerCase();
+  const text=(x.codice_richiesta+' '+x.titolo_sintetico+' '+(x.numero_protocollo||'')+' '+(x.richieste_intervento_sedi||[])).toLowerCase();
   const matchesQ=text.includes(q.toLowerCase()) || JSON.stringify(x).toLowerCase().includes(q.toLowerCase());
   const matches=filter==='tutte'||(filter==='risolte'&&x.risolto)||(filter==='aperte'&&!x.risolto)||(filter===x.tipo_intervento);
   return matchesQ&&matches;
@@ -114,7 +114,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   {message&&<div className="notice success">{message}</div>}
   <section className="card table-card">
    {loading?<Loader/>:filtered.length?<table><thead><tr><th>Codice</th><th>Protocollo</th><th>Richiesta</th><th>Istituti / sedi</th><th>Ambiti</th><th>Tipo</th><th>Data</th><th>Stato</th><th>Allegati</th><th>Azioni</th></tr></thead><tbody>
-   {filtered.map(x=>{const sedi=x.richiestE_intervento_sedi||x.richieste_intervento_sedi||[];const amb=x.richieste_intervento_ambiti||[];const docs=x.richiesta_intervento_documenti||[];return <tr key={x.id} className="clickable" onClick={()=>setDetail(x)}>
+   {filtered.map(x=>{const sedi=x.richieste_intervento_sedi||x.richieste_intervento_sedi||[];const amb=x.richieste_intervento_ambiti||[];const docs=x.richiesta_intervento_documenti||[];return <tr key={x.id} className="clickable" onClick={()=>setDetail(x)}>
     <td><b>{x.codice_richiesta}</b></td><td>{x.numero_protocollo?<><strong>{x.numero_protocollo}</strong><span className="table-sub">{date(x.data_protocollo)}</span></>:'—'}</td>
     <td><strong>{x.titolo_sintetico}</strong><span className="table-sub">{x.descrizione_estesa.slice(0,85)}{x.descrizione_estesa.length>85?'…':''}</span></td>
     <td>{sedi.length?<><strong>{sedi[0]?.edifici?.codice_edificio}</strong><span className="table-sub">{sedi[0]?.edifici?.denominazione}{sedi.length>1?' + '+(sedi.length-1)+' sedi':''}</span></>:'—'}</td>
