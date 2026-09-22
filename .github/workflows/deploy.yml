@@ -32,7 +32,6 @@ jobs:
           code="$(curl -sS -o /tmp/supabase-auth-response.txt -w "%{http_code}" \
             -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
             -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY" \
             -H "Content-Type: application/json" \
             --data '{"email":"invalid-test@example.invalid","password":"invalid-test-password"}')"
           echo "Supabase Auth HTTP status: $code"
