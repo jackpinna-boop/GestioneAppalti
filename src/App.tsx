@@ -126,7 +126,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
    </tr>})}</tbody></table>:<Empty title="Nessuna richiesta" text="Non risultano richieste con i filtri selezionati."/>}
   </section>
   {show&&<Modal title={editing?'Modifica richiesta':'Nuova richiesta'} close={()=>{setShow(false);setEditing(null)}}><RequestForm row={editing} buildings={buildings} ambiti={ambiti} onCancel={()=>{setShow(false);setEditing(null)}} onSubmit={save}/></Modal>}
-  {detail&&<RequestDetail row={detail} buildings={buildings} onClose={()=>setDetail(null)} onEdit={()=>{setEditing(detail);setDetail(null);setShow(true)}}/>}
+  {detail&&<RequestDetail row={detail} access={access} onClose={()=>setDetail(null)} onChanged={()=>{setDetail(null);setRefresh(refresh+1)}} onEdit={()=>{setEditing(detail);setDetail(null);setShow(true)}}/>}
  </PageHead>
 }
 
@@ -147,15 +147,27 @@ function RequestForm({row,buildings,ambiti,onCancel,onSubmit}:{row:RequestRow|nu
 }
 
 
-function RequestDetail({row,onClose,onEdit}:{row:RequestRow;buildings:any[];onClose:()=>void;onEdit:()=>void}){
- const [tab,setTab]=useState('richiesta');const sedi=row.richieste_intervento_sedi||[];const amb=row.richieste_intervento_ambiti||[];const docs=row.richiesta_intervento_documenti||[];
+function RequestDetail({row,access,onClose,onChanged,onEdit}:{row:RequestRow;access:Access[];onClose:()=>void;onChanged:()=>void;onEdit:()=>void}){
+ const [tab,setTab]=useState('richiesta');const [uploading,setUploading]=useState(false);const [docError,setDocError]=useState('');
+ const sedi=row.richieste_intervento_sedi||[];const amb=row.richieste_intervento_ambiti||[];const docs=row.richiesta_intervento_documenti||[];
+ const upload=async(e:any)=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;setUploading(true);setDocError('');
+  const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path='richieste/'+row.id+'/'+crypto.randomUUID()+'-'+safe;
+  const up=await supabase.storage.from('documenti').upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});
+  if(up.error){setDocError('Caricamento non riuscito: '+up.error.message);setUploading(false);return}
+  const ins=await supabase.from('richiesta_intervento_documenti').insert({ente_id:access[0]?.ente_id,richiesta_id:row.id,nome:file.name,tipo:docType(file.type||''),data_documento:new Date().toISOString().slice(0,10),versione:1,url:path,mime_type:file.type||null,size_bytes:file.size,created_by:access[0]?.user_id||null});
+  if(ins.error){await supabase.storage.from('documenti').remove([path]);setDocError('Registrazione documento non riuscita: '+ins.error.message);setUploading(false);return}
+  setUploading(false);onChanged();
+ };
+ const openDoc=async(d:any)=>{const x=await supabase.storage.from('documenti').createSignedUrl(d.url,3600);if(x.error){setDocError(x.error.message);return}window.open(x.data.signedUrl,'_blank','noopener,noreferrer')};
+ const deleteDoc=async(d:any)=>{if(!confirm('Eliminare il documento '+d.nome+'?'))return;const st=await supabase.storage.from('documenti').remove([d.url]);if(st.error){setDocError(st.error.message);return}const db=await supabase.from('richiesta_intervento_documenti').delete().eq('id',d.id);if(db.error){setDocError(db.error.message);return}onChanged()};
  return <div className="modal-backdrop"><div className="modal request-detail-modal"><div className="modal-head"><div><span className="eyebrow">{row.codice_richiesta}</span><h2>{row.titolo_sintetico}</h2></div><button className="icon-btn dark-icon" onClick={onClose}><X/></button></div>
   <div className="request-detail-hero"><span className={'badge '+(row.risolto?'green':'amber')}>{row.risolto?'Risolta':'Aperta'}</span><span className={'badge '+requestTypeClass(row.tipo_intervento)}>{requestTypeLabel(row.tipo_intervento)}</span><span className="request-protocol">Prot. {row.numero_protocollo||'—'} {row.data_protocollo?'del '+date(row.data_protocollo):''}</span></div>
   <div className="tabs request-detail-tabs">{['richiesta','sedi','ambiti','documenti','risoluzione'].map(t=><button className={tab===t?'active':''} onClick={()=>setTab(t)} key={t}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div>
+  {docError&&<div className="notice error">{docError}</div>}
   {tab==='richiesta'&&<div className="request-detail-content"><div className="info-row"><span>Data richiesta</span><strong>{date(row.data_richiesta)}</strong></div><h3>Descrizione</h3><p>{row.descrizione_estesa}</p>{row.note_immobile&&<><h3>Note immobile</h3><p>{row.note_immobile}</p></>}</div>}
   {tab==='sedi'&&<div className="detail-list">{sedi.length?sedi.map((s:any)=><div className="detail-list-item" key={s.id}><b>{s.edifici?.codice_edificio}</b><strong>{s.edifici?.denominazione}</strong><span>{[s.edifici?.indirizzo,s.edifici?.comune].filter(Boolean).join(', ')}</span></div>):<Empty title="Nessuna sede associata" text="La richiesta può essere associata a una o più sedi."/>}</div>}
   {tab==='ambiti'&&<div className="request-detail-ambiti">{amb.length?amb.map((a:any)=><span className="badge blue" key={a.id}>{a.ambiti_richiesta_intervento?.denominazione}</span>):<Empty title="Nessun ambito" text="Non sono stati classificati ambiti."/>}</div>}
-  {tab==='documenti'&&<div><div className="notice warning"><Paperclip size={16}/> La gestione dei file è predisposta nel database e nello Storage; il caricamento dalla scheda sarà completato nel prossimo passaggio.</div>{docs.length?docs.map((d:any)=><div className="detail-list-item" key={d.id}><b>{d.nome}</b><span>{d.mime_type||'file'} · {d.size_bytes?Math.round(d.size_bytes/1024)+' KB':''}</span></div>):<Empty title="Nessun documento" text="Non sono presenti allegati."/>}</div>}
+  {tab==='documenti'&&<div><div className="upload-doc-row"><label className="btn primary"><Upload size={15}/> {uploading?'Caricamento…':'Carica documento'}<input type="file" hidden onChange={upload} disabled={uploading}/></label><span className="muted">PDF, immagini e documentazione di supporto</span></div>{docs.length?<div className="detail-list">{docs.map((d:any)=><div className="detail-list-item doc-row" key={d.id}><div><b>{d.nome}</b><span>{d.mime_type||'file'} · {d.size_bytes?Math.round(d.size_bytes/1024)+' KB':''} · {date(d.data_documento)}</span></div><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>openDoc(d)}><Eye size={16}/></button><button className="icon-btn dark-icon" title="Elimina" onClick={()=>deleteDoc(d)}><Trash2 size={16}/></button></div></div>)}</div>:<Empty title="Nessun documento" text="Carica la richiesta dell'istituto e la documentazione di supporto."/>}</div>}
   {tab==='risoluzione'&&<div className="request-resolution-detail">{row.risolto?<><div className="resolution-ok"><CheckCircle2 size={22}/><div><strong>Richiesta risolta</strong><span>{date(row.data_risoluzione)}</span></div></div><h3>Note di risoluzione</h3><p>{row.note_risoluzione||'Nessuna nota.'}</p></>:<div className="notice warning"><CircleAlert size={17}/> La richiesta non risulta ancora risolta.</div>}</div>}
   <div className="form-actions"><button className="btn secondary" onClick={onClose}>Chiudi</button><button className="btn primary" onClick={onEdit}><Pencil size={15}/> Modifica</button></div>
  </div></div>
