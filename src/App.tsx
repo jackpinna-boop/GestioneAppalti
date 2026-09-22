@@ -108,7 +108,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  });
  const save=async(e:any)=>{
   e.preventDefault(); if(!enteId)return;
-  const f=new FormData(e.currentTarget); const selectedBuildings=JSON.parse(String(f.get('edifici_ids')||'[]')); const selectedAmbiti=JSON.parse(String(f.get('ambiti_ids')||'[]'));
+  const f=new FormData(e.currentTarget); const selectedBuildings=JSON.parse(String(f.get('edifici_ids')||'[]')); const selectedAmbiti=JSON.parse(String(f.get('ambiti_ids')||'[]')); const attachmentFiles=Array.from(f.getAll('attachments')).filter((x):x is File=>x instanceof File&&x.size>0);
   const risolto=f.get('risolto')==='on';
   const payload={
    ente_id:enteId,titolo_sintetico:String(f.get('titolo')||'').trim(),descrizione_estesa:String(f.get('descrizione')||'').trim(),
