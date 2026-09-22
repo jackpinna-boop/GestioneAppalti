@@ -176,7 +176,7 @@ function AdminPage({access}:{access:Access[]}){
      const reread=await Promise.race([supabase.from('enti').select('id,denominazione,codice_ipa,codice_fiscale,tipo_ente,pec,email,telefono,attivo').eq('id',entity.id).maybeSingle(),timeout]);
      if(reread.error)throw new Error('Salvataggio riuscito, ma rilettura fallita: '+reread.error.message);
      if(!reread.data)throw new Error('Il database non ha restituito l\'ente aggiornato.');
-     setEntity(reread.data);setEntities(prev=>prev.map(x=>x.id===reread.data.id?{...x,denominazione:reread.data.denominazione}:x));
+     setEntity(reread.data);setEntities(prev=>prev.map(x=>x.id===reread.data!.id?{...x,denominazione:reread.data!.denominazione}:x));
      setEntityMessageType('success');setEntityMessage('✓ Anagrafica ente salvata correttamente nel database.');
    }catch(err:any){
      const msg=err?.message||String(err);console.error('Errore salvataggio anagrafica ente:',err);
