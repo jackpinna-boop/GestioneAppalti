@@ -8,6 +8,8 @@ type Access={user_id:string;ente_id:string;ruolo:string;ente:string}
 type Building={id:string;codice_edificio:string;denominazione:string;indirizzo:string|null;comune:string|null;provincia:string|null;cap?:string|null;superficie:number|null;volume:number|null;anno_costruzione:number|null;tipologia_scolastica:string|null;centro_di_costo?:string|null}
 type Intervention={id:string;ente_id:string;edificio_id:string;codice_intervento:string;titolo:string;descrizione:string|null;cup:string|null;importo_programmato:number;importo_finanziato:number;importo_contrattuale:number;stato:string;annualita_programmazione:number|null;priorita:number|null;edifici?:{denominazione:string}[]|null}
 type Phase={id:string;fase:string;stato:string|null;percentuale_avanzamento:number;data_prevista_inizio:string|null;data_prevista_fine:string|null;data_effettiva_inizio:string|null;data_effettiva_fine:string|null;note:string|null}
+type MaintenanceSystem={id:string;ente_id:string;edificio_id:string;tipo:'elettrico'|'idraulico'|'antincendio'|'elevatore';codice:string|null;denominazione:string;ubicazione:string|null;marca_modello:string|null;matricola:string|null;anno_installazione:number|null;stato:string;data_ultima_manutenzione:string|null;data_prossima_manutenzione:string|null;periodicita_mesi:number|null;ditta_manutentrice:string|null;referente:string|null;numero_rapporto:string|null;conformita:boolean;note:string|null}
+type MaintenanceEvent={id:string;edificio_id:string;impianto_id:string|null;tipo:string;stato:string;data_richiesta:string;data_programmata:string|null;data_esecuzione:string|null;descrizione:string;esito:string|null;costo_previsto:number;costo_consuntivo:number;operatore:string|null;numero_rapporto:string|null;note:string|null}
 const money=(n:number|null|undefined)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(n||0))
 const date=(s:string|null|undefined)=>s?new Intl.DateTimeFormat('it-IT').format(new Date(s+'T00:00:00')):'—'
 const statusLabel=(s:string)=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())
@@ -32,7 +34,7 @@ function AppShell({session}:{session:any}){
  const userName=session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Utente';const role=access.some(x=>x.ruolo==='superadmin')?'superadmin':(access[0]?.ruolo||'non assegnato');const ente=access.find(x=>x.ruolo==='superadmin')?.ente||access[0]?.ente||'Nessun ente associato'
  return <div className="app-shell"><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand"><div className="brand-mark small"><Building2 size={20}/></div><span>Gestione Appalti</span></div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav><Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/><Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/><Nav icon={<ClipboardList/>} label="Interventi" active={page==='interventi'||page==='fascicolo'} onClick={()=>navigate('interventi')}/><Nav icon={<FolderOpen/>} label="Fascicoli" active={page==='fascicolo'} onClick={()=>navigate('fascicolo')}/><Nav icon={<BarChart3/>} label="Report" active={page==='report'} onClick={()=>navigate('report')}/><Nav icon={<Wrench/>} label="Manutenzioni" active={page==='manutenzioni'} onClick={()=>navigate('manutenzioni')}/><Nav icon={<Settings/>} label="Amministrazione" active={page==='amministrazione'} onClick={()=>navigate('amministrazione')}/></nav><div className="sidebar-footer"><ShieldCheck size={16}/><span>{ente}</span></div></aside>
- <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='report'&&<ReportPage refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage/>} {page==='amministrazione'&&<AdminPage access={access}/>}</main></div></div>
+ <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='report'&&<ReportPage refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='amministrazione'&&<AdminPage access={access}/>}</main></div></div>
 }
 
 function Nav({icon,label,active,onClick}:{icon:any;label:string;active:boolean;onClick:()=>void}){return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{active&&<ChevronRight size={15}/>}</button>}
@@ -269,7 +271,159 @@ function AdminPage({access}:{access:Access[]}){
    <section className="card"><div className="card-head"><div><h2>Microsoft / Azure</h2><p>Provider OAuth configurabile in Supabase Auth.</p></div><ShieldCheck size={20}/></div><code>https://cuaxulqyrhosqbfaympv.supabase.co/auth/v1/callback</code></section>
  </PageHead>
 }
-function MaintenancePage(){return <PageHead title="Manutenzioni" subtitle="Gestione futura della manutenzione programmata, ordinaria e straordinaria del patrimonio."><section className="maintenance-placeholder"><div className="maintenance-icon"><Wrench size={34}/></div><h2>Modulo manutenzioni</h2><p>La sezione è predisposta nel menu e nel modello applicativo. La struttura operativa verrà definita successivamente.</p><div className="maintenance-grid"><div><b>Programmazione</b><span>Piano manutentivo e scadenze</span></div><div><b>Ordini di lavoro</b><span>Richieste, interventi e stati</span></div><div><b>Imprese e tecnici</b><span>Assegnazione e consuntivazione</span></div><div><b>Costi</b><span>Preventivi, consuntivi e centri di costo</span></div></div></section></PageHead>}
+function MaintenancePage({access,refresh,setRefresh}:{access:Access[];refresh:number;setRefresh:(x:number)=>void}){
+ const [buildings,setBuildings]=useState<Building[]>([]);
+ const [selectedBuilding,setSelectedBuilding]=useState<string>('');
+ const [systems,setSystems]=useState<MaintenanceSystem[]>([]);
+ const [events,setEvents]=useState<MaintenanceEvent[]>([]);
+ const [q,setQ]=useState('');
+ const [showSystem,setShowSystem]=useState(false);
+ const [editingSystem,setEditingSystem]=useState<MaintenanceSystem|null>(null);
+ const [showEvent,setShowEvent]=useState(false);
+ const [message,setMessage]=useState('');
+ const write=canWrite(access);
+ const enteId=access[0]?.ente_id;
+ const systemLabels:{key:MaintenanceSystem['tipo'];label:string;description:string}[]=[
+  {key:'elettrico',label:'Impianto elettrico',description:'Quadri, distribuzione, illuminazione e verifiche elettriche'},
+  {key:'idraulico',label:'Impianto idraulico',description:'Adduzione, scarichi, sanitari e reti idriche'},
+  {key:'antincendio',label:'Impianto antincendio',description:'Rivelazione, allarme, estintori, idranti e verifiche'},
+  {key:'elevatore',label:'Impianto elevatore',description:'Ascensori, piattaforme e manutenzione periodica'}
+ ];
+ const load=async()=>{
+  if(!enteId)return;
+  const b=await supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune,provincia,cap,superficie,volume,anno_costruzione,tipologia_scolastica,centro_di_costo').order('denominazione');
+  if(b.error){setMessage('Errore caricamento edifici: '+b.error.message);return}
+  const bs=(b.data||[]) as Building[];setBuildings(bs);
+  const current=selectedBuilding||bs[0]?.id||'';if(current&&!selectedBuilding)setSelectedBuilding(current);
+  if(!current){setSystems([]);setEvents([]);return}
+  const [s,e]=await Promise.all([
+   supabase.from('impianti_manutentivi').select('*').eq('edificio_id',current).order('tipo'),
+   supabase.from('manutenzioni').select('*').eq('edificio_id',current).order('data_programmata',{ascending:false})
+  ]);
+  if(s.error)setMessage('Errore caricamento impianti: '+s.error.message);else setSystems((s.data||[]) as MaintenanceSystem[]);
+  if(e.error)setMessage('Errore caricamento manutenzioni: '+e.error.message);else setEvents((e.data||[]) as MaintenanceEvent[]);
+ };
+ useEffect(()=>{void load()},[refresh,enteId,selectedBuilding]);
+ const filteredBuildings=buildings.filter(b=>(b.codice_edificio+' '+b.denominazione+' '+(b.comune||'')).toLowerCase().includes(q.toLowerCase()));
+ const currentBuilding=buildings.find(b=>b.id===selectedBuilding);
+ const getSystem=(tipo:MaintenanceSystem['tipo'])=>systems.find(s=>s.tipo===tipo);
+ const dueCount=systems.filter(s=>s.data_prossima_manutenzione&&new Date(s.data_prossima_manutenzione+'T23:59:59')<new Date()).length;
+ const saveSystem=async(e:any)=>{
+  e.preventDefault();if(!enteId||!selectedBuilding)return;
+  const f=new FormData(e.currentTarget);
+  const tipo=String(f.get('tipo')) as MaintenanceSystem['tipo'];
+  const payload={
+   ente_id:enteId,edificio_id:selectedBuilding,tipo,denominazione:String(f.get('denominazione')||'').trim(),
+   codice:String(f.get('codice')||'').trim()||null,ubicazione:String(f.get('ubicazione')||'').trim()||null,
+   marca_modello:String(f.get('marca_modello')||'').trim()||null,matricola:String(f.get('matricola')||'').trim()||null,
+   anno_installazione:Number(f.get('anno_installazione')||0)||null,stato:String(f.get('stato')||'attivo'),
+   data_ultima_manutenzione:f.get('data_ultima')||null,data_prossima_manutenzione:f.get('data_prossima')||null,
+   periodicita_mesi:Number(f.get('periodicita')||0)||null,ditta_manutentrice:String(f.get('ditta')||'').trim()||null,
+   referente:String(f.get('referente')||'').trim()||null,numero_rapporto:String(f.get('rapporto')||'').trim()||null,
+   conformita:f.get('conformita')==='on',note:String(f.get('note')||'').trim()||null
+  };
+  const result=editingSystem?await supabase.from('impianti_manutentivi').update(payload).eq('id',editingSystem.id):await supabase.from('impianti_manutentivi').insert({...payload,created_by:access[0]?.user_id});
+  if(result.error){setMessage('Salvataggio impianto non riuscito: '+result.error.message);return}
+  setMessage(editingSystem?'Impianto modificato correttamente.':'Impianto inserito correttamente.');setShowSystem(false);setEditingSystem(null);setRefresh(refresh+1);
+ };
+ const removeSystem=async(s:MaintenanceSystem)=>{
+  if(!confirm('Eliminare la scheda dell\'impianto "'+s.denominazione+'"?'))return;
+  const {error}=await supabase.from('impianti_manutentivi').delete().eq('id',s.id);
+  if(error)setMessage('Eliminazione non riuscita: '+error.message);else{setMessage('Scheda impianto eliminata.');setRefresh(refresh+1)}
+ };
+ const saveEvent=async(e:any)=>{
+  e.preventDefault();if(!enteId||!selectedBuilding)return;
+  const f=new FormData(e.currentTarget);
+  const {error}=await supabase.from('manutenzioni').insert({
+   ente_id:enteId,edificio_id:selectedBuilding,impianto_id:String(f.get('impianto')||'')||null,
+   tipo:f.get('tipo'),stato:f.get('stato'),data_richiesta:f.get('data_richiesta')||undefined,
+   data_programmata:f.get('data_programmata')||null,data_esecuzione:f.get('data_esecuzione')||null,
+   descrizione:String(f.get('descrizione')||'').trim(),esito:String(f.get('esito')||'').trim()||null,
+   costo_previsto:Number(f.get('costo_previsto')||0)||0,costo_consuntivo:Number(f.get('costo_consuntivo')||0)||0,
+   operatore:String(f.get('operatore')||'').trim()||null,numero_rapporto:String(f.get('numero_rapporto')||'').trim()||null,
+   note:String(f.get('note')||'').trim()||null,created_by:access[0]?.user_id
+  });
+  if(error){setMessage('Inserimento manutenzione non riuscito: '+error.message);return}
+  setMessage('Manutenzione registrata correttamente.');setShowEvent(false);setRefresh(refresh+1);
+ };
+ return <PageHead title="Manutenzioni" subtitle="Gestione tecnica e manutentiva degli impianti di ciascun edificio.">
+  <div className="page-actions">
+   <div className="search"><Search size={17}/><input placeholder="Cerca edificio…" value={q} onChange={e=>setQ(e.target.value)}/></div>
+   {write&&<button className="btn primary" disabled={!selectedBuilding} onClick={()=>setShowEvent(true)}><Plus size={17}/> Nuova manutenzione</button>}
+  </div>
+  {message&&<div className="notice success">{message}</div>}
+  <section className="maintenance-layout">
+   <aside className="card maintenance-buildings">
+    <div className="card-head"><div><h2>Edifici</h2><p>Seleziona l'immobile da gestire</p></div><Building2 size={20}/></div>
+    <div className="maintenance-building-list">
+     {filteredBuildings.map(b=><button key={b.id} className={selectedBuilding===b.id?'selected':''} onClick={()=>setSelectedBuilding(b.id)}><b>{b.codice_edificio}</b><span>{b.denominazione}</span><small>{[b.comune,b.indirizzo].filter(Boolean).join(' · ')||'Località non indicata'}</small></button>)}
+    </div>
+   </aside>
+   <div className="maintenance-workspace">
+    <section className="card maintenance-summary">
+     <div><span className="eyebrow">Edificio selezionato</span><h2>{currentBuilding?.denominazione||'Nessun edificio selezionato'}</h2><p>{currentBuilding?[currentBuilding.codice_edificio,currentBuilding.indirizzo,currentBuilding.comune].filter(Boolean).join(' · '):'Seleziona un edificio dall’elenco.'}</p></div>
+     <div className="maintenance-summary-stats"><div><b>{systems.length}/4</b><span>impianti censiti</span></div><div><b>{dueCount}</b><span>scadenze superate</span></div><div><b>{events.length}</b><span>manutenzioni registrate</span></div></div>
+    </section>
+    <div className="maintenance-systems">
+     {systemLabels.map(def=>{const s=getSystem(def.key);return <section className="card maintenance-system-card" key={def.key}>
+      <div className="maintenance-system-head"><div><span className="eyebrow">{def.label}</span><h3>{s?.denominazione||'Non censito'}</h3><p>{def.description}</p></div><span className={'badge '+(s?.stato==='attivo'?'green':s?.stato==='fuori_servizio'?'red':'gray')}>{s?.stato?statusLabel(s.stato):'Da censire'}</span></div>
+      <div className="maintenance-system-grid"><Info label="Matricola" value={s?.matricola}/><Info label="Ultima manutenzione" value={date(s?.data_ultima_manutenzione)}/><Info label="Prossima manutenzione" value={date(s?.data_prossima_manutenzione)}/><Info label="Ditta manutentrice" value={s?.ditta_manutentrice}/><Info label="Periodicità" value={s?.periodicita_mesi?(s.periodicita_mesi+' mesi'):null}/><Info label="Conformità" value={s?.conformita?'Dichiarata':'Da verificare'}/></div>
+      <div className="maintenance-card-actions">{write&&<><button className="btn secondary" onClick={()=>{setEditingSystem(s||null);setShowSystem(true)}}>{s?<><Pencil size={15}/> Modifica</>:<><Plus size={15}/> Censisci impianto</>}</button>{s&&<button className="icon-btn" title="Elimina scheda" onClick={()=>removeSystem(s)}><Trash2 size={16}/></button>}</>}</div>
+     </section>})}
+    </div>
+    <section className="card table-card">
+     <div className="card-head"><div><h2>Registro manutenzioni</h2><p>Interventi ordinari, straordinari, verifiche ed emergenze dell'edificio.</p></div><Wrench size={20}/></div>
+     {events.length?<table><thead><tr><th>Data</th><th>Impianto</th><th>Tipo</th><th>Stato</th><th>Descrizione</th><th>Operatore</th><th>Consuntivo</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td>{date(e.data_esecuzione||e.data_programmata||e.data_richiesta)}</td><td>{systems.find(s=>s.id===e.impianto_id)?.denominazione||'—'}</td><td>{statusLabel(e.tipo)}</td><td><span className={'badge '+(e.stato==='chiusa'?'green':e.stato==='annullata'?'red':e.stato==='in_corso'?'amber':'blue')}>{statusLabel(e.stato)}</span></td><td><b>{e.descrizione}</b>{e.esito&&<span className="table-sub">{e.esito}</span>}</td><td>{e.operatore||'—'}</td><td>{money(e.costo_consuntivo)}</td></tr>)}</tbody></table>:<Empty title="Nessuna manutenzione registrata" text="Registra il primo intervento manutentivo per l'edificio selezionato."/>}
+    </section>
+   </div>
+  </section>
+  {showSystem&&<Modal title={editingSystem?'Modifica impianto':'Censimento impianto'} close={()=>{setShowSystem(false);setEditingSystem(null)}}><MaintenanceSystemForm row={editingSystem} building={currentBuilding} labels={systemLabels} onCancel={()=>{setShowSystem(false);setEditingSystem(null)}} onSubmit={saveSystem}/></Modal>}
+  {showEvent&&<Modal title="Nuova manutenzione" close={()=>setShowEvent(false)}><MaintenanceEventForm systems={systems} onCancel={()=>setShowEvent(false)} onSubmit={saveEvent}/></Modal>}
+ </PageHead>
+}
+
+function MaintenanceSystemForm({row,building,labels,onCancel,onSubmit}:{row:MaintenanceSystem|null;building:Building|undefined;labels:{key:MaintenanceSystem['tipo'];label:string;description:string}[];onCancel:()=>void;onSubmit:(e:any)=>void}){
+ const tipo=row?.tipo||labels[0].key;
+ return <form className="form-grid" onSubmit={onSubmit}>
+  <label>Impianto<select name="tipo" defaultValue={tipo}>{labels.map(x=><option key={x.key} value={x.key}>{x.label}</option>)}</select></label>
+  <label>Stato<select name="stato" defaultValue={row?.stato||'attivo'}><option value="attivo">Attivo</option><option value="fuori_servizio">Fuori servizio</option><option value="in_dismissione">In dismissione</option></select></label>
+  <label className="span-2">Denominazione<input name="denominazione" defaultValue={row?.denominazione||labels.find(x=>x.key===tipo)?.label||''} required/></label>
+  <label>Codice<input name="codice" defaultValue={row?.codice||''}/></label>
+  <label>Ubicazione<input name="ubicazione" defaultValue={row?.ubicazione||''}/></label>
+  <label>Marca / modello<input name="marca_modello" defaultValue={row?.marca_modello||''}/></label>
+  <label>Matricola<input name="matricola" defaultValue={row?.matricola||''}/></label>
+  <label>Anno installazione<input name="anno_installazione" type="number" min="1800" max="2200" defaultValue={row?.anno_installazione??''}/></label>
+  <label>Ultima manutenzione<input name="data_ultima" type="date" defaultValue={row?.data_ultima_manutenzione||''}/></label>
+  <label>Prossima manutenzione<input name="data_prossima" type="date" defaultValue={row?.data_prossima_manutenzione||''}/></label>
+  <label>Periodicità (mesi)<input name="periodicita" type="number" min="1" max="120" defaultValue={row?.periodicita_mesi??''}/></label>
+  <label>Ditta manutentrice<input name="ditta" defaultValue={row?.ditta_manutentrice||''}/></label>
+  <label>Referente<input name="referente" defaultValue={row?.referente||''}/></label>
+  <label>Numero rapporto<input name="rapporto" defaultValue={row?.numero_rapporto||''}/></label>
+  <label className="permission-check"><input name="conformita" type="checkbox" defaultChecked={row?.conformita||false}/><span>Conformità documentale dichiarata</span></label>
+  <label className="span-2">Note<textarea name="note" defaultValue={row?.note||''}/></label>
+  <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">{row?'Salva modifiche':'Censisci impianto'}</button></div>
+ </form>
+}
+
+function MaintenanceEventForm({systems,onCancel,onSubmit}:{systems:MaintenanceSystem[];onCancel:()=>void;onSubmit:(e:any)=>void}){
+ return <form className="form-grid" onSubmit={onSubmit}>
+  <label>Impianto<select name="impianto"><option value="">Generale edificio</option>{systems.map(s=><option value={s.id} key={s.id}>{s.denominazione}</option>)}</select></label>
+  <label>Tipo<select name="tipo" defaultValue="ordinaria"><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option><option value="verifica">Verifica</option><option value="emergenza">Emergenza</option></select></label>
+  <label>Stato<select name="stato" defaultValue="programmata"><option value="programmata">Programmata</option><option value="aperta">Aperta</option><option value="in_corso">In corso</option><option value="chiusa">Chiusa</option><option value="annullata">Annullata</option></select></label>
+  <label>Data richiesta<input name="data_richiesta" type="date" defaultValue={new Date().toISOString().slice(0,10)}/></label>
+  <label>Data programmata<input name="data_programmata" type="date"/></label>
+  <label>Data esecuzione<input name="data_esecuzione" type="date"/></label>
+  <label className="span-2">Descrizione<input name="descrizione" required/></label>
+  <label className="span-2">Esito<textarea name="esito"/></label>
+  <label>Costo previsto<input name="costo_previsto" type="number" min="0" step=".01"/></label>
+  <label>Costo consuntivo<input name="costo_consuntivo" type="number" min="0" step=".01"/></label>
+  <label>Operatore / ditta<input name="operatore"/></label>
+  <label>Numero rapporto<input name="numero_rapporto"/></label>
+  <label className="span-2">Note<textarea name="note"/></label>
+  <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">Registra manutenzione</button></div>
+ </form>
+}
+
 
 function SimpleForm({fields,onCancel,onSubmit}:{fields:string[][];onCancel:()=>void;onSubmit:(e:any)=>void}){return <form className="form-grid" onSubmit={onSubmit}>{fields.map(([n,l])=><label key={n}>{l}<input name={n} type={n.includes('superficie')||n==='anno'?'number':'text'} required={n==='codice'||n==='denominazione'}/></label>)}<div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">Salva</button></div></form>}
 function Info({label,value}:{label:string;value:any}){return <div className="info-row"><span>{label}</span><strong>{value===null||value===undefined||value===''?'—':String(value)}</strong></div>}
