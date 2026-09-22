@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X, Upload, Download, RefreshCw } from 'lucide-react'
 import { supabase } from './lib/supabase'
+import AuthScreen from './AuthScreen'
 
 type Page='dashboard'|'edifici'|'interventi'|'fascicolo'|'report'|'amministrazione'
 type Access={user_id:string;ente_id:string;ruolo:string;ente:string}
@@ -22,17 +23,6 @@ export default function App(){
  return <AppShell session={session}/>
 }
 
-function AuthScreen(){
- const [mode,setMode]=useState<'login'|'signup'|'reset'>('login');const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [busy,setBusy]=useState(false);const [msg,setMsg]=useState('');const redirectTo=window.location.origin+import.meta.env.BASE_URL
- async function submit(e:any){e.preventDefault();setBusy(true);setMsg('');let error=null
-  if(mode==='login')({error}=await supabase.auth.signInWithPassword({email,password}))
-  else if(mode==='signup'){const r=await supabase.auth.signUp({email,password,options:{emailRedirectTo:redirectTo}});error=r.error; if(!error)setMsg('Registrazione effettuata. Controlla la posta se è richiesta la conferma email.')}
-  else {const r=await supabase.auth.resetPasswordForEmail(email,{redirectTo});error=r.error;if(!error)setMsg('Email per il recupero inviata.')}
-  if(error)setMsg(error.message);setBusy(false)
- }
- async function microsoft(){setBusy(true);const {error}=await supabase.auth.signInWithOAuth({provider:'azure',options:{redirectTo,scopes:'email openid profile User.Read'}});if(error)setMsg(error.message);setBusy(false)}
- return <div className="auth-screen"><div className="auth-card"><div className="brand-mark"><Building2 size={28}/></div><h1>Gestione Appalti</h1><p>Gestione digitale degli interventi e dei fascicoli tecnici.</p>{msg&&<div className="notice warning"><CircleAlert size={17}/>{msg}</div>}{mode!=='reset'&&<button className="btn microsoft" onClick={microsoft} disabled={busy}>Accedi con Microsoft</button>}<div className="auth-divider"><span>oppure</span></div><form onSubmit={submit}>{mode!=='reset'&&<label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label>}{mode!=='reset'&&<label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={6} required/></label>}{mode==='reset'&&<label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label>}<button className="btn primary full" disabled={busy}>{busy?'Attendere…':mode==='login'?'Accedi':mode==='signup'?'Crea account':'Invia recupero'}</button></form><div className="auth-links">{mode==='login'?<><button onClick={()=>setMode('signup')}>Crea account</button><button onClick={()=>setMode('reset')}>Password dimenticata?</button></>:<button onClick={()=>setMode('login')}>Torna al login</button>}</div></div></div>
-}
 
 function AppShell({session}:{session:any}){
  const [page,setPage]=useState<Page>((location.hash.replace('#/','').split('/')[0] as Page)||'dashboard');const [access,setAccess]=useState<Access[]>([]);const [mobile,setMobile]=useState(false);const [selectedId,setSelectedId]=useState<string|null>(location.hash.split('/')[2]||null);const [refresh,setRefresh]=useState(0)
