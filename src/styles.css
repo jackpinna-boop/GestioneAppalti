@@ -47,7 +47,7 @@
 @media print{
   @page{size:A4;margin:14mm}
   body{background:#fff}
-  .topbar,.sidebar,.page-head>.page-head,.page-actions,.tabs,.no-print{display:none!important}
+  .topbar,.sidebar,.main>*:not(.print-report){display:none!important}
   .layout,.main{display:block!important;padding:0!important}
   .print-report{display:block!important;font-family:Arial,sans-serif;color:#111}
   .print-report h1{font-size:22px;margin:0 0 16px}.print-report h2{font-size:15px;margin:20px 0 8px}
