@@ -120,7 +120,11 @@ function AdminPage({access}:{access:Access[]}){
  const [userModal,setUserModal]=useState(false);
  const [editingUser,setEditingUser]=useState<any|null>(null);
  const [userSaving,setUserSaving]=useState(false);
- const [userMessage,setUserMessage]=useState('');
+ const [userMessage,setUserMessage]=useState(''); const [permRows,setPermRows]=useState<any[]>([]);
+ const [selectedPermUser,setSelectedPermUser]=useState('');
+ const [permForm,setPermForm]=useState({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true});
+ const [auditRows,setAuditRows]=useState<any[]>([]);
+
  const manage=access.some(x=>['superadmin','admin_ente'].includes(x.ruolo));
  const superadmin=access.some(x=>x.ruolo==='superadmin');
  const currentEnteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
@@ -145,7 +149,10 @@ function AdminPage({access}:{access:Access[]}){
    if(data?.error){setUserMessage('Elenco utenti non disponibile: '+data.error);return}
    setUsers(data?.users||[]);
  };
- useEffect(()=>{void load()},[currentEnteId,manage]);
+ const loadPermissions=async()=>{if(!manage||!currentEnteId)return;const {data,error}=await supabase.from('permessi_utenti').select('id,user_id,ente_id,can_view,can_create,can_update,can_delete,can_documents,can_admin').eq('ente_id',currentEnteId);if(error){console.error('Errore caricamento privilegi:',error);return}setPermRows(data||[])};
+ const loadAudit=async()=>{if(!manage||!currentEnteId)return;const {data,error}=await supabase.from('audit_log').select('id,timestamp,user_id,azione,tabella,record_id,valore_precedente,valore_nuovo').eq('ente_id',currentEnteId).order('timestamp',{ascending:false}).limit(100);if(error){console.error('Errore caricamento log:',error);return}setAuditRows(data||[])};
+ useEffect(()=>{void load();void loadPermissions();void loadAudit()},[currentEnteId,manage]);
+
  async function assign(e:any){
    e.preventDefault();
    if(!form.user_id||!form.ente_id||!form.ruolo){alert('Compila Utente, Ente e Ruolo.');return}
@@ -207,6 +214,9 @@ function AdminPage({access}:{access:Access[]}){
    setEditingUser({...u,ente_id:r?.ente_id||currentEnteId,ruolo:r?.ruolo||'tecnico'});
    setUserMessage('');setUserModal(true);
  };
+ async function savePermissions(e:any){e.preventDefault();if(!selectedPermUser)return;const {error}=await supabase.from('permessi_utenti').upsert({ente_id:currentEnteId,user_id:selectedPermUser,...permForm},{onConflict:'ente_id,user_id'});if(error){alert('Errore salvataggio privilegi: '+error.message);return}alert('Privilegi utente salvati.');await loadPermissions()}
+ const resetPermissions=async()=>{if(!selectedPermUser)return;if(!confirm('Ripristinare i privilegi predefiniti per questo utente?'))return;const {error}=await supabase.from('permessi_utenti').delete().eq('ente_id',currentEnteId).eq('user_id',selectedPermUser);if(error){alert('Errore ripristino privilegi: '+error.message);return}setPermForm({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true});await loadPermissions()};
+ const selectPermissionUser=(uid:string)=>{setSelectedPermUser(uid);const p=permRows.find(x=>x.user_id===uid);setPermForm(p?{can_view:p.can_view,can_create:p.can_create,can_update:p.can_update,can_delete:p.can_delete,can_documents:p.can_documents}:{can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true})};
  async function saveBuildingPermission(e:any){
    e.preventDefault();
    if(!buildingPerm.user_id||(!buildingPerm.all_buildings&&!buildingPerm.edificio_id)){alert('Seleziona un edificio oppure Tutti gli edifici.');return}
@@ -238,6 +248,23 @@ function AdminPage({access}:{access:Access[]}){
    {userModal&&<Modal title={editingUser?'Modifica utente':'Nuovo utente'} close={()=>{if(!userSaving){setUserModal(false);setEditingUser(null)}}}><form className="form-grid" onSubmit={saveUser}><label>Nome<input name="nome" defaultValue={editingUser?.nome||''}/></label><label>Cognome<input name="cognome" defaultValue={editingUser?.cognome||''}/></label><label className="span-2">E-mail<input name="email" type="email" defaultValue={editingUser?.email||''} required/></label><label>Telefono<input name="telefono" defaultValue={editingUser?.telefono||''}/></label><label>Password<input name="password" type="password" placeholder={editingUser?'Lascia vuoto per non modificarla':'Minimo 8 caratteri'} minLength={8} required={!editingUser}/></label><label>Ente<select name="ente_id" defaultValue={editingUser?.ente_id||currentEnteId} required>{entities.map(e=><option key={e.id} value={e.id}>{e.denominazione}</option>)}</select></label><label>Ruolo<select name="ruolo" defaultValue={editingUser?.ruolo||'tecnico'}>{(superadmin?['superadmin',...managedRoles]:managedRoles).map(r=><option key={r}>{r}</option>)}</select></label><label className="checkbox-label span-2"><input name="attivo" type="checkbox" defaultChecked={editingUser?editingUser.attivo!==false:true}/> Utente attivo</label><div className="form-actions span-2"><button type="button" className="btn secondary" disabled={userSaving} onClick={()=>{setUserModal(false);setEditingUser(null)}}>Annulla</button><button className="btn primary" disabled={userSaving}>{userSaving?'Salvataggio…':editingUser?'Salva modifiche':'Crea utente'}</button></div></form></Modal>}
    {manage&&<section className="card"><div className="card-head"><div><h2>Assegna ruolo</h2><p>Disponibile a superadmin e amministratori dell’ente.</p></div><Settings size={20}/></div><form className="form-grid" onSubmit={assign}><label className="span-2">Utente<select value={form.user_id} onChange={e=>setForm({...form,user_id:e.target.value})} required><option value="">Seleziona…</option>{users.map(u=><option key={u.id} value={u.id}>{[u.cognome,u.nome].filter(Boolean).join(' ')} — {u.email||u.id}</option>)}</select></label><label>Ente<select value={form.ente_id} onChange={e=>setForm({...form,ente_id:e.target.value})} required><option value="">Seleziona…</option>{entities.map(e=><option key={e.id} value={e.id}>{e.denominazione}</option>)}</select></label><label>Ruolo<select value={form.ruolo} onChange={e=>setForm({...form,ruolo:e.target.value})}>{(superadmin?['superadmin',...managedRoles]:managedRoles).map(r=><option key={r}>{r}</option>)}</select></label><div className="form-actions span-2"><button className="btn primary">Salva ruolo</button></div></form></section>}
    {manage&&<section className="card"><div className="card-head"><div><h2>Permessi edifici</h2><p>Il superadmin o l'amministratore dell'ente può autorizzare un utente a modificare e/o eliminare specifici edifici.</p></div><Building2 size={20}/></div><form className="form-grid" onSubmit={saveBuildingPermission}><label className="span-2">Utente<select value={buildingPerm.user_id} onChange={e=>setBuildingPerm({...buildingPerm,user_id:e.target.value})} required><option value="">Seleziona…</option>{users.map(u=><option key={u.id} value={u.id}>{[u.cognome,u.nome].filter(Boolean).join(' ')} — {u.email||u.id}</option>)}</select></label><label className="span-2">Edificio<select value={buildingPerm.all_buildings?'ALL':buildingPerm.edificio_id} onChange={e=>{const all=e.target.value==='ALL';setBuildingPerm({...buildingPerm,all_buildings:all,edificio_id:all?'':e.target.value})}}><option value="">Seleziona un edificio…</option><option value="ALL">TUTTI GLI EDIFICI</option>{buildings.map(b=><option key={b.id} value={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}</select></label><label className="checkbox-label"><input type="checkbox" checked={buildingPerm.can_update} onChange={e=>setBuildingPerm({...buildingPerm,can_update:e.target.checked})}/> Può modificare</label><label className="checkbox-label"><input type="checkbox" checked={buildingPerm.can_delete} onChange={e=>setBuildingPerm({...buildingPerm,can_delete:e.target.checked})}/> Può eliminare</label><div className="form-actions span-2"><button className="btn primary">Salva permessi edificio</button></div></form></section>}
+   <section className="card">
+    <div className="card-head"><div><h2>Privilegi utenti</h2><p>Per impostazione predefinita ogni utente registrato dell'ente può operare sui dati. Un record qui presente personalizza i privilegi.</p></div><UserCog size={20}/></div>
+    <form className="form-grid" onSubmit={savePermissions}>
+      <label className="span-2">Utente<select value={selectedPermUser} onChange={e=>selectPermissionUser(e.target.value)}><option value="">Seleziona utente…</option>{users.map(u=><option key={u.id} value={u.id}>{[u.cognome,u.nome].filter(Boolean).join(' ')||'Utente'} — {u.email}</option>)}</select></label>
+      <label className="permission-check"><input type="checkbox" checked={permForm.can_view} onChange={e=>setPermForm({...permForm,can_view:e.target.checked})}/> Visualizzare</label>
+      <label className="permission-check"><input type="checkbox" checked={permForm.can_create} onChange={e=>setPermForm({...permForm,can_create:e.target.checked})}/> Inserire</label>
+      <label className="permission-check"><input type="checkbox" checked={permForm.can_update} onChange={e=>setPermForm({...permForm,can_update:e.target.checked})}/> Modificare</label>
+      <label className="permission-check"><input type="checkbox" checked={permForm.can_delete} onChange={e=>setPermForm({...permForm,can_delete:e.target.checked})}/> Eliminare</label>
+      <label className="permission-check"><input type="checkbox" checked={permForm.can_documents} onChange={e=>setPermForm({...permForm,can_documents:e.target.checked})}/> Gestire allegati</label>
+      <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={resetPermissions} disabled={!selectedPermUser}><RotateCcw size={16}/> Ripristina default</button><button className="btn primary" disabled={!selectedPermUser}><Save size={16}/> Salva privilegi</button></div>
+    </form>
+    {permRows.length?<div className="permission-summary">{permRows.map(p=><div key={p.id}><strong>{users.find(u=>u.id===p.user_id)?.email||p.user_id}</strong><span>{p.can_view?'Lettura':'—'} · {p.can_create?'Inserimento':'—'} · {p.can_update?'Modifica':'—'} · {p.can_delete?'Eliminazione':'—'} · {p.can_documents?'Allegati':'—'}</span></div>)}</div>:<div className="muted">Nessuna personalizzazione: tutti gli utenti registrati dell'ente utilizzano i privilegi predefiniti.</div>}
+   </section>
+   <section className="card">
+    <div className="card-head"><div><h2>Registro modifiche</h2><p>Ultime 100 operazioni registrate sull'intervento e sui relativi dati.</p></div><History size={20}/></div>
+    {auditRows.length?<table><thead><tr><th>Data</th><th>Azione</th><th>Tabella</th><th>Record</th><th>Utente</th></tr></thead><tbody>{auditRows.map(x=><tr key={x.id}><td>{new Date(x.timestamp).toLocaleString('it-IT')}</td><td><span className="badge blue">{x.azione}</span></td><td>{x.tabella}</td><td>{x.record_id||'—'}</td><td>{users.find(u=>u.id===x.user_id)?.email||x.user_id||'Sistema'}</td></tr>)}</tbody></table>:<Empty title="Nessuna modifica registrata" text="Le modifiche future verranno tracciate automaticamente."/>}
+   </section>
    <section className="card"><div className="card-head"><div><h2>Microsoft / Azure</h2><p>Provider OAuth configurabile in Supabase Auth.</p></div><ShieldCheck size={20}/></div><code>https://cuaxulqyrhosqbfaympv.supabase.co/auth/v1/callback</code></section>
  </PageHead>
 }
