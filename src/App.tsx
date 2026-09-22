@@ -88,7 +88,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  const load=async()=>{
   setLoading(true);
   const [r,b,a,d]=await Promise.all([
-   supabase.from('richieste_intervento').select('*,richieste_intervento_sedi(id,edificio_id,edifici(id,codice_edificio,denominazione,indirizzo,comune)),richieste_intervento_ambiti(id,ambito_id,ambiti_richiesta_intervento(id,codice,denominazione)),richiesta_intervento_documenti(id,nome,mime_type,size_bytes)').order('data_richiesta',{ascending:false}).order('numero_progressivo',{ascending:false}),
+   supabase.from('richieste_intervento').select('*,richieste_intervento_sedi(id,edificio_id,edifici(id,codice_edificio,denominazione,indirizzo,comune)),richieste_intervento_ambiti(id,ambito_id,ambiti_richiesta_intervento(id,codice,denominazione)),richiesta_intervento_documenti(id,nome,mime_type,size_bytes,url,tipo,data_documento,versione)').order('data_richiesta',{ascending:false}).order('numero_progressivo',{ascending:false}),
    supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune').order('denominazione'),
    supabase.from('ambiti_richiesta_intervento').select('id,codice,denominazione').eq('attivo',true).order('denominazione'),
    Promise.resolve({data:null,error:null})
