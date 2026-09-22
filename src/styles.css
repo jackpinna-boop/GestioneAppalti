@@ -116,6 +116,15 @@
 .row-actions{display:flex;gap:2px}
 .dark-icon{color:#536174!important}
 .request-form{gap:14px}
+.request-attachments{display:grid;gap:6px;margin-bottom:2px}
+.request-attachments-picker{display:flex!important;align-items:center;gap:11px;border:1px dashed #b9c9d8;border-radius:10px;padding:11px 13px;background:#f8fbfd;color:#315774;cursor:pointer}
+.request-attachments-picker:hover{background:#f1f7fb;border-color:#7ea5c2}
+.request-attachments-picker>svg{flex:none}
+.request-attachments-picker span{display:grid;gap:2px;flex:1}
+.request-attachments-picker strong{font-size:11px;color:#173f62}
+.request-attachments-picker small{font-size:10px;color:#718096;font-weight:500}
+.request-attachments-picker input{max-width:220px;font-size:10px;color:#65758a}
+.request-attachments-note{font-size:9px;color:#8490a0;margin-left:4px}
 .form-section-title{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#0f2742;font-weight:900;padding-bottom:2px;border-bottom:1px solid #e8edf2}
 .form-section-title span{float:right;color:#718096;text-transform:none;font-weight:600}
 .request-multiselect{border:1px solid #e0e6ed;border-radius:10px;padding:12px;background:#fafbfd}
