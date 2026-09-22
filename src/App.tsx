@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X, Upload, Download, RefreshCw, Pencil, Trash2, Printer, Paperclip, Wrench, UserCog, History, Save, RotateCcw, CheckCircle2, Eye, SlidersHorizontal, CalendarDays, ChevronDown } from 'lucide-react'
 import { supabase } from './lib/supabase'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import AuthScreen from './AuthScreen'
 
 type Page='dashboard'|'edifici'|'richieste'|'interventi'|'intervento'|'fascicolo'|'report'|'amministrazione'|'manutenzioni'
@@ -14,9 +15,10 @@ const money=(n:number|null|undefined)=>new Intl.NumberFormat('it-IT',{style:'cur
 const date=(s:string|null|undefined)=>s?new Intl.DateTimeFormat('it-IT').format(new Date(s+'T00:00:00')):'—'
 const statusLabel=(s:string)=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())
 const statusClass=(s:string)=>({programmato:'gray',progettazione:'blue',approvato:'blue',affidamento:'amber',contratto:'amber',esecuzione:'green',fine_lavori:'green',collaudo:'purple',chiuso:'green',sospeso:'red',annullato:'red'}[s]||'gray')
+const isManutentore=(a:Access[])=>a.some(x=>x.ruolo==='manutentore')
 const canWrite=(a:Access[])=>a.length>0
 const canManage=(a:Access[])=>a.some(x=>['superadmin','admin_ente','rup'].includes(x.ruolo))
-const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore']
+const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore']
 
 export default function App(){
  const [session,setSession]=useState<any>(null);const [ready,setReady]=useState(false)
@@ -83,7 +85,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  const [ambiti,setAmbiti]=useState<any[]>([]); const [q,setQ]=useState(''); const [filter,setFilter]=useState('tutte'); const [buildingFilter,setBuildingFilter]=useState('all'); const [ambitoFilter,setAmbitoFilter]=useState('all'); const [priorityFilter,setPriorityFilter]=useState('all');
  const [show,setShow]=useState(false); const [editing,setEditing]=useState<RequestRow|null>(null); const [detail,setDetail]=useState<RequestRow|null>(null);
  const [message,setMessage]=useState(''); const [loading,setLoading]=useState(false); const [advanced,setAdvanced]=useState(false);
- const write=canWrite(access); const enteId=access[0]?.ente_id;
+ const write=canWrite(access); const manutentore=isManutentore(access); const enteId=access[0]?.ente_id;
 
  const load=async()=>{
   setLoading(true);
@@ -150,7 +152,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   <div className="page-actions">
    <div className="search"><Search size={17}/><input placeholder="Cerca codice, protocollo, titolo, edificio…" value={q} onChange={e=>setQ(e.target.value)}/></div>
    <button className="btn secondary" onClick={()=>setAdvanced(!advanced)}><SlidersHorizontal size={16}/> Filtri</button>
-   {write&&<button className="btn primary" onClick={()=>{setEditing(null);setShow(true)}}><Plus size={17}/> Nuova richiesta</button>}
+   {write&&!manutentore&&<button className="btn primary" onClick={()=>{setEditing(null);setShow(true)}}><Plus size={17}/> Nuova richiesta</button>}
   </div>
   {advanced&&<div className="request-filters card"><label>Stato<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="tutte">Tutte</option><option value="da_valutare">Da valutare</option><option value="ordinaria">Ordinarie</option><option value="straordinaria">Straordinarie</option><option value="aperte">Aperte</option><option value="risolte">Risolte</option></select></label><label>Edificio / sede<select value={buildingFilter} onChange={e=>setBuildingFilter(e.target.value)}><option value="all">Tutti gli edifici</option>{buildings.map((b:any)=><option key={b.id} value={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}</select></label><label>Ambito di intervento<select value={ambitoFilter} onChange={e=>setAmbitoFilter(e.target.value)}><option value="all">Tutti gli ambiti</option>{ambiti.map((a:any)=><option key={a.id} value={a.id}>{a.denominazione}</option>)}</select></label><label>Priorità<select value={priorityFilter} onChange={e=>setPriorityFilter(e.target.value)}><option value="all">Tutte le priorità</option><option value="programmabile">Programmabile</option><option value="non_urgente">Non urgente</option><option value="media">Medio</option><option value="urgente">Urgente</option></select></label><button type="button" className="btn secondary filter-reset" onClick={()=>{setFilter('tutte');setBuildingFilter('all');setAmbitoFilter('all');setPriorityFilter('all');setQ('')}}><RotateCcw size={15}/> Azzera filtri</button></div>}
   <div className="request-tabs"><button className={filter==='tutte'?'active':''} onClick={()=>setFilter('tutte')}>Tutte <b>{rows.length}</b></button><button className={filter==='da_valutare'?'active':''} onClick={()=>setFilter('da_valutare')}>Da valutare <b>{rows.filter(x=>x.stato_risoluzione==='da_valutare').length}</b></button><button className={filter==='aperte'?'active':''} onClick={()=>setFilter('aperte')}>Aperte <b>{rows.filter(x=>x.stato_risoluzione==='aperta').length}</b></button><button className={filter==='risolte'?'active':''} onClick={()=>setFilter('risolte')}>Risolte <b>{rows.filter(x=>x.stato_risoluzione==='risolta').length}</b></button></div>
@@ -165,15 +167,15 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
     <td><span className={'badge '+requestTypeClass(x.tipo_intervento)}>{requestTypeLabel(x.tipo_intervento)}</span></td><td><span className={'badge '+(x.priorita==='urgente'?'red':x.priorita==='media'?'amber':'gray')}>{x.priorita||'—'}</span></td><td>{date(x.data_richiesta)}</td>
     <td><span className={'badge '+(x.risolto?'green':'amber')}>{x.risolto?'Risolta':'Aperta'}</span>{x.risolto&&<span className="table-sub">{date(x.data_risoluzione)}</span>}</td>
     <td><span className="attachment-count"><Paperclip size={14}/>{docs.length}</span></td>
-    <td onClick={e=>e.stopPropagation()}><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>setDetail(x)}><Eye size={16}/></button>{write&&<button className="icon-btn dark-icon" title="Modifica" onClick={()=>{setEditing(x);setShow(true)}}><Pencil size={16}/></button>}{write&&!x.risolto&&<button className="icon-btn dark-icon" title="Segna risolta" onClick={()=>markResolved(x)}><CheckCircle2 size={16}/></button>}{write&&<button className="icon-btn dark-icon" title="Elimina" onClick={()=>remove(x)}><Trash2 size={16}/></button>}</div></td>
+    <td onClick={e=>e.stopPropagation()}><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>setDetail(x)}><Eye size={16}/></button>{write&&<button className="icon-btn dark-icon" title="Modifica" onClick={()=>{setEditing(x);setShow(true)}}><Pencil size={16}/></button>}{write&&!manutentore&&!x.risolto&&<button className="icon-btn dark-icon" title="Segna risolta" onClick={()=>markResolved(x)}><CheckCircle2 size={16}/></button>}{write&&!manutentore&&<button className="icon-btn dark-icon" title="Elimina" onClick={()=>remove(x)}><Trash2 size={16}/></button>}</div></td>
    </tr>})}</tbody></table>:<Empty title="Nessuna richiesta" text="Non risultano richieste con i filtri selezionati."/>}
   </section>
-  {show&&<Modal title={editing?'Modifica richiesta':'Nuova richiesta'} close={()=>{setShow(false);setEditing(null)}}><RequestForm row={editing} buildings={buildings} ambiti={ambiti} onCancel={()=>{setShow(false);setEditing(null)}} onSubmit={save}/></Modal>}
+  {show&&<Modal title={editing?'Modifica richiesta':'Nuova richiesta'} close={()=>{setShow(false);setEditing(null)}}><RequestForm row={editing} buildings={buildings} ambiti={ambiti} manutentore={manutentore} onCancel={()=>{setShow(false);setEditing(null)}} onSubmit={save}/></Modal>}
   {detail&&<RequestDetail row={detail} access={access} onClose={()=>setDetail(null)} onChanged={()=>{setDetail(null);setRefresh(refresh+1)}} onEdit={()=>{setEditing(detail);setDetail(null);setShow(true)}}/>}
  </PageHead>
 }
 
-function RequestForm({row,buildings,ambiti,onCancel,onSubmit}:{row:RequestRow|null;buildings:any[];ambiti:any[];onCancel:()=>void;onSubmit:(e:any)=>void}){
+function RequestForm({row,buildings,ambiti,manutentore=false,onCancel,onSubmit}:{row:RequestRow|null;buildings:any[];ambiti:any[];manutentore?:boolean;onCancel:()=>void;onSubmit:(e:any)=>void}){
  const selectedB=(row?.richieste_intervento_sedi||[]).map((x:any)=>x.edificio_id);const selectedA=(row?.richieste_intervento_ambiti||[]).map((x:any)=>x.ambito_id);
  const [bs,setBs]=useState<string[]>(selectedB);const [as,setAs]=useState<string[]>(selectedA);const [resolved,setResolved]=useState(!!row?.risolto);const [buildingSearch,setBuildingSearch]=useState('');const [ambitoSearch,setAmbitoSearch]=useState('');
  const toggle=(arr:string[],set:(x:string[])=>void,id:string)=>set(arr.includes(id)?arr.filter(x=>x!==id):[...arr,id]);
@@ -468,7 +470,7 @@ function AdminPage({access}:{access:Access[]}){
    if(!editingUser&&!payload.password){setUserMessage('Per un nuovo utente la password è obbligatoria (minimo 8 caratteri).');setUserSaving(false);return}
    try{
      const {data,error}=await supabase.functions.invoke('admin-users',{body:payload});
-     if(error)throw new Error(error.message);
+     if(error){if(error instanceof FunctionsHttpError){try{const body=await error.context.json();throw new Error(body?.error||body?.message||error.message)}catch(inner:any){throw inner instanceof Error?inner:new Error(error.message)}}throw new Error(error.message)}
      if(data?.error)throw new Error(data.error);
      setUserModal(false);setEditingUser(null);setUserMessage(editingUser?'Utente modificato correttamente.':'Utente creato correttamente.');await loadManagedUsers();
    }catch(err:any){console.error('Errore gestione utente:',err);setUserMessage('Operazione non riuscita: '+(err?.message||String(err)))}finally{setUserSaving(false)}
