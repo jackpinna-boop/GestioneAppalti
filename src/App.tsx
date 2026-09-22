@@ -21,9 +21,48 @@ const canWrite=(a:Access[])=>a.length>0
 const canManage=(a:Access[])=>a.some(x=>['superadmin','admin_ente','rup'].includes(x.ruolo))
 const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore']
 
+const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000
+const SESSION_STARTED_AT_KEY = 'gestione-appalti.session-started-at'
+
+function clearApplicationCache(){
+ try { localStorage.clear() } catch {}
+ try { sessionStorage.clear() } catch {}
+ try {
+  if ('caches' in window) {
+   void caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
+  }
+ } catch {}
+}
+
+async function logoutAndClearSession(){
+ try { await supabase.auth.signOut({ scope: 'global' }) } catch (error) { console.error('Logout Supabase non riuscito:', error) }
+ try { localStorage.removeItem(SESSION_STARTED_AT_KEY) } catch {}
+ clearApplicationCache()
+}
+
 export default function App(){
  const [session,setSession]=useState<any>(null);const [ready,setReady]=useState(false)
- useEffect(()=>{supabase.auth.getSession().then(({data})=>{setSession(data.session);setReady(true)});const {data}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>data.subscription.unsubscribe()},[])
+ useEffect(()=>{
+  let timer:number|undefined
+  const expireIfNeeded=async(s:any)=>{
+   if(!s){setSession(null);setReady(true);return}
+   const startedAt=Number(localStorage.getItem(SESSION_STARTED_AT_KEY))
+   const now=Date.now()
+   if(!startedAt){localStorage.setItem(SESSION_STARTED_AT_KEY,String(now))}
+   else if(now-startedAt>=SESSION_MAX_AGE_MS){await logoutAndClearSession();setSession(null);setReady(true);return}
+   const effectiveStartedAt=startedAt||now
+   const remaining=Math.max(1000,SESSION_MAX_AGE_MS-(now-effectiveStartedAt))
+   window.clearTimeout(timer)
+   timer=window.setTimeout(()=>{void logoutAndClearSession().then(()=>setSession(null))},remaining)
+   setSession(s);setReady(true)
+  }
+  supabase.auth.getSession().then(({data})=>{void expireIfNeeded(data.session)})
+  const {data}=supabase.auth.onAuthStateChange((_e,s)=>{
+   if(s){localStorage.setItem(SESSION_STARTED_AT_KEY,localStorage.getItem(SESSION_STARTED_AT_KEY)||String(Date.now()))}
+   void expireIfNeeded(s)
+  })
+  return()=>{window.clearTimeout(timer);data.subscription.unsubscribe()}
+ },[])
  if(!ready)return <div className="loading-screen">Caricamento…</div>
  if(!session)return <AuthScreen/>
  return <AppShell session={session}/>
@@ -36,7 +75,7 @@ function AppShell({session}:{session:any}){
  useEffect(()=>{const f=()=>{const p=location.hash.replace('#/','').split('/');setPage((p[0] as Page)||'dashboard');setSelectedId(p[1]||null)};window.addEventListener('hashchange',f);return()=>window.removeEventListener('hashchange',f)},[])
  useEffect(()=>{(async()=>{const {data:roles,error}=await supabase.from('user_roles').select('user_id,ente_id,ruolo').eq('user_id',session.user.id);if(error){console.error('Errore caricamento ruoli:',error);setAccess([]);return}const ids=[...new Set((roles||[]).map((x:any)=>x.ente_id).filter(Boolean))];let enti:any[]=[];if(ids.length){const r=await supabase.from('enti').select('id,denominazione').in('id',ids);if(r.error)console.error('Errore caricamento enti:',r.error);enti=r.data||[]}const map=new Map(enti.map((e:any)=>[e.id,e.denominazione]));setAccess((roles||[]).map((x:any)=>({user_id:x.user_id,ente_id:x.ente_id,ruolo:x.ruolo,ente:map.get(x.ente_id)||''})) as Access[])})()},[refresh,session.user.id])
  const userName=session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Utente';const role=access.some(x=>x.ruolo==='superadmin')?'superadmin':(access[0]?.ruolo||'non assegnato');const ente=access.find(x=>x.ruolo==='superadmin')?.ente||access[0]?.ente||'Nessun ente associato';const manutentore=isManutentore(access); useEffect(()=>{if(manutentore&&!['dashboard','edifici','richieste'].includes(page))navigate('dashboard')},[manutentore,page])
- return <div className="app-shell"><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand"><div className="brand-mark small"><Building2 size={20}/></div><span>Gestione Appalti</span></div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/></button></div></header>
+ return <div className="app-shell"><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand"><div className="brand-mark small"><Building2 size={20}/></div><span>Gestione Appalti</span></div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav><Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/><Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/><Nav icon={<FileText/>} label="Richieste di intervento" active={page==='richieste'} onClick={()=>navigate('richieste')}/>{!manutentore&&<><Nav icon={<ClipboardList/>} label="Interventi" active={page==='interventi'||page==='intervento'} onClick={()=>navigate('interventi')}/><Nav icon={<FolderOpen/>} label="Fascicoli" active={page==='fascicolo'} onClick={()=>navigate('fascicolo')}/><Nav icon={<BarChart3/>} label="Report" active={page==='report'} onClick={()=>navigate('report')}/><Nav icon={<Wrench/>} label="Manutenzioni" active={page==='manutenzioni'} onClick={()=>navigate('manutenzioni')}/><Nav icon={<Settings/>} label="Amministrazione" active={page==='amministrazione'} onClick={()=>navigate('amministrazione')}/></>}</nav><div className="sidebar-footer"><ShieldCheck size={16}/><span>{ente}</span></div></aside>
  <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='richieste'&&<RequestsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {!manutentore&&page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {!manutentore&&page==='intervento'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {!manutentore&&page==='fascicolo'&&selectedId&&<BuildingFile id={selectedId} access={access} onBack={()=>navigate('fascicolo')} refresh={refresh} setRefresh={setRefresh}/>} {!manutentore&&page==='fascicolo'&&!selectedId&&<BuildingFascicoliPage access={access} onOpen={navigate} refresh={refresh}/>} {!manutentore&&page==='report'&&<ReportPage refresh={refresh}/>} {!manutentore&&page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh}/>} {!manutentore&&page==='amministrazione'&&<AdminPage access={access}/>} </main></div></div>
 }
