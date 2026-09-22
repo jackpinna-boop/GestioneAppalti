@@ -58,3 +58,5 @@
  .maintenance-grid{grid-template-columns:1fr 1fr}.permission-summary{grid-template-columns:1fr}
 }
 @media(max-width:600px){.maintenance-placeholder{padding:25px 18px}.maintenance-grid{grid-template-columns:1fr}.tabs{overflow:auto;flex-wrap:nowrap}.tabs button{white-space:nowrap}}
+
+.form-grid textarea{border:1px solid #d8dee7;border-radius:8px;padding:10px;outline:0;background:#fff;min-height:90px;resize:vertical}.form-grid textarea:focus{border-color:#6b9bc0;box-shadow:0 0 0 3px #6b9bc01c}
