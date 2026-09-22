@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X, Upload, Download, RefreshCw, Pencil, Trash2, Printer, Paperclip, Wrench, UserCog, History, Save, RotateCcw, CheckCircle2, Eye, SlidersHorizontal, CalendarDays, ChevronDown } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import * as XLSX from 'xlsx'
 import AuthScreen from './AuthScreen'
 
 type Page='dashboard'|'edifici'|'richieste'|'interventi'|'intervento'|'fascicolo'|'report'|'amministrazione'|'manutenzioni'
@@ -71,6 +72,7 @@ function MaintenanceDashboard({refresh,onOpen}:{refresh:number;onOpen:()=>void})
  const today=new Date().toISOString().slice(0,10);const active=systems.filter(x=>x.stato==='attivo').length;const due=systems.filter(x=>x.data_prossima_manutenzione&&x.data_prossima_manutenzione<today).length;const open=jobs.filter(x=>!['chiusa','annullata'].includes(x.stato)).length;const closed=jobs.filter(x=>x.stato==='chiusa').length;
  return <section className="card maintenance-dashboard"><div className="card-head"><div><h2>Riepilogo manutenzioni</h2><p>Quadro sintetico degli impianti e delle attività manutentive.</p></div><Wrench size={20}/></div><div className="request-kpis"><div><span>Impianti attivi</span><strong>{active}</strong></div><div><span>Manutenzioni in scadenza</span><strong>{due}</strong></div><div><span>Attività aperte</span><strong>{open}</strong></div><div><span>Attività chiuse</span><strong>{closed}</strong></div></div><div className="chart-footer"><span>Ultimo aggiornamento automatico all'apertura della Home</span><button className="btn secondary" onClick={onOpen}><Wrench size={15}/> Apri manutenzioni</button></div></section>
 }
+type RequestSortKey='codice'|'protocollo'|'richiesta'|'sedi'|'ambiti'|'tipologia'|'priorita'|'data'|'stato'|'allegati'
 type RequestRow={
  id:string; ente_id:string; numero_progressivo:number; codice_richiesta:string; titolo_sintetico:string;
  descrizione_estesa:string; numero_protocollo:string|null; data_protocollo:string|null;
@@ -82,11 +84,14 @@ type RequestRow={
 const requestTypeLabel=(s:string)=>({ordinaria:'Ordinaria',straordinaria:'Straordinaria',da_valutare:'Da valutare'} as any)[s]||s
 const requestTypeClass=(s:string)=>({ordinaria:'blue',straordinaria:'amber',da_valutare:'gray'} as any)[s]||'gray'
 
+function SortableTh({label,active,direction,onClick}:{label:string;active:boolean;direction:'asc'|'desc';onClick:()=>void}){return <th><button type="button" className={'sort-header '+(active?'active':'')} onClick={onClick} title={active?(direction==='asc'?'Ordine crescente — clicca per decrescente':'Ordine decrescente — clicca per crescente'):'Ordina'}>{label}<span className="sort-indicator">{active?(direction==='asc'?'↑':'↓'):'↕'}</span></button></th>}
+
 function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:number;setRefresh:(x:number)=>void}){
  const [rows,setRows]=useState<RequestRow[]>([]); const [buildings,setBuildings]=useState<any[]>([]);
  const [ambiti,setAmbiti]=useState<any[]>([]); const [q,setQ]=useState(''); const [filter,setFilter]=useState('tutte'); const [buildingFilter,setBuildingFilter]=useState('all'); const [ambitoFilter,setAmbitoFilter]=useState('all'); const [priorityFilter,setPriorityFilter]=useState('all');
  const [show,setShow]=useState(false); const [editing,setEditing]=useState<RequestRow|null>(null); const [detail,setDetail]=useState<RequestRow|null>(null);
  const [message,setMessage]=useState(''); const [loading,setLoading]=useState(false); const [advanced,setAdvanced]=useState(false);
+ const [sortKey,setSortKey]=useState<RequestSortKey>('data'); const [sortDir,setSortDir]=useState<'asc'|'desc'>('desc');
  const write=canWrite(access); const manutentore=isManutentore(access); const enteId=access[0]?.ente_id;
 
  const load=async()=>{
@@ -110,6 +115,41 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   const matchesAmbito=ambitoFilter==='all'||(x.richieste_intervento_ambiti||[]).some((a:any)=>a.ambito_id===ambitoFilter);
   const matchesPriority=priorityFilter==='all'||x.priorita===priorityFilter; return matchesQ&&matches&&matchesBuilding&&matchesAmbito&&matchesPriority;
  });
+
+ const sorted=[...filtered].sort((a,b)=>{
+  const value=(row:RequestRow,key:RequestSortKey):string|number=>{
+   if(key==='codice') return row.codice_richiesta||'';
+   if(key==='protocollo') return row.numero_protocollo||'';
+   if(key==='richiesta') return row.titolo_sintetico||'';
+   if(key==='sedi') return (row.richieste_intervento_sedi||[]).map((s:any)=>s.edifici?.denominazione||s.edifici?.codice_edificio||row.edificio_origine||'').join(' ');
+   if(key==='ambiti') return (row.richieste_intervento_ambiti||[]).map((x:any)=>x.ambiti_richiesta_intervento?.denominazione||'').join(' ');
+   if(key==='tipologia') return requestTypeLabel(row.tipo_intervento);
+   if(key==='priorita') return row.priorita||'';
+   if(key==='data') return row.data_richiesta||'';
+   if(key==='stato') return row.stato_risoluzione||'';
+   return (row.richiesta_intervento_documenti||[]).length;
+  };
+  const av=value(a,sortKey), bv=value(b,sortKey);
+  const cmp=typeof av==='number'&&typeof bv==='number'?av-bv:String(av).localeCompare(String(bv),'it',{numeric:true,sensitivity:'base'});
+  return sortDir==='asc'?cmp:-cmp;
+ });
+ const changeSort=(key:RequestSortKey)=>{if(sortKey===key)setSortDir(x=>x==='asc'?'desc':'asc');else{setSortKey(key);setSortDir('asc')}};
+ const exportRows=(format:'csv'|'xls'|'ods')=>{
+  const data=sorted.map(x=>({
+   'Codice':x.codice_richiesta,'Protocollo':x.numero_protocollo||'','Data protocollo':x.data_protocollo||'',
+   'Richiesta':x.titolo_sintetico,'Descrizione':x.descrizione_estesa,
+   'Istituti / sedi':(x.richieste_intervento_sedi||[]).map((s:any)=>s.edifici?.denominazione||s.edifici?.codice_edificio||x.edificio_origine||'').join('; '),
+   'Ambiti':(x.richieste_intervento_ambiti||[]).map((a:any)=>a.ambiti_richiesta_intervento?.denominazione||'').join('; '),
+   'Tipologia':requestTypeLabel(x.tipo_intervento),'Priorità':x.priorita||'','Data richiesta':x.data_richiesta||'',
+   'Stato':x.stato_risoluzione||'','Data risoluzione':x.data_risoluzione||'','Allegati':(x.richiesta_intervento_documenti||[]).length,
+   'Note risoluzione':x.note_risoluzione||''
+  }));
+  const stamp=new Date().toISOString().slice(0,10);
+  const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Richieste');
+  if(format==='csv') XLSX.writeFile(wb,'richieste_intervento_'+stamp+'.csv',{bookType:'csv'});
+  else if(format==='xls') XLSX.writeFile(wb,'richieste_intervento_'+stamp+'.xls',{bookType:'biff8'});
+  else XLSX.writeFile(wb,'richieste_intervento_'+stamp+'.ods',{bookType:'ods'});
+ };
  const save=async(e:any)=>{
   e.preventDefault(); if(!enteId)return;
   const f=new FormData(e.currentTarget); const selectedBuildings=JSON.parse(String(f.get('edifici_ids')||'[]')); const selectedAmbiti=JSON.parse(String(f.get('ambiti_ids')||'[]')); const attachmentFiles=Array.from(f.getAll('attachments')).filter((x):x is File=>x instanceof File&&x.size>0);
@@ -160,8 +200,10 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   <div className="request-tabs"><button className={filter==='tutte'?'active':''} onClick={()=>setFilter('tutte')}>Tutte <b>{rows.length}</b></button><button className={filter==='da_valutare'?'active':''} onClick={()=>setFilter('da_valutare')}>Da valutare <b>{rows.filter(x=>x.stato_risoluzione==='da_valutare').length}</b></button><button className={filter==='aperte'?'active':''} onClick={()=>setFilter('aperte')}>Aperte <b>{rows.filter(x=>x.stato_risoluzione==='aperta').length}</b></button><button className={filter==='risolte'?'active':''} onClick={()=>setFilter('risolte')}>Risolte <b>{rows.filter(x=>x.stato_risoluzione==='risolta').length}</b></button></div>
   {message&&<div className="notice success">{message}</div>}
   <section className="card table-card">
-   {loading?<Loader/>:filtered.length?<table><thead><tr><th>Codice</th><th>Protocollo</th><th>Richiesta</th><th>Istituti / sedi</th><th>Ambiti</th><th>Tipologia</th><th>Priorità</th><th>Data</th><th>Stato</th><th>Allegati</th><th>Azioni</th></tr></thead><tbody>
-   {filtered.map(x=>{const sedi=x.richieste_intervento_sedi||x.richieste_intervento_sedi||[];const amb=x.richieste_intervento_ambiti||[];const docs=x.richiesta_intervento_documenti||[];return <tr key={x.id} className="clickable" onClick={()=>setDetail(x)}>
+   <div className="table-toolbar"><span className="table-result-count">{sorted.length} richieste visualizzate</span><div className="export-actions"><span className="export-label"><Download size={15}/> Esporta</span><button className="btn secondary" onClick={()=>exportRows('csv')} disabled={!sorted.length}>CSV</button><button className="btn secondary" onClick={()=>exportRows('xls')} disabled={!sorted.length}>XLS</button><button className="btn secondary" onClick={()=>exportRows('ods')} disabled={!sorted.length}>ODS</button></div></div>
+   {loading?<Loader/>:sorted.length?<table><thead><tr>
+    {(['codice','protocollo','richiesta','sedi','ambiti','tipologia','priorita','data','stato','allegati'] as RequestSortKey[]).map((key)=><SortableTh key={key} label={{codice:'Codice',protocollo:'Protocollo',richiesta:'Richiesta',sedi:'Istituti / sedi',ambiti:'Ambiti',tipologia:'Tipologia',priorita:'Priorità',data:'Data',stato:'Stato',allegati:'Allegati'}[key]} active={sortKey===key} direction={sortDir} onClick={()=>changeSort(key)}/>)}<th>Azioni</th></tr></thead><tbody>
+   {sorted.map(x=>{const sedi=x.richieste_intervento_sedi||[];const amb=x.richieste_intervento_ambiti||[];const docs=x.richiesta_intervento_documenti||[];return <tr key={x.id} className="clickable" onClick={()=>setDetail(x)}>
     <td><b>{x.codice_richiesta}</b></td><td>{x.numero_protocollo?<><strong>{x.numero_protocollo}</strong><span className="table-sub">{date(x.data_protocollo)}</span></>:'—'}</td>
     <td><strong>{x.titolo_sintetico}</strong><span className="table-sub">{x.descrizione_estesa.slice(0,85)}{x.descrizione_estesa.length>85?'…':''}</span></td>
     <td>{sedi.length?<><strong>{sedi[0]?.edifici?.codice_edificio}</strong><span className="table-sub">{sedi[0]?.edifici?.denominazione}{sedi.length>1?' + '+(sedi.length-1)+' sedi':''}</span></>:<span className="table-sub">{x.edificio_origine||'—'}</span>}</td>
