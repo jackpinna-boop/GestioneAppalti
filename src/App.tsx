@@ -134,7 +134,7 @@ function RequestForm({row,buildings,ambiti,onCancel,onSubmit}:{row:RequestRow|nu
  const selectedB=(row?.richieste_intervento_sedi||[]).map((x:any)=>x.edificio_id);const selectedA=(row?.richieste_intervento_ambiti||[]).map((x:any)=>x.ambito_id);
  const [bs,setBs]=useState<string[]>(selectedB);const [as,setAs]=useState<string[]>(selectedA);const [resolved,setResolved]=useState(!!row?.risolto);
  const toggle=(arr:string[],set:(x:string[])=>void,id:string)=>set(arr.includes(id)?arr.filter(x=>x!==id):[...arr,id]);
- return <form className="form-grid request-form" onSubmit={e=>{e.preventDefault();onSubmitWithData(e,bs,as,onSubmit)}}><div className="form-section-title span-2">Identificazione e protocollo</div>
+ return <form className="form-grid request-form" onSubmit={e=>{e.preventDefault();onSubmit(e)}}><input type="hidden" name="edifici_ids" value={JSON.stringify(bs)}/><input type="hidden" name="ambiti_ids" value={JSON.stringify(as)}/><div className="form-section-title span-2">Identificazione e protocollo</div>
   <label>Data richiesta *<input name="data_richiesta" type="date" defaultValue={row?.data_richiesta||new Date().toISOString().slice(0,10)} required/></label><label>Numero protocollo<input name="protocollo" defaultValue={row?.numero_protocollo||''}/></label><label>Data protocollo<input name="data_protocollo" type="date" defaultValue={row?.data_protocollo||''}/></label><label>Tipo intervento<select name="tipo" defaultValue={row?.tipo_intervento||'da_valutare'}><option value="da_valutare">Da valutare</option><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option></select></label>
   <label className="span-2">Titolo sintetico *<input name="titolo" defaultValue={row?.titolo_sintetico||''} required/></label>
   <label className="span-2">Descrizione estesa *<textarea name="descrizione" defaultValue={row?.descrizione_estesa||''} required/></label>
@@ -145,10 +145,7 @@ function RequestForm({row,buildings,ambiti,onCancel,onSubmit}:{row:RequestRow|nu
   <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">Salva richiesta</button></div>
  </form>
 }
-function onSubmitWithData(e:any,bs:string[],as:string[],onSubmit:(e:any)=>void){
- const fd=new FormData(e.currentTarget);fd.set('edifici_ids',JSON.stringify(bs));fd.set('ambiti_ids',JSON.stringify(as));
- const synthetic={...e,preventDefault:()=>{},currentTarget:e.currentTarget};onSubmit(synthetic);
-}
+
 
 function RequestDetail({row,onClose,onEdit}:{row:RequestRow;buildings:any[];onClose:()=>void;onEdit:()=>void}){
  const [tab,setTab]=useState('richiesta');const sedi=row.richieste_intervento_sedi||[];const amb=row.richieste_intervento_ambiti||[];const docs=row.richiesta_intervento_documenti||[];
@@ -184,7 +181,7 @@ function RequestsDashboard({access,refresh,onOpen}:{access:Access[];refresh:numb
   <div className="card-head"><div><h2>Dashboard richieste di intervento</h2><p>Andamento delle segnalazioni per periodo e per edificio.</p></div><BarChart3 size={20}/></div>
   <div className="request-kpis"><div><span>Interventi segnalati complessivi</span><strong>{total}</strong></div><div><span>Interventi risolti complessivi</span><strong>{resolved}</strong></div><div><span>Interventi ancora aperti</span><strong>{open}</strong></div></div>
   <div className="chart-toolbar"><div className="chart-periods">{(['giorno','settimana','mese','anno'] as const).map(p=><button key={p} className={period===p?'active':''} onClick={()=>setPeriod(p)}>{p[0].toUpperCase()+p.slice(1)}</button>)}</div><label className="chart-building"><Building2 size={15}/><select value={building} onChange={e=>setBuilding(e.target.value)}><option value="all">Tutti gli edifici</option>{buildings.map(b=><option key={b.id} value={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}</select></label></div>
-  <div className="request-chart-wrap"><svg viewBox={\`0 0 \${W} \${H}\`} className="request-chart" role="img" aria-label="Andamento richieste"><line x1={pad} y1={H-pad} x2={W-pad} y2={H-pad} className="chart-axis"/><polyline points={pts.map(p=>p.x+','+p.y).join(' ')} className="chart-line"/>{pts.map((p,i)=><g key={i} onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)} className="chart-point"><circle cx={p.x} cy={p.y} r="5"/>{hover===i&&<g><rect x={Math.min(W-145,Math.max(5,p.x-55))} y={Math.max(5,p.y-52)} width="140" height="43" rx="7" className="chart-tooltip"/><text x={Math.min(W-138,Math.max(12,p.x-48))} y={Math.max(20,p.y-32)}>{p.label}</text><text x={Math.min(W-138,Math.max(12,p.x-48))} y={Math.max(36,p.y-16)}>{p.count} richieste</text></g>}</g>)}</svg></div>
+  <div className="request-chart-wrap"><svg viewBox={`0 0 ${W} ${H}`} className="request-chart" role="img" aria-label="Andamento richieste"><line x1={pad} y1={H-pad} x2={W-pad} y2={H-pad} className="chart-axis"/><polyline points={pts.map(p=>p.x+','+p.y).join(' ')} className="chart-line"/>{pts.map((p,i)=><g key={i} onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)} className="chart-point"><circle cx={p.x} cy={p.y} r="5"/>{hover===i&&<g><rect x={Math.min(W-145,Math.max(5,p.x-55))} y={Math.max(5,p.y-52)} width="140" height="43" rx="7" className="chart-tooltip"/><text x={Math.min(W-138,Math.max(12,p.x-48))} y={Math.max(20,p.y-32)}>{p.label}</text><text x={Math.min(W-138,Math.max(12,p.x-48))} y={Math.max(36,p.y-16)}>{p.count} richieste</text></g>}</g>)}</svg></div>
   <div className="chart-footer"><span>{period==='giorno'?'Ultimi 30 giorni':period==='settimana'?'Ultime 12 settimane':period==='mese'?'Ultimi 12 mesi':'Ultimi 6 anni'}</span><button className="btn secondary" onClick={()=>onOpen('richieste')}><Eye size={15}/> Apri richieste</button></div>
  </section>
 }
