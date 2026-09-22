@@ -42,10 +42,11 @@ function AppShell({session}:{session:any}){
 
 function Nav({icon,label,active,onClick}:{icon:any;label:string;active:boolean;onClick:()=>void}){return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{active&&<ChevronRight size={15}/>}</button>}
 function DashboardPage({access,onOpen,refresh}:{access:Access[];onOpen:(p:Page,id?:string)=>void;refresh:number}){
- const manutentore=isManutentore(access); if(manutentore)return <PageHead title="Dashboard" subtitle="Quadro delle richieste di intervento."><RequestsDashboard access={access} refresh={refresh} onOpen={onOpen}/></PageHead>;
+ const manutentore=isManutentore(access);
  const [data,setData]=useState<any[]>([]);const [late,setLate]=useState<any[]>([]);
  const [dashboards,setDashboards]=useState<any[]>([]);
  const enteId=access[0]?.ente_id;
+ if(manutentore)return <PageHead title="Dashboard" subtitle="Quadro delle richieste di intervento."><RequestsDashboard access={access} refresh={refresh} onOpen={onOpen}/></PageHead>
  useEffect(()=>{Promise.all([
   supabase.from('dashboard_interventi').select('*'),
   supabase.from('dashboard_ritardi').select('*').order('giorni_ritardo',{ascending:false}).limit(8),
