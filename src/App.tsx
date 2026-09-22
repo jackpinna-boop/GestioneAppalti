@@ -1,0 +1,116 @@
+import { useEffect, useMemo, useState } from 'react'
+import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X } from 'lucide-react'
+import { supabase } from './lib/supabase'
+import AuthScreen from './AuthScreen'
+
+type Page='dashboard'|'edifici'|'interventi'|'fascicolo'|'amministrazione'
+type Access={user_id:string;ente_id:string;ruolo:string;ente:string}
+type Building={id:string;codice_edificio:string;denominazione:string;indirizzo:string|null;comune:string|null;provincia:string|null;superficie:number|null;volume:number|null;anno_costruzione:number|null;tipologia_scolastica:string|null}
+type Intervention={id:string;ente_id:string;edificio_id:string;codice_intervento:string;titolo:string;descrizione:string|null;cup:string|null;importo_programmato:number;importo_finanziato:number;importo_contrattuale:number;stato:string;annualita_programmazione:number|null;priorita:number|null;edifici?:{denominazione:string}|null}
+type Dashboard={ente_id:string;interventi_totali:number;interventi_attivi:number;interventi_conclusi:number;interventi_sospesi:number;importo_programmato:number;importo_finanziato:number;importo_contrattuale:number}
+type Phase={id:string;fase:string;stato:string;percentuale:number;data_prevista_fine:string|null;data_effettiva_fine:string|null}
+
+const money=(n:number|null|undefined)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(n||0))
+const date=(s:string|null|undefined)=>s?new Intl.DateTimeFormat('it-IT').format(new Date(s+'T00:00:00')):'—'
+const statusLabel=(s:string)=>s.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())
+const statusClass=(s:string)=>({programmato:'gray',progettazione:'blue',approvato:'blue',affidamento:'amber',contratto:'amber',esecuzione:'green',fine_lavori:'green',collaudo:'purple',chiuso:'green',sospeso:'red',annullato:'red'}[s]||'gray')
+
+export default function App(){
+  const [session,setSession]=useState<any>(null)
+  const [ready,setReady]=useState(false)
+  useEffect(()=>{supabase.auth.getSession().then(({data})=>{setSession(data.session);setReady(true)});const {data}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>data.subscription.unsubscribe()},[])
+  if(!ready)return <div className="loading-screen">Caricamento…</div>
+  if(!session)return <AuthScreen/>
+  return <AppShell session={session}/>
+}
+
+function AppShell({session}:{session:any}){
+  const [page,setPage]=useState<Page>((location.hash.replace('#/','') as Page)||'dashboard')
+  const [access,setAccess]=useState<Access[]>([])
+  const [mobile,setMobile]=useState(false)
+  const [selectedId,setSelectedId]=useState<string|null>(null)
+  const [refresh,setRefresh]=useState(0)
+  const navigate=(p:Page,id?:string)=>{setSelectedId(id||null);setPage(p);setMobile(false);location.hash='/'+p+(id?'/'+id:'')}
+  useEffect(()=>{const f=()=>{const p=location.hash.replace('#/','').split('/');setPage((p[0] as Page)||'dashboard');setSelectedId(p[1]||null)};window.addEventListener('hashchange',f);return()=>window.removeEventListener('hashchange',f)},[])
+  useEffect(()=>{supabase.from('my_access').select('*').then(({data})=>setAccess((data||[]) as Access[]))},[refresh])
+  const userName=session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Utente'
+  const role=access[0]?.ruolo||'non assegnato'
+  const ente=access[0]?.ente||'Nessun ente associato'
+  return <div className="app-shell">
+    <header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand"><div className="brand-mark small"><Building2 size={20}/></div><span>Gestione Appalti</span></div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/></button></div></header>
+    <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav>
+      <Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/>
+      <Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/>
+      <Nav icon={<ClipboardList/>} label="Interventi" active={page==='interventi'||page==='fascicolo'} onClick={()=>navigate('interventi')}/>
+      <Nav icon={<FolderOpen/>} label="Fascicoli" active={page==='fascicolo'} onClick={()=>navigate('fascicolo')}/>
+      <Nav icon={<BarChart3/>} label="Report" active={false} onClick={()=>navigate('dashboard')}/>
+      <Nav icon={<Settings/>} label="Amministrazione" active={page==='amministrazione'} onClick={()=>navigate('amministrazione')}/>
+    </nav><div className="sidebar-footer"><ShieldCheck size={16}/><span>{ente}</span></div></aside>
+    <main className="main">
+      {page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>}
+      {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>}
+      {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>}
+      {page==='fascicolo'&&selectedId&&<InterventionFile id={selectedId} onBack={()=>navigate('interventi')}/>}
+      {page==='fascicolo'&&!selectedId&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>}
+      {page==='amministrazione'&&<AdminPage access={access}/>}
+    </main></div>
+  </div>
+}
+
+function Nav({icon,label,active,onClick}:{icon:any;label:string;active:boolean;onClick:()=>void}){return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{active&&<ChevronRight size={15}/>}</button>}
+
+function DashboardPage({access,onOpen,refresh}:{access:Access[];onOpen:(p:Page,id?:string)=>void;refresh:number}){
+  const [data,setData]=useState<Dashboard[]>([]);const [late,setLate]=useState<any[]>([]);const [loading,setLoading]=useState(true)
+  useEffect(()=>{setLoading(true);Promise.all([supabase.from('dashboard_interventi').select('*'),supabase.from('dashboard_ritardi').select('*').order('giorni_ritardo',{ascending:false}).limit(8)]).then(([a,b])=>{setData((a.data||[]) as Dashboard[]);setLate(b.data||[]);setLoading(false)})},[refresh])
+  const d=data[0];const total=access.length?data.reduce((s,x)=>s+Number(x.interventi_totali||0),0):0
+  return <PageHead title="Dashboard" subtitle="Quadro sintetico della gestione degli interventi e delle risorse."><div className="page-actions"><button className="btn primary" onClick={()=>onOpen('interventi')}><ClipboardList size={17}/> Vedi interventi</button></div>
+    {loading?<Loader/>:<>{!access.length&&<div className="notice warning"><CircleAlert size={18}/><div><strong>Account autenticato senza ruolo applicativo.</strong><br/>Per visualizzare i dati dell’ente è necessario associare l’utente a un ente e a un ruolo in <b>user_roles</b>.</div></div>}
+    <div className="stats-grid"><Stat icon={<ClipboardList/>} label="Interventi" value={total} meta={d?((d.interventi_attivi||0)+' attivi'):''}/><Stat icon={<Building2/>} label="Edifici" value="—" meta="visibili secondo RLS"/><Stat icon={<WalletCards/>} label="Programmato" value={money(d?.importo_programmato)} meta="quadro complessivo"/><Stat icon={<WalletCards/>} label="Finanziato" value={money(d?.importo_finanziato)} meta="risorse disponibili"/></div>
+    <div className="content-grid"><section className="card"><div className="card-head"><div><h2>Stato interventi</h2><p>Indicatori dell’ente corrente</p></div><BarChart3 size={20}/></div><div className="progress-list"><Progress label="Attivi" value={d?.interventi_attivi||0} total={d?.interventi_totali||0}/><Progress label="Conclusi" value={d?.interventi_conclusi||0} total={d?.interventi_totali||0}/><Progress label="Sospesi" value={d?.interventi_sospesi||0} total={d?.interventi_totali||0}/></div></section>
+    <section className="card"><div className="card-head"><div><h2>Scadenze in ritardo</h2><p>Fasi oltre la data prevista</p></div><CircleAlert size={20}/></div>{late.length?<div className="mini-list">{late.slice(0,5).map((x,i)=><div className="mini-row" key={i}><div><strong>{x.codice_intervento}</strong><span>{statusLabel(x.fase||'fase')}</span></div><b className="danger-text">+{x.giorni_ritardo} gg</b></div>)}</div>:<Empty title="Nessun ritardo" text="Non risultano fasi scadute per l’utente corrente."/>}</section></div></>}
+  </PageHead>
+}
+
+function BuildingsPage({access,refresh,setRefresh}:{access:Access[];refresh:number;setRefresh:(x:number)=>void}){
+  const [rows,setRows]=useState<Building[]>([]);const [q,setQ]=useState('');const [show,setShow]=useState(false);const [saving,setSaving]=useState(false)
+  useEffect(()=>{supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune,provincia,superficie,volume,anno_costruzione,tipologia_scolastica').order('denominazione').then(({data})=>setRows((data||[]) as Building[]))},[refresh])
+  const filtered=rows.filter(x=>(x.denominazione+' '+x.codice_edificio+' '+(x.comune||'')).toLowerCase().includes(q.toLowerCase()))
+  async function save(e:any){e.preventDefault();setSaving(true);const f=new FormData(e.currentTarget);const {error}=await supabase.from('edifici').insert({ente_id:access[0]?.ente_id,codice_edificio:f.get('codice'),denominazione:f.get('denominazione'),indirizzo:f.get('indirizzo'),comune:f.get('comune'),provincia:f.get('provincia'),cap:f.get('cap'),tipologia_scolastica:f.get('tipologia'),superficie:Number(f.get('superficie')||0)||null,anno_costruzione:Number(f.get('anno')||0)||null});setSaving(false);if(error)alert(error.message);else{setShow(false);setRefresh(refresh+1)}}
+  return <PageHead title="Edifici" subtitle="Anagrafe tecnica degli immobili dell’ente."><div className="page-actions"><div className="search"><Search size={17}/><input placeholder="Cerca edificio…" value={q} onChange={e=>setQ(e.target.value)}/></div><button className="btn primary" onClick={()=>setShow(true)} disabled={!access.length}><Plus size={17}/> Nuovo edificio</button></div>
+    {show&&<Modal title="Nuovo edificio" close={()=>setShow(false)}><form className="form-grid" onSubmit={save}>{[['codice','Codice edificio',''],['denominazione','Denominazione',''],['indirizzo','Indirizzo',''],['comune','Comune',''],['provincia','Provincia',''],['cap','CAP',''],['tipologia','Tipologia scolastica',''],['superficie','Superficie m²','number'],['anno','Anno costruzione','number']].map(([n,l,t])=><label key={n}>{l}<input name={n} type={t||'text'} required={n==='codice'||n==='denominazione'}/></label>)}<div className="form-actions"><button type="button" className="btn secondary" onClick={()=>setShow(false)}>Annulla</button><button className="btn primary" disabled={saving}>{saving?'Salvataggio…':'Salva edificio'}</button></div></form></Modal>}
+    <section className="card table-card">{filtered.length?<table><thead><tr><th>Codice</th><th>Edificio</th><th>Località</th><th>Superficie</th><th>Anno</th></tr></thead><tbody>{filtered.map(x=><tr key={x.id}><td><b>{x.codice_edificio}</b></td><td><strong>{x.denominazione}</strong><span className="table-sub">{x.tipologia_scolastica||'—'}</span></td><td>{[x.indirizzo,x.comune].filter(Boolean).join(', ')||'—'}</td><td>{x.superficie?Number(x.superficie).toLocaleString('it-IT')+' m²':'—'}</td><td>{x.anno_costruzione||'—'}</td></tr>)}</tbody></table>:<Empty title="Nessun edificio visibile" text={access.length?'Aggiungi il primo edificio o verifica i filtri.':'L’utente non ha ancora un ente associato.'}/>}</section>
+  </PageHead>
+}
+
+function InterventionsPage({access,onOpen,refresh,setRefresh}:{access:Access[];onOpen:(p:Page,id?:string)=>void;refresh:number;setRefresh:(x:number)=>void}){
+  const [rows,setRows]=useState<Intervention[]>([]);const [buildings,setBuildings]=useState<Building[]>([]);const [q,setQ]=useState('');const [show,setShow]=useState(false);const [saving,setSaving]=useState(false)
+  useEffect(()=>{Promise.all([supabase.from('interventi').select('id,ente_id,edificio_id,codice_intervento,titolo,descrizione,cup,importo_programmato,importo_finanziato,importo_contrattuale,stato,annualita_programmazione,priorita,edifici(denominazione)').order('created_at',{ascending:false}),supabase.from('edifici').select('id,codice_edificio,denominazione').order('denominazione')]).then(([a,b])=>{setRows((a.data||[]) as Intervention[]);setBuildings((b.data||[]) as Building[])})},[refresh])
+  const filtered=rows.filter(x=>(x.codice_intervento+' '+x.titolo+' '+(x.cup||'')).toLowerCase().includes(q.toLowerCase()))
+  async function save(e:any){e.preventDefault();setSaving(true);const f=new FormData(e.currentTarget);const {error}=await supabase.from('interventi').insert({ente_id:access[0]?.ente_id,edificio_id:f.get('edificio'),codice_intervento:f.get('codice'),titolo:f.get('titolo'),cup:f.get('cup')||null,importo_programmato:Number(f.get('programmato')||0),importo_finanziato:Number(f.get('finanziato')||0),stato:f.get('stato')||'programmato',annualita_programmazione:Number(f.get('annualita')||0)||null});setSaving(false);if(error)alert(error.message);else{setShow(false);setRefresh(refresh+1)}}
+  return <PageHead title="Interventi" subtitle="Programmazione, progettazione, affidamento ed esecuzione."><div className="page-actions"><div className="search"><Search size={17}/><input placeholder="Cerca codice, titolo o CUP…" value={q} onChange={e=>setQ(e.target.value)}/></div><button className="btn primary" onClick={()=>setShow(true)} disabled={!access.length}><Plus size={17}/> Nuovo intervento</button></div>
+    {show&&<Modal title="Nuovo intervento" close={()=>setShow(false)}><form className="form-grid" onSubmit={save}><label>Edificio<select name="edificio" required><option value="">Seleziona…</option>{buildings.map(b=><option value={b.id} key={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}</select></label><label>Codice intervento<input name="codice" required/></label><label className="span-2">Titolo<input name="titolo" required/></label><label>CUP<input name="cup"/></label><label>Stato<select name="stato" defaultValue="programmato">{['programmato','progettazione','approvato','affidamento','contratto','esecuzione','fine_lavori','collaudo','chiuso','sospeso','annullato'].map(s=><option key={s} value={s}>{statusLabel(s)}</option>)}</select></label><label>Importo programmato<input name="programmato" type="number" min="0" step="0.01"/></label><label>Importo finanziato<input name="finanziato" type="number" min="0" step="0.01"/></label><label>Annualità<input name="annualita" type="number" min="2020" max="2100"/></label><div className="form-actions span-2"><button type="button" className="btn secondary" onClick={()=>setShow(false)}>Annulla</button><button className="btn primary" disabled={saving}>{saving?'Salvataggio…':'Salva intervento'}</button></div></form></Modal>}
+    <section className="card table-card">{filtered.length?<table><thead><tr><th>Intervento</th><th>Edificio</th><th>Stato</th><th>Programmato</th><th>Finanziato</th><th></th></tr></thead><tbody>{filtered.map(x=><tr key={x.id} className="clickable" onClick={()=>onOpen('fascicolo',x.id)}><td><b>{x.codice_intervento}</b><span className="table-sub">{x.titolo}</span>{x.cup&&<span className="table-sub">CUP {x.cup}</span>}</td><td>{x.edifici?.denominazione||'—'}</td><td><span className={'badge '+statusClass(x.stato)}>{statusLabel(x.stato)}</span></td><td>{money(x.importo_programmato)}</td><td>{money(x.importo_finanziato)}</td><td><ChevronRight size={18}/></td></tr>)}</tbody></table>:<Empty title="Nessun intervento visibile" text={access.length?'Inserisci il primo intervento.':'L’utente non ha ancora un ente associato.'}/>}</section>
+  </PageHead>
+}
+
+function InterventionFile({id,onBack}:{id:string;onBack:()=>void}){
+  const [row,setRow]=useState<Intervention|null>(null);const [phases,setPhases]=useState<Phase[]>([]);const [docs,setDocs]=useState<any[]>([]);const [funding,setFunding]=useState<any[]>([]);const [loading,setLoading]=useState(true)
+  useEffect(()=>{setLoading(true);Promise.all([supabase.from('interventi').select('*,edifici(denominazione,indirizzo,comune)').eq('id',id).single(),supabase.from('fasi_intervento').select('*').eq('intervento_id',id).order('ordine'),supabase.from('documenti').select('id,nome,tipo,data_documento,versione,firmato_digitalmente,url').eq('intervento_id',id).order('data_documento',{ascending:false}),supabase.from('dashboard_finanziamenti').select('*').eq('intervento_id',id)]).then(([a,b,c,d])=>{setRow(a.data as Intervention);setPhases((b.data||[]) as Phase[]);setDocs(c.data||[]);setFunding(d.data||[]);setLoading(false)})},[id])
+  if(loading)return <PageHead title="Fascicolo intervento" subtitle=""><Loader/></PageHead>
+  if(!row)return <PageHead title="Fascicolo non disponibile" subtitle=""><Empty title="Intervento non trovato" text="Il record non è accessibile con le autorizzazioni correnti."/><button className="btn secondary" onClick={onBack}>Torna agli interventi</button></PageHead>
+  return <PageHead title={row.titolo} subtitle={row.codice_intervento}><div className="page-actions"><button className="btn secondary" onClick={onBack}>← Interventi</button><span className={'badge '+statusClass(row.stato)}>{statusLabel(row.stato)}</span></div>
+    <div className="file-hero"><div><span className="eyebrow">CUP</span><strong>{row.cup||'Non indicato'}</strong></div><div><span className="eyebrow">Importo programmato</span><strong>{money(row.importo_programmato)}</strong></div><div><span className="eyebrow">Importo finanziato</span><strong>{money(row.importo_finanziato)}</strong></div><div><span className="eyebrow">Edificio</span><strong>{(row as any).edifici?.denominazione||'—'}</strong></div></div>
+    <div className="content-grid"><section className="card"><div className="card-head"><div><h2>Avanzamento</h2><p>Fasi procedurali</p></div><ClipboardList size={20}/></div>{phases.length?<div className="timeline">{phases.map(p=><div className="timeline-row" key={p.id}><div className="timeline-dot"></div><div className="timeline-main"><div><strong>{statusLabel(p.fase)}</strong><span className={'badge '+(p.stato==='completata'?'green':'blue')}>{statusLabel(p.stato)}</span></div><div className="progress-track"><i style={{width:Number(p.percentuale||0)+'%'}}/></div><small>{Number(p.percentuale||0)}% · scadenza {date(p.data_prevista_fine)}</small></div></div>)}</div>:<Empty title="Nessuna fase" text="Non sono state ancora registrate fasi per l’intervento."/>}</section>
+    <section className="card"><div className="card-head"><div><h2>Finanziamenti</h2><p>Fonti associate</p></div><WalletCards size={20}/></div>{funding.length?<div className="mini-list">{funding.map((x,i)=><div className="mini-row" key={i}><div><strong>{x.codice||'Fonte'}</strong><span>{x.denominazione||'—'}</span></div><b>{money(x.importo)}</b></div>)}</div>:<Empty title="Nessun finanziamento" text="Non risultano fonti associate."/>}</section></div>
+    <section className="card table-card"><div className="card-head"><div><h2>Documenti del fascicolo</h2><p>Elenco documentale collegato all’intervento</p></div><FileText size={20}/></div>{docs.length?<table><thead><tr><th>Documento</th><th>Tipo</th><th>Data</th><th>Versione</th><th>Firmato</th></tr></thead><tbody>{docs.map(d=><tr key={d.id}><td><strong>{d.nome}</strong></td><td>{statusLabel(d.tipo)}</td><td>{date(d.data_documento)}</td><td>v{d.versione||1}</td><td>{d.firmato_digitalmente?'Sì':'No'}</td></tr>)}</tbody></table>:<Empty title="Nessun documento" text="Il fascicolo documentale è ancora vuoto."/>}</section>
+  </PageHead>
+}
+
+function AdminPage({access}:{access:Access[]}){return <PageHead title="Amministrazione" subtitle="Profilo, ente e autorizzazioni correnti."><div className="content-grid"><section className="card"><div className="card-head"><div><h2>Accesso corrente</h2><p>Le autorizzazioni effettive sono applicate dal database tramite RLS.</p></div><ShieldCheck size={20}/></div>{access.length?<table><thead><tr><th>Ente</th><th>Ruolo</th></tr></thead><tbody>{access.map((x,i)=><tr key={i}><td>{x.ente}</td><td><span className="badge blue">{x.ruolo}</span></td></tr>)}</tbody></table>:<div className="notice warning"><CircleAlert size={18}/> Nessun ruolo associato all’utente.</div>}</section><section className="card"><div className="card-head"><div><h2>Configurazione Microsoft</h2><p>Il provider Azure/Microsoft deve essere abilitato in Supabase Auth.</p></div><ShieldCheck size={20}/></div><p className="muted">Il pulsante “Accedi con Microsoft” è già predisposto nel frontend. Occorre completare la configurazione del provider Azure in Supabase e registrare l’URL di callback.</p><code>https://cuaxulqyrhosqbfaympv.supabase.co/auth/v1/callback</code></section></div></PageHead>}
+
+function PageHead({title,subtitle,children}:{title:string;subtitle:string;children:any}){return <><div className="page-head"><div><h1>{title}</h1><p>{subtitle}</p></div></div>{children}</>}
+function Stat({icon,label,value,meta}:{icon:any;label:string;value:any;meta:string}){return <div className="stat-card"><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{meta}</small></div></div>}
+function Progress({label,value,total}:{label:string;value:number;total:number}){const pct=total?Math.round(value/total*100):0;return <div className="progress-item"><div><span>{label}</span><b>{value}</b></div><div className="progress-track"><i style={{width:pct+'%'}}/></div></div>}
+function Empty({title,text}:{title:string;text:string}){return <div className="empty"><FolderOpen size={26}/><strong>{title}</strong><span>{text}</span></div>}
+function Loader(){return <div className="loader"><span></span><span></span><span></span></div>}
+function Modal({title,close,children}:{title:string;close:()=>void;children:any}){return <div className="modal-backdrop"><div className="modal"><div className="modal-head"><h2>{title}</h2><button className="icon-btn" onClick={close}><X/></button></div>{children}</div></div>}
