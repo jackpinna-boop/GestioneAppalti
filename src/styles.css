@@ -94,3 +94,9 @@
 @media(max-width:1100px){.maintenance-layout{grid-template-columns:240px minmax(0,1fr)}.maintenance-summary{align-items:flex-start;flex-direction:column}.maintenance-summary-stats{width:100%;min-width:0;border-left:0;padding-top:12px;border-top:1px solid #e4e8ee}.maintenance-summary-stats>div{padding:0 10px}}
 @media(max-width:900px){.maintenance-layout{grid-template-columns:1fr}.maintenance-buildings{position:static;max-height:300px}.maintenance-systems{grid-template-columns:1fr}}
 @media(max-width:600px){.maintenance-summary-stats{grid-template-columns:1fr 1fr 1fr}.maintenance-summary-stats b{font-size:17px}.maintenance-summary-stats span{font-size:9px}}
+
+.admin-subnav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:6px;background:#f5f7fa;border:1px solid #e3e8ef;border-radius:10px;position:sticky;top:0;z-index:5}
+.admin-subnav-item{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:#536174;padding:9px 12px;border-radius:7px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.admin-subnav-item:hover{background:#fff;color:#243447;box-shadow:0 1px 3px rgba(15,23,42,.08)}
+#admin-ente,#admin-utenti,#admin-ruoli,#admin-permessi,#admin-audit{scroll-margin-top:76px}
+@media(max-width:600px){.admin-subnav{position:static;overflow-x:auto;flex-wrap:nowrap}.admin-subnav-item{white-space:nowrap}}
