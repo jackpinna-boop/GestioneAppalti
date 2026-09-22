@@ -23,6 +23,30 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
+      - name: Verify Supabase Auth API key
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -o /tmp/supabase-auth-response.txt -w "%{http_code}" \
+            -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{"email":"invalid-test@example.invalid","password":"invalid-test-password"}')"
+          echo "Supabase Auth HTTP status: $code"
+          if [ "$code" = "401" ]; then
+            echo "ERROR: Supabase rejected the configured API key."
+            exit 1
+          fi
+          if [ "$code" = "400" ]; then
+            echo "OK: API key accepted; test credentials correctly rejected."
+          else
+            echo "Unexpected Auth response status: $code"
+            cat /tmp/supabase-auth-response.txt
+            exit 1
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
