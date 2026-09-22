@@ -121,13 +121,28 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   const result=editing?await supabase.from('richieste_intervento').update(payload).eq('id',editing.id):await supabase.from('richieste_intervento').insert(payload).select('id').single();
   if(result.error){setLoading(false);setMessage('Salvataggio non riuscito: '+result.error.message);return}
   const rid=editing?.id||result.data?.id;
+  let attachmentMessage='';
   if(rid){
    await supabase.from('richieste_intervento_sedi').delete().eq('richiesta_id',rid);
    if(selectedBuildings.length) await supabase.from('richieste_intervento_sedi').insert(selectedBuildings.map((id:string)=>({ente_id:enteId,richiesta_id:rid,edificio_id:id})));
    await supabase.from('richieste_intervento_ambiti').delete().eq('richiesta_id',rid);
    if(selectedAmbiti.length) await supabase.from('richieste_intervento_ambiti').insert(selectedAmbiti.map((id:string)=>({ente_id:enteId,richiesta_id:rid,ambito_id:id})));
+   if(attachmentFiles.length){
+    const {data:user}=await supabase.auth.getUser();
+    let uploaded=0;
+    for(const file of attachmentFiles){
+     const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+     const path='richieste/'+rid+'/'+crypto.randomUUID()+'-'+safe;
+     const up=await supabase.storage.from('documenti').upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});
+     if(up.error){attachmentMessage+=(attachmentMessage?' ':'')+'Allegato "'+file.name+'" non caricato: '+up.error.message;continue}
+     const ins=await supabase.from('richiesta_intervento_documenti').insert({ente_id:enteId,richiesta_id:rid,nome:file.name,tipo:docType(file.type||''),data_documento:new Date().toISOString().slice(0,10),versione:1,url:path,mime_type:file.type||null,size_bytes:file.size,created_by:user.user?.id||null});
+     if(ins.error){await supabase.storage.from('documenti').remove([path]);attachmentMessage+=(attachmentMessage?' ':'')+'Allegato "'+file.name+'" non registrato: '+ins.error.message;continue}
+     uploaded++;
+    }
+    if(uploaded) await supabase.from('richieste_intervento').update({allegati_presenti:true}).eq('id',rid);
+   }
   }
-  setShow(false);setEditing(null);setMessage(editing?'Richiesta modificata correttamente.':'Richiesta inserita correttamente.');setRefresh(refresh+1);setLoading(false);
+  setShow(false);setEditing(null);setMessage(attachmentMessage||(editing?'Richiesta modificata correttamente.':'Richiesta inserita correttamente.')+(attachmentFiles.length?' Allegati caricati.':''));setRefresh(refresh+1);setLoading(false);
  };
  const remove=async(row:RequestRow)=>{if(!confirm('Eliminare definitivamente la richiesta '+row.codice_richiesta+'?'))return;const {error}=await supabase.from('richieste_intervento').delete().eq('id',row.id);if(error)setMessage('Eliminazione non riuscita: '+error.message);else{setMessage('Richiesta eliminata.');setRefresh(refresh+1)}};
  const markResolved=async(row:RequestRow)=>{const {error}=await supabase.from('richieste_intervento').update({risolto:true,data_risoluzione:new Date().toISOString().slice(0,10)}).eq('id',row.id);if(error)setMessage(error.message);else{setMessage('Richiesta segnata come risolta.');setRefresh(refresh+1)}};
@@ -164,7 +179,8 @@ function RequestForm({row,buildings,ambiti,onCancel,onSubmit}:{row:RequestRow|nu
  const toggle=(arr:string[],set:(x:string[])=>void,id:string)=>set(arr.includes(id)?arr.filter(x=>x!==id):[...arr,id]);
  const filteredBuildings=buildings.filter(b=>(String(b.codice_edificio)+' '+String(b.denominazione)+' '+String(b.indirizzo||'')+' '+String(b.comune||'')).toLowerCase().includes(buildingSearch.toLowerCase()));
  const filteredAmbiti=ambiti.filter(a=>(String(a.codice)+' '+String(a.denominazione)).toLowerCase().includes(ambitoSearch.toLowerCase()));
- return <form className="form-grid request-form" onSubmit={e=>{e.preventDefault();onSubmit(e)}}><input type="hidden" name="edifici_ids" value={JSON.stringify(bs)}/><input type="hidden" name="ambiti_ids" value={JSON.stringify(as)}/><div className="form-section-title span-2">Identificazione e protocollo</div>
+ return <form className="form-grid request-form" onSubmit={e=>{e.preventDefault();onSubmit(e)}}><input type="hidden" name="edifici_ids" value={JSON.stringify(bs)}/><input type="hidden" name="ambiti_ids" value={JSON.stringify(as)}/><div className="form-section-title span-2">Identificazione e protocollo <span>Allegati PDF / immagini</span></div>
+  <div className="span-2 request-attachments"><label className="request-attachments-picker"><Paperclip size={17}/><span><strong>Allega documenti</strong><small>PDF, JPG, PNG, WEBP · massimo 20 MB per file</small></span><input name="attachments" type="file" accept="application/pdf,image/*" multiple/></label><small className="request-attachments-note">Puoi selezionare più file contemporaneamente. Gli allegati vengono associati automaticamente alla richiesta.</small></div>
   <label>Data richiesta *<input name="data_richiesta" type="date" defaultValue={row?.data_richiesta||new Date().toISOString().slice(0,10)} required/></label><label>Numero protocollo<input name="protocollo" defaultValue={row?.numero_protocollo||''}/></label><label>Data protocollo<input name="data_protocollo" type="date" defaultValue={row?.data_protocollo||''}/></label><label>Tipologia di manutenzione<select name="tipo" defaultValue={row?.tipo_intervento||'da_valutare'}><option value="da_valutare">Da valutare</option><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option></select></label>
   <label className="span-2">Descrizione del problema *<input name="titolo" defaultValue={row?.titolo_sintetico||''} required/></label>
   <label className="span-2">Descrizione Problema Estesa *<textarea name="descrizione" defaultValue={row?.descrizione_estesa||''} required/></label>
