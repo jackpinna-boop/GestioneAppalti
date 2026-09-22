@@ -115,16 +115,17 @@ function AdminPage({access}:{access:Access[]}){
  }
  async function saveEntity(e:any){
    e.preventDefault();setEntityMessage('');
-   if(!entity.id||!entity.denominazione.trim()){setEntityMessageType('error');setEntityMessage('Compila la denominazione dell\'ente.');return}
+   if(!entity.id||!entity.denominazione.trim()){setEntityMessageType('error');setEntityMessage('Compila la denominazione dell\\'ente.');return}
    setSavingEntity(true);
    const payload={denominazione:entity.denominazione.trim(),codice_ipa:entity.codice_ipa.trim()||null,codice_fiscale:entity.codice_fiscale.trim()||null,tipo_ente:entity.tipo_ente.trim()||null,pec:entity.pec.trim()||null,email:entity.email.trim()||null,telefono:entity.telefono.trim()||null,attivo:entity.attivo};
    try{
-     const {error}=await supabase.from('enti').update(payload).eq('id',entity.id);
-     if(error)throw new Error(error.message);
-     const {data,error:rereadError}=await supabase.from('enti').select('id,denominazione,codice_ipa,codice_fiscale,tipo_ente,pec,email,telefono,attivo').eq('id',entity.id).maybeSingle();
-     if(rereadError)throw new Error('Salvataggio riuscito, ma rilettura fallita: '+rereadError.message);
-     if(!data)throw new Error('Il database non ha restituito l\'ente aggiornato.');
-     setEntity(data);setEntities(prev=>prev.map(x=>x.id===data.id?{...x,denominazione:data.denominazione}:x));
+     const timeout=new Promise<never>((_,reject)=>setTimeout(()=>reject(new Error('Timeout: Supabase non ha risposto entro 12 secondi.')),12000));
+     const updateResult=await Promise.race([supabase.from('enti').update(payload).eq('id',entity.id),timeout]);
+     if(updateResult.error)throw new Error(updateResult.error.message);
+     const reread=await Promise.race([supabase.from('enti').select('id,denominazione,codice_ipa,codice_fiscale,tipo_ente,pec,email,telefono,attivo').eq('id',entity.id).maybeSingle(),timeout]);
+     if(reread.error)throw new Error('Salvataggio riuscito, ma rilettura fallita: '+reread.error.message);
+     if(!reread.data)throw new Error('Il database non ha restituito l\\'ente aggiornato.');
+     setEntity(reread.data);setEntities(prev=>prev.map(x=>x.id===reread.data.id?{...x,denominazione:reread.data.denominazione}:x));
      setEntityMessageType('success');setEntityMessage('✓ Anagrafica ente salvata correttamente nel database.');
    }catch(err:any){
      const msg=err?.message||String(err);console.error('Errore salvataggio anagrafica ente:',err);
