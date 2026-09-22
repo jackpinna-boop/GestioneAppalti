@@ -81,7 +81,7 @@ function AdminPage({access}:{access:Access[]}){
  const [editingUser,setEditingUser]=useState<any|null>(null);
  const [userSaving,setUserSaving]=useState(false);
  const [userMessage,setUserMessage]=useState('');
- const manage=canManage(access);
+ const manage=access.some(x=>['superadmin','admin_ente'].includes(x.ruolo));
  const superadmin=access.some(x=>x.ruolo==='superadmin');
  const currentEnteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
  const load=async()=>{
