@@ -2,36 +2,29 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(251,4): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(251,62): error TS2304: Cannot find name 'setResolving'.
-src/App.tsx(251,123): error TS2304: Cannot find name 'resolve'.
-src/App.tsx(251,131): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(251,190): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(251,231): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(251,747): error TS2304: Cannot find name 'setResolving'.
-src/App.tsx(312,4): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,69): error TS2304: Cannot find name 'setDetailSystem'.
-src/App.tsx(312,166): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,232): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,304): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,388): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,460): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,538): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,622): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,710): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,788): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,887): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,980): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,1060): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,1137): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,1215): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,1290): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,1368): error TS2304: Cannot find name 'detailThermal'.
-src/App.tsx(312,1497): error TS2304: Cannot find name 'detailThermal'.
-src/App.tsx(312,1821): error TS2304: Cannot find name 'systemValues'.
-src/App.tsx(312,1841): error TS7006: Parameter 'x' implicitly has an 'any' type.
-src/App.tsx(312,1860): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,2243): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(312,2289): error TS2304: Cannot find name 'detailSystem'.
-src/App.tsx(366,183): error TS7022: 's' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
-src/App.tsx(366,1517): error TS2448: Block-scoped variable 's' used before its declaration.
+src/App.tsx(311,4): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,69): error TS2304: Cannot find name 'setDetailSystem'.
+src/App.tsx(311,166): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,232): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,304): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,388): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,460): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,538): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,622): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,710): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,788): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,887): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,980): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,1060): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,1137): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,1215): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,1290): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,1368): error TS2304: Cannot find name 'detailThermal'.
+src/App.tsx(311,1497): error TS2304: Cannot find name 'detailThermal'.
+src/App.tsx(311,1821): error TS2304: Cannot find name 'systemValues'.
+src/App.tsx(311,1841): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/App.tsx(311,1860): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,2243): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(311,2289): error TS2304: Cannot find name 'detailSystem'.
+src/App.tsx(365,183): error TS7022: 's' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/App.tsx(365,1517): error TS2448: Block-scoped variable 's' used before its declaration.
