@@ -2,4 +2,4 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(372,2): error TS1005: '}' expected.
+src/App.tsx(357,1012): error TS18004: No value exists in scope for the shorthand property 'titolo'. Either declare one or provide an initializer.
