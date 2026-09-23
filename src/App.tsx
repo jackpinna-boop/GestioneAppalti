@@ -819,7 +819,7 @@ function MaintenanceEventForm({row,systems,onCancel,onSubmit}:{row:MaintenanceEv
   <label>Costo consuntivo<input name="costo_consuntivo" type="number" min="0" step=".01" defaultValue={row?.costo_consuntivo??''}/></label>
   <label>Operatore / ditta<input name="operatore" defaultValue={row?.operatore||''}/></label>
   <label>Numero rapporto<input name="numero_rapporto" defaultValue={row?.numero_rapporto||''}/></label>
-  <label className="span-2">Note<textarea name="note"/></label>
+  <label className="span-2">Note<textarea name="note" defaultValue={row?.note||''}/></label>
   <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">{row?'Salva modifiche':'Registra manutenzione'}</button></div>
  </form>
 }
