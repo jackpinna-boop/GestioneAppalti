@@ -2,5 +2,9 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/ImportImpiantiPage.tsx(19,254): error TS1127: Invalid character.
-src/ImportImpiantiPage.tsx(214,1): error TS1160: Unterminated template literal.
+src/App.tsx(383,157): error TS1005: '}' expected.
+src/App.tsx(383,185): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/App.tsx(383,186): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/App.tsx(383,2132): error TS17002: Expected corresponding JSX closing tag for 'PageHead'.
+src/App.tsx(384,2): error TS1128: Declaration or statement expected.
+src/App.tsx(385,1): error TS1109: Expression expected.
