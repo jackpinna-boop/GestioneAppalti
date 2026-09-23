@@ -645,8 +645,12 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
  const [showEvent,setShowEvent]=useState(false);
  const [editingEvent,setEditingEvent]=useState<MaintenanceEvent|null>(null);
  const [message,setMessage]=useState('');
- const write=canWrite(access);
+ const [perm,setPerm]=useState({can_view:false,can_create:false,can_update:false,can_delete:false});
+ const superadmin=access.some(x=>x.ruolo==='superadmin');
  const enteId=access[0]?.ente_id;
+ const canCreate=superadmin||perm.can_create;
+ const canUpdate=superadmin||perm.can_update;
+ const canDelete=superadmin||perm.can_delete;
  const systemLabels:{key:MaintenanceSystem['tipo'];label:string;description:string}[]=[
   {key:'elettrico',label:'Impianto elettrico',description:'Quadri, distribuzione, illuminazione e verifiche elettriche'},
   {key:'idraulico',label:'Impianto idraulico',description:'Adduzione, scarichi, sanitari e reti idriche'},
@@ -668,6 +672,7 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
   if(e.error)setMessage('Errore caricamento manutenzioni: '+e.error.message);else setEvents((e.data||[]) as MaintenanceEvent[]);
  };
  useEffect(()=>{void load()},[refresh,enteId,selectedBuilding]);
+ useEffect(()=>{(async()=>{const u=access[0]?.user_id,e=access[0]?.ente_id;if(!u||!e)return;const {data,error}=await supabase.from('permessi_utenti').select('can_view,can_create,can_update,can_delete').eq('user_id',u).eq('ente_id',e).maybeSingle();if(error){console.error('Errore caricamento permessi manutenzioni:',error);return}if(data)setPerm(data)})()},[access[0]?.user_id,access[0]?.ente_id,superadmin]);
  const filteredBuildings=buildings.filter(b=>(b.codice_edificio+' '+b.denominazione+' '+(b.comune||'')).toLowerCase().includes(q.toLowerCase()));
  const currentBuilding=buildings.find(b=>b.id===selectedBuilding);
  const getSystem=(tipo:MaintenanceSystem['tipo'])=>systems.find(s=>s.tipo===tipo);
@@ -721,7 +726,7 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
  return <PageHead title="Manutenzioni" subtitle="Gestione tecnica e manutentiva degli impianti di ciascun edificio.">
   <div className="page-actions">
    <div className="search"><Search size={17}/><input placeholder="Cerca edificio…" value={q} onChange={e=>setQ(e.target.value)}/></div>
-   {write&&<button className="btn primary" disabled={!selectedBuilding} onClick={()=>{setEditingEvent(null);setShowEvent(true)}}><Plus size={17}/> Nuova manutenzione</button>}
+   {canCreate&&<button className="btn primary" disabled={!selectedBuilding} onClick={()=>{setEditingEvent(null);setShowEvent(true)}}><Plus size={17}/> Nuova manutenzione</button>}
   </div>
   {message&&<div className="notice success">{message}</div>}
   <section className="maintenance-layout">
@@ -745,7 +750,7 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
     </div>
     <section className="card table-card">
      <div className="card-head"><div><h2>Registro manutenzioni</h2><p>Interventi ordinari, straordinari, verifiche ed emergenze dell'edificio.</p></div><Wrench size={20}/></div>
-     {events.length?<table><thead><tr><th>Data</th><th>Impianto</th><th>Tipo</th><th>Stato</th><th>Descrizione</th><th>Operatore</th><th>Consuntivo</th><th>Azioni</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td>{date(e.data_esecuzione||e.data_programmata||e.data_richiesta)}</td><td>{systems.find(s=>s.id===e.impianto_id)?.denominazione||'—'}</td><td>{statusLabel(e.tipo)}</td><td><span className={'badge '+(e.stato==='chiusa'?'green':e.stato==='annullata'?'red':e.stato==='in_corso'?'amber':'blue')}>{statusLabel(e.stato)}</span></td><td><b>{e.descrizione}</b>{e.esito&&<span className="table-sub">{e.esito}</span>}</td><td>{e.operatore||'—'}</td><td>{money(e.costo_consuntivo)}</td><td>{write&&<div className="table-actions"><button className="icon-btn" title="Modifica manutenzione" onClick={()=>{setEditingEvent(e);setShowEvent(true)}}><Pencil size={15}/></button><button className="icon-btn" title="Elimina manutenzione" onClick={()=>removeEvent(e)}><Trash2 size={15}/></button></div>}</td></tr>)}</tbody></table>:<Empty title="Nessuna manutenzione registrata" text="Registra il primo intervento manutentivo per l'edificio selezionato."/>}
+     {events.length?<table><thead><tr><th>Data</th><th>Impianto</th><th>Tipo</th><th>Stato</th><th>Descrizione</th><th>Operatore</th><th>Consuntivo</th><th>Azioni</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td>{date(e.data_esecuzione||e.data_programmata||e.data_richiesta)}</td><td>{systems.find(s=>s.id===e.impianto_id)?.denominazione||'—'}</td><td>{statusLabel(e.tipo)}</td><td><span className={'badge '+(e.stato==='chiusa'?'green':e.stato==='annullata'?'red':e.stato==='in_corso'?'amber':'blue')}>{statusLabel(e.stato)}</span></td><td><b>{e.descrizione}</b>{e.esito&&<span className="table-sub">{e.esito}</span>}</td><td>{e.operatore||'—'}</td><td>{money(e.costo_consuntivo)}</td><td>{(canUpdate||canDelete)&&<div className="table-actions">{canUpdate&&<button className="icon-btn" title="Modifica manutenzione" onClick={()=>{setEditingEvent(e);setShowEvent(true)}}><Pencil size={15}/></button>}{canDelete&&<button className="icon-btn" title="Elimina manutenzione" onClick={()=>removeEvent(e)}><Trash2 size={15}/></button>}</div>}</td></tr>)}</tbody></table>:<Empty title="Nessuna manutenzione registrata" text="Registra il primo intervento manutentivo per l'edificio selezionato."/>}
     </section>
    </div>
   </section>
