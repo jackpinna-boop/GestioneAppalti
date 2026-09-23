@@ -2,5 +2,12 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(365,183): error TS7022: 'sys' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
-src/App.tsx(365,1519): error TS2448: Block-scoped variable 'sys' used before its declaration.
+src/App.tsx(241,59): error TS2304: Cannot find name 'resolving'.
+src/App.tsx(241,464): error TS2304: Cannot find name 'resolving'.
+src/App.tsx(241,518): error TS2304: Cannot find name 'setResolving'.
+src/App.tsx(263,420): error TS2304: Cannot find name 'setResolving'.
+src/App.tsx(266,286): error TS2304: Cannot find name 'resolving'.
+src/App.tsx(266,355): error TS2304: Cannot find name 'setResolving'.
+src/App.tsx(266,472): error TS2304: Cannot find name 'resolving'.
+src/App.tsx(266,512): error TS2304: Cannot find name 'resolving'.
+src/App.tsx(266,1032): error TS2304: Cannot find name 'setResolving'.
