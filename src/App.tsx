@@ -17,7 +17,8 @@ const money=(n:number|null|undefined)=>new Intl.NumberFormat('it-IT',{style:'cur
 const date=(s:string|null|undefined)=>s?new Intl.DateTimeFormat('it-IT').format(new Date(s+'T00:00:00')):'—'
 const statusLabel=(s:string)=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())
 const statusClass=(s:string)=>({programmato:'gray',progettazione:'blue',approvato:'blue',affidamento:'amber',contratto:'amber',esecuzione:'green',fine_lavori:'green',collaudo:'purple',chiuso:'green',sospeso:'red',annullato:'red'}[s]||'gray')
-const isManutentore=(a:Access[])=>a.some(x=>x.ruolo==='manutentore')
+const isManutentore=(a:Access[])=>a.some(x=>['manutentore','siservizi'].includes(x.ruolo))
+const isSiServizi=(a:Access[])=>a.some(x=>x.ruolo==='siservizi')
 const canWrite=(a:Access[])=>a.length>0
 const canManage=(a:Access[])=>a.some(x=>['superadmin','admin_ente','rup'].includes(x.ruolo))
 const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore']
@@ -110,7 +111,7 @@ function AppShell({session}:{session:any}){
  const pageAllowed=(p:Page)=>canMenu(pageResource(p));
  useEffect(()=>{if(!menuReady)return;if(!pageAllowed(page))navigate('dashboard')},[menuReady,page,menuPermissions])
  if(!menuReady)return <div className="loading-screen">Caricamento autorizzazioni…</div>
- return <div className="app-shell"><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand"><div className="brand-mark small"><Building2 size={20}/></div><span>Gestione Appalti</span></div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
+ return <div className={'app-shell '+(isSiServizi(access)?'role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand"><div className="brand-mark small"><Building2 size={20}/></div><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav>
  {canMenu('dashboard')&&<Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/>}
  {canMenu('edifici')&&<Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/>}
