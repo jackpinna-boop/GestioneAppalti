@@ -1,0 +1,5 @@
+
+> gestione-appalti@0.1.0 build
+> tsc -b && vite build
+
+src/App.tsx(372,2): error TS1005: '}' expected.
