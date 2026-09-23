@@ -565,6 +565,7 @@ function AdminPage({access}:{access:Access[]}){
  const superadmin=access.some(x=>x.ruolo==='superadmin');
  const currentEnteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
  const load=async()=>{
+   if(!currentEnteId)return;
    const [a,b,c,d,e]=await Promise.all([
      supabase.from('profiles').select('id,nome,cognome,email,telefono,attivo').order('cognome'),
      supabase.from('enti').select('id,denominazione').order('denominazione'),
@@ -661,7 +662,7 @@ function AdminPage({access}:{access:Access[]}){
  }
  async function saveEntity(e:any){
    e.preventDefault();setEntityMessage('');
-   const entityId=entity.id||currentEnteId;
+   const entityId=currentEnteId;
    if(!entityId||!String(entity.denominazione??'').trim()){setEntityMessageType('error');setEntityMessage('Impossibile salvare: ente non identificato oppure denominazione mancante.');return}
    if(logoFile&&(!logoFile.type.startsWith('image/')||logoFile.size>2*1024*1024)){setEntityMessageType('error');setEntityMessage('Il logo deve essere un’immagine PNG, JPG, WEBP o SVG di dimensione massima 2 MB.');return}
    setSavingEntity(true);
