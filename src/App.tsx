@@ -408,7 +408,7 @@ function InterventionPrintReport({row,phases,docs}:{row:any;phases:Phase[];docs:
 }
 
 function Anagrafica({row}:{row:any}){return <section className="content-grid"><section className="card"><div className="card-head"><h2>Dati intervento</h2><ClipboardList size={20}/></div><Info label="Codice" value={row.codice_intervento}/><Info label="CUP" value={row.cup}/><Info label="Stato" value={statusLabel(row.stato)}/><Info label="Annualità" value={row.annualita_programmazione}/><Info label="Priorità" value={row.priorita}/></section><section className="card"><div className="card-head"><h2>Importi</h2><WalletCards size={20}/></div><Info label="Programmato" value={money(row.importo_programmato)}/><Info label="Finanziato" value={money(row.importo_finanziato)}/><Info label="Contrattuale" value={money(row.importo_contrattuale)}/></section></section>}
-function PhasesPanel({id,phases,write,refresh,setRefresh}:{id:string;phases:Phase[];write:boolean;refresh:number;setRefresh:(x:number)=>void}){const [show,setShow]=useState(false);async function save(e:any){e.preventDefault();const f=new FormData(e.currentTarget);const {error}=await supabase.from('fasi_intervento').insert({intervento_id:id,fase:f.get('fase'),stato:f.get('stato'),percentuale_avanzamento:Number(f.get('percentuale')||0),data_prevista_inizio:f.get('inizio')||null,data_prevista_fine:f.get('fine')||null,note:f.get('note')||null});if(error)alert(error.message);else{setShow(false);setRefresh(refresh+1)}}return <section className="card table-card"><div className="card-head"><div><h2>Fasi procedurali</h2><p>Avanzamento e scadenze</p></div>{write&&<button className="btn primary" onClick={()=>setShow(true)}><Plus size={16}/> Nuova fase</button>}</div>{show&&<Modal title="Nuova fase" close={()=>setShow(false)}><form className="form-grid" onSubmit={save}><label>Fase<select name="fase" required>{['programmazione','pfte','verifica_pfte','approvazione_pfte','esecutivo','verifica_esecutivo','validazione','approvazione','affidamento','contratto','consegna','esecuzione','sal','fine_lavori','collaudo','cre','chiusura'].map(x=><option key={x}>{x}</option>)}</select></label><label>Stato<input name="stato" defaultValue="pianificata"/></label><label>Avanzamento %<input name="percentuale" type="number" min="0" max="100" defaultValue="0"/></label><label>Data prevista fine<input name="fine" type="date"/></label><label>Data prevista inizio<input name="inizio" type="date"/></label><label className="span-2">Note<textarea name="note"/></label><div className="form-actions span-2"><button type="button" className="btn secondary" onClick={()=>setShow(false)}>Annulla</button><button className="btn primary">Salva</button></div></form></Modal>}{phases.length?<table><thead><tr><th>Fase</th><th>Stato</th><th>Avanzamento</th><th>Scadenza</th></tr></thead><tbody>{phases.map(p=><tr key={p.id}><td><b>{statusLabel(p.fase)}</b></td><td>{statusLabel(p.stato||'')}</td><td><div className="progress-track"><i style={{width:Number(p.percentuale_avanzamento||0)+'%'}}/></div>{Number(p.percentuale_avanzamento||0)}%</td><td>{date(p.data_prevista_fine)}</td></tr>)}</tbody></table>:<Empty title="Nessuna fase" text="Inserisci la prima fase procedurale."/>}</section>}
+function PhasesPanel({id,phases,write,refresh,setRefresh}:{id:string;phases:Phase[];write:boolean;refresh:number;setRefresh:(x:number)=>void}){const [show,setShow]=useState(false);async function save(e:any){e.preventDefault();const f=new FormData(e.currentTarget);const {error}=await supabase.from('fasi_intervento').insert({intervento_id:id,fase:f.get('fase'),stato:f.get('stato'),percentuale_avanzamento:Number(f.get('percentuale')||0),data_prevista_inizio:f.get('inizio')||null,data_prevista_fine:f.get('fine')||null,note:f.get('note')||null});if(error)alert(error.message);else{setShow(false);setRefresh(refresh+1)}}return <section className="card table-card"><div className="card-head"><div><h2>Fasi procedurali</h2><p>Avanzamento e scadenze</p></div>{write&&<button className="btn primary" onClick={()=>setShow(true)}><Plus size={16}/> Nuova fase</button>}</div>{show&&<Modal title="Nuova fase" close={()=>setShow(false)}><form className="form-grid" onSubmit={save}><label>Fase<select name="fase" required>{['programmazione','pfte','verifica_pfte','approvazione_pfte','esecutivo','verifica_esecutivo','validazione','approvazione','affidamento','contratto','consegna','esecuzione','sal','fine_lavori','collaudo','cre','chiusura'].map(x=><option key={x}>{x}</option>)}</select></label><label>Stato<input name="stato" defaultValue="pianificata"/></label><label>Avanzamento %<input name="percentuale" type="number" min="0" max="100" defaultValue="0"/></label><label>Data prevista fine<input name="fine" type="date"/></label><label>Data prevista inizio<input name="inizio" type="date"/></label><label className="span-2">Note<textarea name="note" defaultValue={row?.note||''}/></label><div className="form-actions span-2"><button type="button" className="btn secondary" onClick={()=>setShow(false)}>Annulla</button><button className="btn primary">Salva</button></div></form></Modal>}{phases.length?<table><thead><tr><th>Fase</th><th>Stato</th><th>Avanzamento</th><th>Scadenza</th></tr></thead><tbody>{phases.map(p=><tr key={p.id}><td><b>{statusLabel(p.fase)}</b></td><td>{statusLabel(p.stato||'')}</td><td><div className="progress-track"><i style={{width:Number(p.percentuale_avanzamento||0)+'%'}}/></div>{Number(p.percentuale_avanzamento||0)}%</td><td>{date(p.data_prevista_fine)}</td></tr>)}</tbody></table>:<Empty title="Nessuna fase" text="Inserisci la prima fase procedurale."/>}</section>}
 function AttachmentsPanel({interventionId,section,docs,write,refresh,setRefresh}:{interventionId:string;section:string;docs:any[];write:boolean;refresh:number;setRefresh:(x:number)=>void}){return <DocumentsPanel id={interventionId} docs={docs} write={write} refresh={refresh} setRefresh={setRefresh} section={section} compact/>}
 function DocumentsPanel({id,docs,write,refresh,setRefresh,section='documenti',compact=false}:{id:string;docs:any[];write:boolean;refresh:number;setRefresh:(x:number)=>void;section?:string;compact?:boolean}){
  const [busy,setBusy]=useState(false);const [editing,setEditing]=useState<any|null>(null);
@@ -643,6 +643,7 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
  const [showSystem,setShowSystem]=useState(false);
  const [editingSystem,setEditingSystem]=useState<MaintenanceSystem|null>(null);
  const [showEvent,setShowEvent]=useState(false);
+ const [editingEvent,setEditingEvent]=useState<MaintenanceEvent|null>(null);
  const [message,setMessage]=useState('');
  const write=canWrite(access);
  const enteId=access[0]?.ente_id;
@@ -697,22 +698,30 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
  const saveEvent=async(e:any)=>{
   e.preventDefault();if(!enteId||!selectedBuilding)return;
   const f=new FormData(e.currentTarget);
-  const {error}=await supabase.from('manutenzioni').insert({
+  const payload={
    ente_id:enteId,edificio_id:selectedBuilding,impianto_id:String(f.get('impianto')||'')||null,
-   tipo:f.get('tipo'),stato:f.get('stato'),data_richiesta:f.get('data_richiesta')||undefined,
+   tipo:f.get('tipo'),stato:f.get('stato'),data_richiesta:f.get('data_richiesta')||null,
    data_programmata:f.get('data_programmata')||null,data_esecuzione:f.get('data_esecuzione')||null,
    descrizione:String(f.get('descrizione')||'').trim(),esito:String(f.get('esito')||'').trim()||null,
    costo_previsto:Number(f.get('costo_previsto')||0)||0,costo_consuntivo:Number(f.get('costo_consuntivo')||0)||0,
    operatore:String(f.get('operatore')||'').trim()||null,numero_rapporto:String(f.get('numero_rapporto')||'').trim()||null,
-   note:String(f.get('note')||'').trim()||null,created_by:access[0]?.user_id
-  });
-  if(error){setMessage('Inserimento manutenzione non riuscito: '+error.message);return}
-  setMessage('Manutenzione registrata correttamente.');setShowEvent(false);setRefresh(refresh+1);
+   note:String(f.get('note')||'').trim()||null
+  };
+  const result=editingEvent
+   ?await supabase.from('manutenzioni').update(payload).eq('id',editingEvent.id)
+   :await supabase.from('manutenzioni').insert({...payload,created_by:access[0]?.user_id});
+  if(result.error){setMessage((editingEvent?'Modifica':'Inserimento')+' manutenzione non riuscito: '+result.error.message);return}
+  setMessage(editingEvent?'Manutenzione modificata correttamente.':'Manutenzione registrata correttamente.');setShowEvent(false);setEditingEvent(null);setRefresh(refresh+1);
+ };
+ const removeEvent=async(event:MaintenanceEvent)=>{
+  if(!confirm('Eliminare definitivamente la manutenzione "'+event.descrizione+'"?'))return;
+  const {error}=await supabase.from('manutenzioni').delete().eq('id',event.id);
+  if(error)setMessage('Eliminazione manutenzione non riuscita: '+error.message);else{setMessage('Manutenzione eliminata.');setRefresh(refresh+1)}
  };
  return <PageHead title="Manutenzioni" subtitle="Gestione tecnica e manutentiva degli impianti di ciascun edificio.">
   <div className="page-actions">
    <div className="search"><Search size={17}/><input placeholder="Cerca edificio…" value={q} onChange={e=>setQ(e.target.value)}/></div>
-   {write&&<button className="btn primary" disabled={!selectedBuilding} onClick={()=>setShowEvent(true)}><Plus size={17}/> Nuova manutenzione</button>}
+   {write&&<button className="btn primary" disabled={!selectedBuilding} onClick={()=>{setEditingEvent(null);setShowEvent(true)}}><Plus size={17}/> Nuova manutenzione</button>}
   </div>
   {message&&<div className="notice success">{message}</div>}
   <section className="maintenance-layout">
@@ -736,12 +745,12 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
     </div>
     <section className="card table-card">
      <div className="card-head"><div><h2>Registro manutenzioni</h2><p>Interventi ordinari, straordinari, verifiche ed emergenze dell'edificio.</p></div><Wrench size={20}/></div>
-     {events.length?<table><thead><tr><th>Data</th><th>Impianto</th><th>Tipo</th><th>Stato</th><th>Descrizione</th><th>Operatore</th><th>Consuntivo</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td>{date(e.data_esecuzione||e.data_programmata||e.data_richiesta)}</td><td>{systems.find(s=>s.id===e.impianto_id)?.denominazione||'—'}</td><td>{statusLabel(e.tipo)}</td><td><span className={'badge '+(e.stato==='chiusa'?'green':e.stato==='annullata'?'red':e.stato==='in_corso'?'amber':'blue')}>{statusLabel(e.stato)}</span></td><td><b>{e.descrizione}</b>{e.esito&&<span className="table-sub">{e.esito}</span>}</td><td>{e.operatore||'—'}</td><td>{money(e.costo_consuntivo)}</td></tr>)}</tbody></table>:<Empty title="Nessuna manutenzione registrata" text="Registra il primo intervento manutentivo per l'edificio selezionato."/>}
+     {events.length?<table><thead><tr><th>Data</th><th>Impianto</th><th>Tipo</th><th>Stato</th><th>Descrizione</th><th>Operatore</th><th>Consuntivo</th><th>Azioni</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td>{date(e.data_esecuzione||e.data_programmata||e.data_richiesta)}</td><td>{systems.find(s=>s.id===e.impianto_id)?.denominazione||'—'}</td><td>{statusLabel(e.tipo)}</td><td><span className={'badge '+(e.stato==='chiusa'?'green':e.stato==='annullata'?'red':e.stato==='in_corso'?'amber':'blue')}>{statusLabel(e.stato)}</span></td><td><b>{e.descrizione}</b>{e.esito&&<span className="table-sub">{e.esito}</span>}</td><td>{e.operatore||'—'}</td><td>{money(e.costo_consuntivo)}</td><td>{write&&<div className="table-actions"><button className="icon-btn" title="Modifica manutenzione" onClick={()=>{setEditingEvent(e);setShowEvent(true)}}><Pencil size={15}/></button><button className="icon-btn" title="Elimina manutenzione" onClick={()=>removeEvent(e)}><Trash2 size={15}/></button></div>}</td></tr>)}</tbody></table>:<Empty title="Nessuna manutenzione registrata" text="Registra il primo intervento manutentivo per l'edificio selezionato."/>}
     </section>
    </div>
   </section>
   {showSystem&&<Modal title={editingSystem?'Modifica impianto':'Censimento impianto'} close={()=>{setShowSystem(false);setEditingSystem(null)}}><MaintenanceSystemForm row={editingSystem} building={currentBuilding} labels={systemLabels} onCancel={()=>{setShowSystem(false);setEditingSystem(null)}} onSubmit={saveSystem}/></Modal>}
-  {showEvent&&<Modal title="Nuova manutenzione" close={()=>setShowEvent(false)}><MaintenanceEventForm systems={systems} onCancel={()=>setShowEvent(false)} onSubmit={saveEvent}/></Modal>}
+  {showEvent&&<Modal title={editingEvent?'Modifica manutenzione':'Nuova manutenzione'} close={()=>{setShowEvent(false);setEditingEvent(null)}}><MaintenanceEventForm row={editingEvent} systems={systems} onCancel={()=>{setShowEvent(false);setEditingEvent(null)}} onSubmit={saveEvent}/></Modal>}
  </PageHead>
 }
 
@@ -796,22 +805,22 @@ function MaintenanceSystemForm({row,building,labels,onCancel,onSubmit}:{row:Main
  </form>
 }
 
-function MaintenanceEventForm({systems,onCancel,onSubmit}:{systems:MaintenanceSystem[];onCancel:()=>void;onSubmit:(e:any)=>void}){
+function MaintenanceEventForm({row,systems,onCancel,onSubmit}:{row:MaintenanceEvent|null;systems:MaintenanceSystem[];onCancel:()=>void;onSubmit:(e:any)=>void}){
  return <form className="form-grid" onSubmit={onSubmit}>
-  <label>Impianto<select name="impianto"><option value="">Generale edificio</option>{systems.map(s=><option value={s.id} key={s.id}>{s.denominazione}</option>)}</select></label>
-  <label>Tipo<select name="tipo" defaultValue="ordinaria"><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option><option value="verifica">Verifica</option><option value="emergenza">Emergenza</option></select></label>
-  <label>Stato<select name="stato" defaultValue="programmata"><option value="programmata">Programmata</option><option value="aperta">Aperta</option><option value="in_corso">In corso</option><option value="chiusa">Chiusa</option><option value="annullata">Annullata</option></select></label>
-  <label>Data richiesta<input name="data_richiesta" type="date" defaultValue={new Date().toISOString().slice(0,10)}/></label>
-  <label>Data programmata<input name="data_programmata" type="date"/></label>
-  <label>Data esecuzione<input name="data_esecuzione" type="date"/></label>
-  <label className="span-2">Descrizione<input name="descrizione" required/></label>
-  <label className="span-2">Esito<textarea name="esito"/></label>
-  <label>Costo previsto<input name="costo_previsto" type="number" min="0" step=".01"/></label>
-  <label>Costo consuntivo<input name="costo_consuntivo" type="number" min="0" step=".01"/></label>
-  <label>Operatore / ditta<input name="operatore"/></label>
-  <label>Numero rapporto<input name="numero_rapporto"/></label>
+  <label>Impianto<select name="impianto" defaultValue={row?.impianto_id||''}><option value="">Generale edificio</option>{systems.map(s=><option value={s.id} key={s.id}>{s.denominazione}</option>)}</select></label>
+  <label>Tipo<select name="tipo" defaultValue={row?.tipo||'ordinaria'}><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option><option value="verifica">Verifica</option><option value="emergenza">Emergenza</option></select></label>
+  <label>Stato<select name="stato" defaultValue={row?.stato||'programmata'}><option value="programmata">Programmata</option><option value="aperta">Aperta</option><option value="in_corso">In corso</option><option value="chiusa">Chiusa</option><option value="annullata">Annullata</option></select></label>
+  <label>Data richiesta<input name="data_richiesta" type="date" defaultValue={row?.data_richiesta||new Date().toISOString().slice(0,10)}/></label>
+  <label>Data programmata<input name="data_programmata" type="date" defaultValue={row?.data_programmata||''}/></label>
+  <label>Data esecuzione<input name="data_esecuzione" type="date" defaultValue={row?.data_esecuzione||''}/></label>
+  <label className="span-2">Descrizione<input name="descrizione" defaultValue={row?.descrizione||''} required/></label>
+  <label className="span-2">Esito<textarea name="esito" defaultValue={row?.esito||''}/></label>
+  <label>Costo previsto<input name="costo_previsto" type="number" min="0" step=".01" defaultValue={row?.costo_previsto??''}/></label>
+  <label>Costo consuntivo<input name="costo_consuntivo" type="number" min="0" step=".01" defaultValue={row?.costo_consuntivo??''}/></label>
+  <label>Operatore / ditta<input name="operatore" defaultValue={row?.operatore||''}/></label>
+  <label>Numero rapporto<input name="numero_rapporto" defaultValue={row?.numero_rapporto||''}/></label>
   <label className="span-2">Note<textarea name="note"/></label>
-  <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">Registra manutenzione</button></div>
+  <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">{row?'Salva modifiche':'Registra manutenzione'}</button></div>
  </form>
 }
 
