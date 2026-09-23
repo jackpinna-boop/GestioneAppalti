@@ -146,32 +146,17 @@ export default function ImportImpiantiPage({access}:{access:Access[]}){
  const confirmImport=async()=>{
    const selected=rows.filter(r=>r.selezionato&&r.errori.length===0&&r.edificio_id)
    if(!selected.length){setMessage('Non ci sono righe valide selezionate per l’importazione.');return}
-   if(!window.confirm(\`Confermare l'importazione di ${selected.length} impianti termici? Questa operazione scriverà nei dati di produzione.\`))return
+   if(!window.confirm('Confermare l\'importazione di '+selected.length+' impianti termici? Questa operazione scriverà nei dati di produzione.'))return
    setLoading(true);setMessage('')
    try{
-     const {data:tipo,error:te}=await supabase.from('tipologie_impianto').select('id').eq('ente_id',enteId).eq('codice','TERMICO').maybeSingle()
-     if(te)throw te
-     if(!tipo)throw new Error('Tipologia TERMICO non configurata.')
-     const {data:attrs,error:ae}=await supabase.from('attributi_tipologia_impianto').select('id,codice').eq('tipologia_id',tipo.id).eq('attivo',true)
-     if(ae)throw ae
-     const attrMap=new Map((attrs||[]).map((x:any)=>[x.codice,x.id]))
-     for(const r of selected){
-       const {data:imp,error}=await supabase.from('impianti_manutentivi').insert({
-         ente_id:enteId,edificio_id:r.edificio_id,tipo:'termico',codice:r.matricola||null,denominazione:'Impianto termico - '+r.matricola,
-         matricola:r.matricola,stato:r.stato_suggerito,data_prossima_manutenzione:null
-       }).select('id').single()
-       if(error)throw error
-       const vals=[
-         ['MATRICOLA_INAIL',r.matricola_inail],['MATRICOLA_INAIL_VIGENTE',r.matricola_inail_vigente],['POTENZA_TERMICA',r.potenza_kw===null?'':String(r.potenza_kw)],
-         ['CONTROLLO_EFFICIENZA',r.controllo_efficienza],['SOPRA_116KW',r.sopra_116kw===null?'':String(r.sopra_116kw)],
-         ['ULTIMA_VERIFICA',r.ultima_verifica||''],['PROSSIMA_VERIFICA',r.prossima_verifica||''],['LINK_PRATICA',r.link_pratica]
-       ].filter(([,v])=>clean(v)).map(([c,v])=>({impianto_id:imp.id,attributo_id:attrMap.get(c as string),valore:String(v)})).filter(x=>x.attributo_id)
-       if(vals.length){const {error:ve}=await supabase.from('valori_attributi_impianto').insert(vals);if(ve)throw ve}
-     }
-     await supabase.from('import_batch_impianti').update({stato:'importato',importabili:selected.length}).eq('id',batchId)
+     if(!batchId)throw new Error('Batch di importazione non disponibile.')
+     await saveStaging()
+     const {data,error}=await supabase.rpc('import_impianti_termici_batch',{p_batch_id:batchId})
+     if(error)throw error
+     const count=Number(data||0)
      setRows(prev=>prev.map(r=>r.selezionato&&r.errori.length===0?{...r,selezionato:false}:r))
-     setMessage(\`Importazione completata: ${selected.length} impianti termici inseriti.\`)
-   }catch(e:any){setMessage('Importazione interrotta: '+e.message)}finally{setLoading(false)}
+     setMessage('Importazione completata: '+count+' impianti termici inseriti in modo atomico.')
+   }catch(e:any){setMessage('Importazione interrotta senza completare il batch: '+e.message)}finally{setLoading(false)}
  }
 
  if(!canManage)return <div className="notice warning"><CircleAlert size={18}/> Accesso riservato a superadmin e admin_ente.</div>
