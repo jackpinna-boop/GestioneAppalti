@@ -2,4 +2,5 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(357,1012): error TS18004: No value exists in scope for the shorthand property 'titolo'. Either declare one or provide an initializer.
+src/ImportImpiantiPage.tsx(19,254): error TS1127: Invalid character.
+src/ImportImpiantiPage.tsx(214,1): error TS1160: Unterminated template literal.
