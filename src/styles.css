@@ -303,3 +303,12 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .alert-config .form-actions{margin-top:4px}
 @media(max-width:1000px){.maintenance-alert-stats{grid-template-columns:1fr 1fr}.maintenance-alert-grid{grid-template-columns:1fr}.maintenance-alert-detail{position:static}.maintenance-alert-filters{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.maintenance-alert-toolbar{align-items:stretch;flex-direction:column}.maintenance-alert-period{justify-content:space-between}.maintenance-alert-stats{grid-template-columns:1fr}.maintenance-alert-filters{grid-template-columns:1fr}.maintenance-alert-period .btn{padding:8px 9px}.nav-submenu{margin-left:24px}}
+
+.maintenance-section-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:8px 0 -4px;padding:14px 16px;border:1px solid #d7e5ea;border-radius:11px;background:#f3f8fa}
+.maintenance-section-heading h2{margin:2px 0 3px;font-size:16px;color:var(--psi-navy)}
+.maintenance-section-heading p{margin:0;color:var(--psi-muted);font-size:11px}
+.maintenance-elevator-card{border-top:3px solid #6b8190}
+.table-actions{display:flex;gap:5px;align-items:center}
+.table-actions .icon-btn{width:30px;height:30px}
+.maintenance-alert-table .table-actions{justify-content:flex-start}
+@media(max-width:700px){.maintenance-section-heading{align-items:flex-start}.maintenance-section-heading svg{display:none}}
