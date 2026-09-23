@@ -555,6 +555,7 @@ export type Database = {
           denominazione: string
           email?: string | null
           id?: string
+          logo_path?: string | null
           pec?: string | null
           telefono?: string | null
           tipo_ente?: string | null
@@ -567,6 +568,7 @@ export type Database = {
           codice_ipa?: string | null
           created_at?: string
           denominazione?: string
+          logo_path?: string | null
           email?: string | null
           id?: string
           pec?: string | null
