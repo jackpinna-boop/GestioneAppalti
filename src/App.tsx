@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X, Upload, Download, RefreshCw, Pencil, Trash2, Printer, Paperclip, Wrench, UserCog, History, Save, RotateCcw, CheckCircle2, Eye, SlidersHorizontal, CalendarDays, ChevronDown } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
@@ -737,11 +737,11 @@ function MaintenancePage({access,refresh,setRefresh,initialBuildingId}:{access:A
      <div className="maintenance-summary-stats"><div><b>{systems.length}/4</b><span>impianti censiti</span></div><div><b>{dueCount}</b><span>scadenze superate</span></div><div><b>{events.length}</b><span>manutenzioni registrate</span></div></div>
     </section>
     <div className="maintenance-systems">
-     {systemLabels.map(def=>{const s=getSystem(def.key);return <section className="card maintenance-system-card" key={def.key}>
+     {systemLabels.map(def=>{const s=getSystem(def.key);return <React.Fragment key={def.key}>{def.key==='elevatore'&&<div className="maintenance-section-heading"><div><span className="eyebrow">Sezione tecnica</span><h2>Impianti elevatori</h2><p>Ascensori, piattaforme elevatrici e relativi interventi di manutenzione e verifica.</p></div><Wrench size={20}/></div>}<section id={'maintenance-'+def.key} className={'card maintenance-system-card '+(def.key==='elevatore'?'maintenance-elevator-card':'')}>
       <div className="maintenance-system-head"><div><span className="eyebrow">{def.label}</span><h3>{s?.denominazione||'Non censito'}</h3><p>{def.description}</p></div><span className={'badge '+(s?.stato==='attivo'?'green':s?.stato==='fuori_servizio'?'red':'gray')}>{s?.stato?statusLabel(s.stato):'Da censire'}</span></div>
       <div className="maintenance-system-grid"><Info label="Matricola" value={s?.matricola}/><Info label="Ultima manutenzione" value={date(s?.data_ultima_manutenzione)}/><Info label="Prossima manutenzione" value={date(s?.data_prossima_manutenzione)}/><Info label="Ditta manutentrice" value={s?.ditta_manutentrice}/><Info label="Periodicità" value={s?.periodicita_mesi?(s.periodicita_mesi+' mesi'):null}/><Info label="Conformità" value={s?.conformita?'Dichiarata':'Da verificare'}/></div>
       <div className="maintenance-card-actions">{write&&<><button className="btn secondary" onClick={()=>{setEditingSystem(s||null);setShowSystem(true)}}>{s?<><Pencil size={15}/> Modifica</>:<><Plus size={15}/> Censisci impianto</>}</button>{s&&<button className="icon-btn" title="Elimina scheda" onClick={()=>removeSystem(s)}><Trash2 size={16}/></button>}</>}</div>
-     </section>})}
+     </section></React.Fragment>})}
     </div>
     <section className="card table-card">
      <div className="card-head"><div><h2>Registro manutenzioni</h2><p>Interventi ordinari, straordinari, verifiche ed emergenze dell'edificio.</p></div><Wrench size={20}/></div>
