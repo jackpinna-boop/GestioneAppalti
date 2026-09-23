@@ -540,9 +540,11 @@ export type Database = {
           denominazione: string
           email: string | null
           id: string
+          logo_path: string | null
           pec: string | null
           telefono: string | null
           tipo_ente: string | null
+          ui_palette: string
           updated_at: string
         }
         Insert: {
@@ -556,6 +558,7 @@ export type Database = {
           pec?: string | null
           telefono?: string | null
           tipo_ente?: string | null
+          ui_palette?: string
           updated_at?: string
         }
         Update: {
@@ -1767,6 +1770,8 @@ export type Database = {
         | "direttore_lavori"
         | "auditor"
         | "consultatore"
+        | "manutentore"
+        | "siservizi"
       atto_tipo:
         | "determina"
         | "delibera"
@@ -1954,6 +1959,8 @@ export const Constants = {
         "direttore_lavori",
         "auditor",
         "consultatore",
+        "manutentore",
+        "siservizi",
       ],
       atto_tipo: [
         "determina",
