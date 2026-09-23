@@ -21,7 +21,7 @@ const isManutentore=(a:Access[])=>a.some(x=>['manutentore','siservizi'].includes
 const isSiServizi=(a:Access[])=>a.some(x=>x.ruolo==='siservizi')
 const canWrite=(a:Access[])=>a.length>0
 const canManage=(a:Access[])=>a.some(x=>['superadmin','admin_ente','rup'].includes(x.ruolo))
-const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore']
+const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore','siservizi']
 
 function useResourcePermissions(access:Access[], resource:string){
  const superadmin=access.some(x=>x.ruolo==='superadmin');
