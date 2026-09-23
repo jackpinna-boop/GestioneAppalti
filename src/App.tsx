@@ -661,7 +661,7 @@ function AdminPage({access}:{access:Access[]}){
  }
  async function saveEntity(e:any){
    e.preventDefault();setEntityMessage('');
-   if(!entity.id||!entity.denominazione.trim()){setEntityMessageType('error');setEntityMessage('Compila la denominazione dell\'ente.');return}
+   if(!entity.id||!String(entity.denominazione??'').trim()){setEntityMessageType('error');setEntityMessage('Compila la denominazione dell\'ente.');return}
    if(logoFile&&(!logoFile.type.startsWith('image/')||logoFile.size>2*1024*1024)){setEntityMessageType('error');setEntityMessage('Il logo deve essere un’immagine PNG, JPG, WEBP o SVG di dimensione massima 2 MB.');return}
    setSavingEntity(true);
    const oldLogoPath=entity.logo_path||null;let uploadedLogoPath:string|null=null;
