@@ -66,7 +66,10 @@ export default function App(){
    timer=window.setTimeout(()=>{void logoutAndClearSession().then(()=>setSession(null))},remaining)
    setSession(s);setReady(true)
   }
-  supabase.auth.getSession().then(({data})=>{void expireIfNeeded(data.session)})
+  supabase.auth.getUser().then(({data,error})=>{
+   if(error){console.error('Verifica utente Auth fallita:',error);void expireIfNeeded(null);return}
+   void supabase.auth.getSession().then(({data:sessionData})=>{void expireIfNeeded(data.user&&sessionData.session?sessionData.session:null)})
+  })
   const {data}=supabase.auth.onAuthStateChange((_e,s)=>{
    if(s){localStorage.setItem(SESSION_STARTED_AT_KEY,localStorage.getItem(SESSION_STARTED_AT_KEY)||String(Date.now()))}
    void expireIfNeeded(s)
