@@ -257,3 +257,49 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .building-request-kpi .request-total{color:var(--psi-navy)}
 .building-request-summary>div{background:#eef4f6}
 .sort-header:hover,.sort-header.active,.sort-header.active .sort-indicator{color:var(--psi-blue-dark)}
+
+/* Maintenance navigation + alerts dashboard */
+.nav-group{margin-bottom:4px}
+.nav-group>.nav-item{margin-bottom:0}
+.nav-submenu{margin:2px 0 8px 30px;padding-left:8px;border-left:1px solid #d8e4e9;display:grid;gap:2px}
+.nav-subitem{border:0;background:transparent;color:#71828d;border-radius:7px;padding:8px 9px;display:flex;align-items:center;gap:8px;text-align:left;font-size:11px;font-weight:700}
+.nav-subitem:hover{background:#eef5f7;color:var(--psi-blue-dark)}
+.nav-subitem.active{background:#e6f1f4;color:var(--psi-blue-dark)}
+.maintenance-alert-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.maintenance-alert-period{display:flex;align-items:center;gap:10px;padding:8px 11px;background:#fff;border:1px solid var(--psi-line);border-radius:10px}
+.maintenance-alert-period>span{font-size:11px;color:var(--psi-muted)}
+.maintenance-alert-period>strong{font-size:13px;color:var(--psi-navy)}
+.maintenance-alert-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.alert-stat{border:1px solid var(--psi-line);border-radius:12px;padding:16px 18px;background:#fff}
+.alert-stat span,.alert-stat strong,.alert-stat small{display:block}
+.alert-stat span{font-size:10px;font-weight:900;letter-spacing:.04em}
+.alert-stat strong{font-size:28px;line-height:1.15;margin:5px 0}
+.alert-stat small{font-size:11px;color:var(--psi-muted)}
+.alert-stat.overdue{background:#fff1f0;border-color:#f1cbc8}.alert-stat.overdue span,.alert-stat.overdue strong{color:#a23b34}
+.alert-stat.urgent{background:#fff6e7;border-color:#efd9ad}.alert-stat.urgent span,.alert-stat.urgent strong{color:#9a6900}
+.alert-stat.warning{background:#fff9df;border-color:#eee0a7}.alert-stat.warning span,.alert-stat.warning strong{color:#856800}
+.alert-stat.ok{background:#eaf7ef;border-color:#c7e3d1}.alert-stat.ok span,.alert-stat.ok strong{color:#286d4d}
+.maintenance-alert-filters{display:grid;grid-template-columns:1.1fr 1fr 1fr 1.5fr;gap:10px;align-items:end;margin-bottom:16px}
+.maintenance-alert-filters label{display:grid;gap:5px;font-size:10px;font-weight:800;color:#52647a}
+.maintenance-alert-filters select{height:40px;border:1px solid #cfdde3;border-radius:8px;padding:0 10px;background:#fff;color:#26384c}
+.maintenance-alert-filters .search{min-width:0;height:40px}
+.maintenance-alert-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(280px,.72fr);gap:16px;align-items:start}
+.maintenance-alert-table{padding:0;overflow:hidden}
+.maintenance-alert-table .card-head{padding:18px 18px 10px}
+.maintenance-alert-table .table-card{border:0;border-radius:0}
+.maintenance-alert-table table{min-width:760px}
+.selected-alert-row td{background:#eef6f8!important}
+.maintenance-alert-result{padding:9px 14px;border-top:1px solid #e5ecef;font-size:10px;color:var(--psi-muted)}
+.maintenance-alert-detail{position:sticky;top:82px}
+.maintenance-detail-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.maintenance-detail-title h3{margin:0;color:var(--psi-navy);font-size:16px;line-height:1.35}
+.maintenance-detail-actions{margin-top:16px;padding-top:14px;border-top:1px solid #e6edef}
+.maintenance-type-summary{margin-top:16px;overflow:auto}
+.maintenance-type-summary table{min-width:600px}
+.alert-config{display:grid;gap:14px}
+.alert-config p{margin:0;color:var(--psi-muted);font-size:12px;line-height:1.55}
+.alert-config label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#334c5a}
+.alert-config input{border:1px solid #cfdde3;border-radius:8px;padding:10px}
+.alert-config .form-actions{margin-top:4px}
+@media(max-width:1000px){.maintenance-alert-stats{grid-template-columns:1fr 1fr}.maintenance-alert-grid{grid-template-columns:1fr}.maintenance-alert-detail{position:static}.maintenance-alert-filters{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.maintenance-alert-toolbar{align-items:stretch;flex-direction:column}.maintenance-alert-period{justify-content:space-between}.maintenance-alert-stats{grid-template-columns:1fr}.maintenance-alert-filters{grid-template-columns:1fr}.maintenance-alert-period .btn{padding:8px 9px}.nav-submenu{margin-left:24px}}
