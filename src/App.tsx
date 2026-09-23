@@ -25,9 +25,27 @@ const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lav
 function useResourcePermissions(access:Access[], resource:string){
  const superadmin=access.some(x=>x.ruolo==='superadmin');
  const roles=[...new Set(access.map(x=>x.ruolo))];
+ const userId=access[0]?.user_id||'';
  const enteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
- const [perm,setPerm]=useState({can_view:false,can_create:false,can_update:false,can_delete:false,can_documents:false,can_admin:false});
- useEffect(()=>{let cancelled=false;if(superadmin){setPerm({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true,can_admin:true});return}if(!enteId||!roles.length){setPerm({can_view:false,can_create:false,can_update:false,can_delete:false,can_documents:false,can_admin:false});return}supabase.from('permessi_ruoli').select('can_view,can_create,can_update,can_delete,can_documents,can_admin').eq('ente_id',enteId).eq('risorsa',resource).in('ruolo',roles).then(({data,error})=>{if(cancelled)return;if(error){console.error('Errore caricamento permessi ruolo:',error);return}const rows=data||[];setPerm({can_view:rows.some(x=>x.can_view),can_create:rows.some(x=>x.can_create),can_update:rows.some(x=>x.can_update),can_delete:rows.some(x=>x.can_delete),can_documents:rows.some(x=>x.can_documents),can_admin:rows.some(x=>x.can_admin)})});return()=>{cancelled=true}},[enteId,resource,superadmin,roles.join('|')]);
+ const empty={can_view:false,can_create:false,can_update:false,can_delete:false,can_documents:false,can_admin:false};
+ const [perm,setPerm]=useState(empty);
+ useEffect(()=>{let cancelled=false;
+   if(superadmin){setPerm({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true,can_admin:true});return}
+   if(!enteId||!roles.length||!userId){setPerm(empty);return}
+   (async()=>{
+     const [roleResult,userResult]=await Promise.all([
+       supabase.from('permessi_ruoli').select('can_view,can_create,can_update,can_delete,can_documents,can_admin').eq('ente_id',enteId).eq('risorsa',resource).in('ruolo',roles),
+       supabase.from('permessi_utenti_risorse').select('can_view,can_create,can_update,can_delete,can_documents,can_admin').eq('ente_id',enteId).eq('user_id',userId).eq('risorsa',resource).maybeSingle()
+     ]);
+     if(cancelled)return;
+     if(roleResult.error){console.error('Errore caricamento permessi ruolo:',roleResult.error);setPerm(empty);return}
+     if(userResult.error){console.error('Errore caricamento override utente:',userResult.error);setPerm(empty);return}
+     if(userResult.data){setPerm(userResult.data);return}
+     const rows=roleResult.data||[];
+     setPerm({can_view:rows.some(x=>x.can_view),can_create:rows.some(x=>x.can_create),can_update:rows.some(x=>x.can_update),can_delete:rows.some(x=>x.can_delete),can_documents:rows.some(x=>x.can_documents),can_admin:rows.some(x=>x.can_admin)});
+   })();
+   return()=>{cancelled=true}
+ },[enteId,userId,resource,superadmin,roles.join('|')]);
  return perm;
 }
 
@@ -160,7 +178,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  const [show,setShow]=useState(false); const [editing,setEditing]=useState<RequestRow|null>(null); const [detail,setDetail]=useState<RequestRow|null>(null);const [resolving,setResolving]=useState<RequestRow|null>(null);
  const [message,setMessage]=useState(''); const [loading,setLoading]=useState(false); const [advanced,setAdvanced]=useState(false);
  const [sortKey,setSortKey]=useState<RequestSortKey>('data'); const [sortDir,setSortDir]=useState<'asc'|'desc'>('desc');
- const write=canWrite(access); const manutentore=isManutentore(access); const enteId=access[0]?.ente_id;
+ const requestPerm=useResourcePermissions(access,'richieste'); const write=requestPerm.can_create; const canRequestUpdate=requestPerm.can_update; const canRequestDelete=requestPerm.can_delete; const manutentore=isManutentore(access); const enteId=access[0]?.ente_id;
 
  const load=async()=>{
   setLoading(true);
@@ -279,7 +297,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
     <td><span className={'badge '+requestTypeClass(x.tipo_intervento)}>{requestTypeLabel(x.tipo_intervento)}</span></td><td><span className={'badge '+(x.priorita==='urgente'?'red':x.priorita==='media'?'amber':'gray')}>{x.priorita||'—'}</span></td><td>{date(x.data_richiesta)}</td>
     <td><span className={'badge '+(x.risolto?'green':'amber')}>{x.risolto?'Risolta':'Aperta'}</span>{x.risolto&&<span className="table-sub">{date(x.data_risoluzione)}</span>}</td>
     <td><span className="attachment-count"><Paperclip size={14}/>{docs.length}</span></td>
-    <td onClick={e=>e.stopPropagation()}><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>setDetail(x)}><Eye size={16}/></button>{write&&!manutentore&&<button className="icon-btn dark-icon" title="Modifica" onClick={()=>{setEditing(x);setShow(true)}}><Pencil size={16}/></button>}{write&&!x.risolto&&<button className="icon-btn dark-icon" title="Risoluzione rapida" onClick={()=>setResolving(x)}><CheckCircle2 size={16}/></button>}{write&&!manutentore&&<button className="icon-btn dark-icon" title="Elimina" onClick={()=>remove(x)}><Trash2 size={16}/></button>}</div></td>
+    <td onClick={e=>e.stopPropagation()}><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>setDetail(x)}><Eye size={16}/></button>{canRequestUpdate&&!manutentore&&<button className="icon-btn dark-icon" title="Modifica" onClick={()=>{setEditing(x);setShow(true)}}><Pencil size={16}/></button>}{canRequestUpdate&&!x.risolto&&<button className="icon-btn dark-icon" title="Risoluzione rapida" onClick={()=>setResolving(x)}><CheckCircle2 size={16}/></button>}{canRequestDelete&&!manutentore&&<button className="icon-btn dark-icon" title="Elimina" onClick={()=>remove(x)}><Trash2 size={16}/></button>}</div></td>
    </tr>})}</tbody></table>:<Empty title="Nessuna richiesta" text="Non risultano richieste con i filtri selezionati."/>}
   </section>
   {show&&<Modal title={editing?'Modifica richiesta':'Nuova richiesta'} close={()=>{setShow(false);setEditing(null)}}><RequestForm row={editing} buildings={buildings} ambiti={ambiti} manutentore={manutentore} onCancel={()=>{setShow(false);setEditing(null)}} onSubmit={save}/></Modal>} {resolving&&<Modal title="Risolvi richiesta di intervento" close={()=>setResolving(null)}><form className="form-grid" onSubmit={markResolved}><div className="span-2 notice"><div><strong>{resolving.codice_richiesta}</strong> · {resolving.titolo_sintetico}</div><span>Inserisci i dati di chiusura della richiesta.</span></div><label>Data di risoluzione *<input name="data_risoluzione" type="date" defaultValue={new Date().toISOString().slice(0,10)} required/></label><label className="span-2">Nota di risoluzione *<textarea name="note_risoluzione" placeholder="Descrivi sinteticamente l'intervento eseguito e la soluzione adottata…" required/></label><div className="form-actions span-2"><button type="button" className="btn secondary" onClick={()=>setResolving(null)}>Annulla</button><button className="btn primary"><CheckCircle2 size={15}/> Conferma risoluzione</button></div></form></Modal>}
@@ -524,10 +542,15 @@ function AdminPage({access}:{access:Access[]}){
  const [userModal,setUserModal]=useState(false);
  const [editingUser,setEditingUser]=useState<any|null>(null);
  const [userSaving,setUserSaving]=useState(false);
- const [userMessage,setUserMessage]=useState(''); const [permRows,setPermRows]=useState<any[]>([]); const [rolePermRows,setRolePermRows]=useState<any[]>([]); const rolePermissionResources=[['edifici','Edifici'],['impianti','Impianti'],['fascicoli','Fascicoli']];
+ const [userMessage,setUserMessage]=useState('');
+ const [permRows,setPermRows]=useState<any[]>([]);
+ const [rolePermRows,setRolePermRows]=useState<any[]>([]);
+ const rolePermissionResources=[['edifici','Edifici'],['impianti','Impianti'],['fascicoli','Fascicoli'],['interventi','Lavori e servizi'],['richieste','Richieste di intervento'],['manutenzioni','Manutenzioni']];
  const menuPermissionResources=[['dashboard','Dashboard'],['edifici','Edifici'],['richieste','Richieste di intervento'],['interventi','Lavori e servizi'],['fascicoli','Fascicoli'],['report','Report'],['manutenzioni','Manutenzioni'],['amministrazione','Amministrazione'],['import_impianti','Importazione impianti']];
  const [selectedPermUser,setSelectedPermUser]=useState('');
  const [permForm,setPermForm]=useState({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true});
+ const [userPermRows,setUserPermRows]=useState<any[]>([]);
+ const userPermissionResources=rolePermissionResources;
  const [auditRows,setAuditRows]=useState<any[]>([]);
  const [requestDomains,setRequestDomains]=useState<any[]>([]);const [domainForm,setDomainForm]=useState({id:'',codice:'',denominazione:'',attivo:true});const [domainMessage,setDomainMessage]=useState('');
 
@@ -571,8 +594,43 @@ function AdminPage({access}:{access:Access[]}){
    setUsers(data?.users||[]);
  };
  const loadPermissions=async()=>{if(!manage||!currentEnteId)return;const {data,error}=await supabase.from('permessi_utenti').select('id,user_id,ente_id,can_view,can_create,can_update,can_delete,can_documents,can_admin').eq('ente_id',currentEnteId);if(error)console.error('Errore caricamento privilegi:',error);setPermRows(data||[]);const rr=await supabase.from('permessi_ruoli').select('id,ente_id,ruolo,risorsa,can_view,can_create,can_update,can_delete,can_documents,can_admin').eq('ente_id',currentEnteId).order('ruolo').order('risorsa');if(rr.error)console.error('Errore caricamento privilegi per ruolo:',rr.error);else setRolePermRows(rr.data||[])};
+ const loadUserPermissionOverrides=async(uid:string)=>{
+   if(!manage||!currentEnteId||!uid){setUserPermRows([]);return}
+   const {data,error}=await supabase.from('permessi_utenti_risorse').select('id,user_id,ente_id,risorsa,can_view,can_create,can_update,can_delete,can_documents,can_admin').eq('ente_id',currentEnteId).eq('user_id',uid).order('risorsa');
+   if(error){console.error('Errore caricamento privilegi individuali:',error);setUserPermRows([]);return}
+   setUserPermRows(data||[]);
+ };
+ const selectedManagedUser=users.find(u=>u.id===selectedPermUser);
+ const selectedUserRoles=(selectedManagedUser?.roles||[]).filter((r:any)=>r.ente_id===currentEnteId).map((r:any)=>r.ruolo);
+ const inheritedPermission=(resource:string)=>{
+   const rows=rolePermRows.filter(x=>x.risorsa===resource&&selectedUserRoles.includes(x.ruolo));
+   return {can_view:rows.some(x=>x.can_view),can_create:rows.some(x=>x.can_create),can_update:rows.some(x=>x.can_update),can_delete:rows.some(x=>x.can_delete),can_documents:rows.some(x=>x.can_documents),can_admin:rows.some(x=>x.can_admin)};
+ };
+ const effectiveUserPermission=(resource:string)=>userPermRows.find(x=>x.risorsa===resource)||inheritedPermission(resource);
+ const saveUserPermission=async(resource:string,field:string,value:boolean)=>{
+   if(!selectedPermUser||!currentEnteId)return;
+   const current=effectiveUserPermission(resource);
+   const payload={ente_id:currentEnteId,user_id:selectedPermUser,risorsa:resource,can_view:current.can_view,can_create:current.can_create,can_update:current.can_update,can_delete:current.can_delete,can_documents:current.can_documents,can_admin:current.can_admin,[field]:value};
+   const {data,error}=await supabase.from('permessi_utenti_risorse').upsert(payload,{onConflict:'ente_id,user_id,risorsa'}).select().single();
+   if(error){alert('Salvataggio privilegio individuale non riuscito: '+error.message);return}
+   setUserPermRows(prev=>{const found=prev.some(x=>x.risorsa===resource);return found?prev.map(x=>x.risorsa===resource?{...x,...data}:x):[...prev,data]});
+ };
+ const resetUserResourcePermission=async(resource:string)=>{
+   if(!selectedPermUser||!currentEnteId)return;
+   const {error}=await supabase.from('permessi_utenti_risorse').delete().eq('ente_id',currentEnteId).eq('user_id',selectedPermUser).eq('risorsa',resource);
+   if(error){alert('Ripristino privilegio non riuscito: '+error.message);return}
+   setUserPermRows(prev=>prev.filter(x=>x.risorsa!==resource));
+ };
+ const resetAllUserPermissions=async()=>{
+   if(!selectedPermUser||!currentEnteId)return;
+   if(!confirm('Ripristinare per questo utente tutti i privilegi ereditati dal ruolo?'))return;
+   const {error}=await supabase.from('permessi_utenti_risorse').delete().eq('ente_id',currentEnteId).eq('user_id',selectedPermUser);
+   if(error){alert('Ripristino privilegi non riuscito: '+error.message);return}
+   setUserPermRows([]);
+ };
  const loadAudit=async()=>{if(!manage||!currentEnteId)return;const {data,error}=await supabase.from('audit_log').select('id,timestamp,user_id,azione,tabella,record_id,valore_precedente,valore_nuovo').eq('ente_id',currentEnteId).order('timestamp',{ascending:false}).limit(100);if(error){console.error('Errore caricamento log:',error);return}setAuditRows(data||[])};
  useEffect(()=>{void load();void loadPermissions();void loadAudit()},[currentEnteId,manage]);
+ useEffect(()=>{if(selectedPermUser&&manage)void loadUserPermissionOverrides(selectedPermUser)},[selectedPermUser,currentEnteId,manage]);
 
  const deleteAuditLog=async()=>{
    if(!superadmin||!currentEnteId)return;
@@ -587,7 +645,12 @@ function AdminPage({access}:{access:Access[]}){
    if(!form.user_id||!form.ente_id||!form.ruolo){alert('Compila Utente, Ente e Ruolo.');return}
    const {error}=await supabase.from('user_roles').upsert(form,{onConflict:'user_id,ente_id,ruolo'});
    if(error){console.error('Errore assegnazione ruolo:',error);alert('Errore assegnazione ruolo: '+error.message);return}
-   alert('Ruolo assegnato correttamente.');setForm({user_id:'',ente_id:'',ruolo:'tecnico'});await loadManagedUsers();
+   alert('Ruolo assegnato correttamente.');
+   const assignedUser=form.user_id;
+   setForm({user_id:'',ente_id:'',ruolo:'tecnico'});
+   await loadManagedUsers();
+   setSelectedPermUser(assignedUser);
+   await loadUserPermissionOverrides(assignedUser);
  }
  async function saveEntity(e:any){
    e.preventDefault();setEntityMessage('');
@@ -645,7 +708,7 @@ function AdminPage({access}:{access:Access[]}){
  };
  async function savePermissions(e:any){e.preventDefault();if(!selectedPermUser)return;const {error}=await supabase.from('permessi_utenti').upsert({ente_id:currentEnteId,user_id:selectedPermUser,...permForm},{onConflict:'ente_id,user_id'});if(error){alert('Errore salvataggio privilegi: '+error.message);return}alert('Privilegi utente salvati.');await loadPermissions()}
  const resetPermissions=async()=>{if(!selectedPermUser)return;if(!confirm('Ripristinare i privilegi predefiniti per questo utente?'))return;const {error}=await supabase.from('permessi_utenti').delete().eq('ente_id',currentEnteId).eq('user_id',selectedPermUser);if(error){alert('Errore ripristino privilegi: '+error.message);return}setPermForm({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true});await loadPermissions()};
- const selectPermissionUser=(uid:string)=>{setSelectedPermUser(uid);const p=permRows.find(x=>x.user_id===uid);setPermForm(p?{can_view:p.can_view,can_create:p.can_create,can_update:p.can_update,can_delete:p.can_delete,can_documents:p.can_documents}:{can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true})};
+ const selectPermissionUser=(uid:string)=>{setSelectedPermUser(uid);void loadUserPermissionOverrides(uid)};
  async function saveBuildingPermission(e:any){
    e.preventDefault();
    if(!buildingPerm.user_id||(!buildingPerm.all_buildings&&!buildingPerm.edificio_id)){alert('Seleziona un edificio oppure Tutti gli edifici.');return}
@@ -672,7 +735,7 @@ function AdminPage({access}:{access:Access[]}){
    <section id="admin-accessi" className="admin-section-group"><div className="admin-section-header"><div><span className="eyebrow">4 · Gestione accessi</span><h2>Anagrafica ente, utenti, ruoli e permessi</h2><p>Gestisci l'anagrafica dell'ente e le autorizzazioni degli utenti applicativi.</p></div><ShieldCheck size={22}/></div><div className="admin-subnav">
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-ente')?.scrollIntoView({behavior:'smooth',block:'start'})}><Building2 size={16}/> Anagrafica ente</button>
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-utenti')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserCog size={16}/> Utenti</button><button className="admin-subnav-item" onClick={()=>document.getElementById('admin-ruoli')?.scrollIntoView({behavior:'smooth',block:'start'})}><ShieldCheck size={16}/> Ruoli</button>
-    <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi')?.scrollIntoView({behavior:'smooth',block:'start'})}><Settings size={16}/> Permessi</button>
+    <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi')?.scrollIntoView({behavior:'smooth',block:'start'})}><Settings size={16}/> Permessi</button><button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi-utenti')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserCog size={16}/> Privilegi utente</button>
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-audit')?.scrollIntoView({behavior:'smooth',block:'start'})}><History size={16}/> Registro modifiche</button>
    </div>
    <div className="content-grid">
@@ -686,6 +749,15 @@ function AdminPage({access}:{access:Access[]}){
    </section>}
    {userModal&&<Modal title={editingUser?'Modifica utente':'Nuovo utente'} close={()=>{if(!userSaving){setUserModal(false);setEditingUser(null)}}}><form className="form-grid" onSubmit={saveUser}><label>Nome<input name="nome" defaultValue={editingUser?.nome||''}/></label><label>Cognome<input name="cognome" defaultValue={editingUser?.cognome||''}/></label><label className="span-2">E-mail<input name="email" type="email" defaultValue={editingUser?.email||''} required/></label><label>Telefono<input name="telefono" defaultValue={editingUser?.telefono||''}/></label><label>Password<input name="password" type="password" placeholder={editingUser?'Lascia vuoto per non modificarla':'Minimo 8 caratteri'} minLength={8} required={!editingUser}/></label><label>Ente<select name="ente_id" defaultValue={editingUser?.ente_id||currentEnteId} required>{entities.map(e=><option key={e.id} value={e.id}>{e.denominazione}</option>)}</select></label><label>Ruolo<select name="ruolo" defaultValue={editingUser?.ruolo||'tecnico'}>{(superadmin?['superadmin',...managedRoles]:managedRoles).map(r=><option key={r}>{r}</option>)}</select></label><label className="checkbox-label span-2"><input name="attivo" type="checkbox" defaultChecked={editingUser?editingUser.attivo!==false:true}/> Utente attivo</label><div className="form-actions span-2"><button type="button" className="btn secondary" disabled={userSaving} onClick={()=>{setUserModal(false);setEditingUser(null)}}>Annulla</button><button className="btn primary" disabled={userSaving}>{userSaving?'Salvataggio…':editingUser?'Salva modifiche':'Crea utente'}</button></div></form></Modal>}
    {manage&&<section id="admin-ruoli" className="card"><div className="card-head"><div><h2>Assegna ruolo</h2><p>Disponibile a superadmin e amministratori dell’ente.</p></div><Settings size={20}/></div><form className="form-grid" onSubmit={assign}><label className="span-2">Utente<select value={form.user_id} onChange={e=>setForm({...form,user_id:e.target.value})} required><option value="">Seleziona…</option>{users.map(u=><option key={u.id} value={u.id}>{[u.cognome,u.nome].filter(Boolean).join(' ')} — {u.email||u.id}</option>)}</select></label><label>Ente<select value={form.ente_id} onChange={e=>setForm({...form,ente_id:e.target.value})} required><option value="">Seleziona…</option>{entities.map(e=><option key={e.id} value={e.id}>{e.denominazione}</option>)}</select></label><label>Ruolo<select value={form.ruolo} onChange={e=>setForm({...form,ruolo:e.target.value})}>{(superadmin?['superadmin',...managedRoles]:managedRoles).map(r=><option key={r}>{r}</option>)}</select></label><div className="form-actions span-2"><button className="btn primary">Salva ruolo</button></div></form></section>}
+   {manage&&<section id="admin-permessi-utenti" className="card">
+    <div className="card-head"><div><h2>Privilegi per singolo utente</h2><p>Seleziona un utente per visualizzare i privilegi ereditati dal ruolo e, se necessario, personalizzarli senza modificare il ruolo degli altri utenti.</p></div><UserCog size={20}/></div>
+    <div className="form-grid"><label className="span-2">Utente<select value={selectedPermUser} onChange={e=>selectPermissionUser(e.target.value)}><option value="">Seleziona un utente…</option>{users.map(u=><option key={u.id} value={u.id}>{[u.cognome,u.nome].filter(Boolean).join(' ')||'Utente'} — {u.email||u.id}</option>)}</select></label></div>
+    {selectedPermUser&&<div className="notice info"><strong>{[selectedManagedUser?.cognome,selectedManagedUser?.nome].filter(Boolean).join(' ')||selectedManagedUser?.email||'Utente selezionato'}</strong>{' · '}Ruolo: {selectedUserRoles.length?selectedUserRoles.join(', '):'nessun ruolo'}. Le modifiche qui sotto sono <strong>specifiche del singolo utente</strong>. Se non esiste un override, il valore viene ereditato dal ruolo.</div>}
+    {selectedPermUser&&<div className="table-wrap"><table><thead><tr><th>Risorsa</th><th>Visualizza</th><th>Inserisci</th><th>Modifica</th><th>Elimina</th><th>Documenti</th><th>Ammin.</th><th>Origine</th><th>Azioni</th></tr></thead><tbody>
+      {userPermissionResources.map(([resource,label])=>{const inherited=inheritedPermission(resource);const override=userPermRows.find(x=>x.risorsa===resource);const effective=override||inherited;const fields=['can_view','can_create','can_update','can_delete','can_documents','can_admin'];return <tr key={'user-'+resource}><td><b>{label}</b></td>{fields.map(field=><td key={field}><input type="checkbox" checked={!!effective[field]} onChange={e=>void saveUserPermission(resource,field,e.target.checked)}/></td>)}<td><span className={'badge '+(override?'amber':'gray')}>{override?'Personalizzato':'Ereditato'}</span></td><td>{override&&<button className="btn secondary" onClick={()=>void resetUserResourcePermission(resource)}>Ripristina ruolo</button>}</td></tr>})}
+    </tbody></table></div>}
+    {selectedPermUser&&<div className="form-actions"><button className="btn secondary" onClick={()=>void resetAllUserPermissions()} disabled={!userPermRows.length}><RotateCcw size={15}/> Ripristina tutti i privilegi del ruolo</button></div>}
+   </section>}
    {manage&&<section id="admin-permessi" className="card"><div className="card-head"><div><h2>Privilegi per tipologia di utente</h2><p>Definisci a livello di ruolo i privilegi su Edifici, Impianti e Fascicoli. Le modifiche si applicano a tutti gli utenti che possiedono quel ruolo nell’ente.</p></div><ShieldCheck size={20}/></div><div className="table-wrap"><table><thead><tr><th>Ruolo</th><th>Risorsa</th><th>Visualizza</th><th>Inserisci</th><th>Modifica</th><th>Elimina</th><th>Documenti</th></tr></thead><tbody>{managedRoles.map(role=>rolePermissionResources.map(([resource,label])=>{const p=rolePermRows.find(x=>x.ruolo===role&&x.risorsa===resource)||{ruolo:role,risorsa:resource,can_view:false,can_create:false,can_update:false,can_delete:false,can_documents:false};const saveRolePermission=async(field:string,value:boolean)=>{const payload={ente_id:currentEnteId,ruolo:role,risorsa:resource,[field]:value};const {data,error}=await supabase.from('permessi_ruoli').upsert(payload,{onConflict:'ente_id,ruolo,risorsa'}).select().single();if(error){alert('Salvataggio privilegio non riuscito: '+error.message);return}setRolePermRows(prev=>{const found=prev.some(x=>x.ruolo===role&&x.risorsa===resource);return found?prev.map(x=>x.ruolo===role&&x.risorsa===resource?{...x,...data}:x):[...prev,data]})};return <tr key={role+'-'+resource}><td><b>{role}</b></td><td>{label}</td>{['can_view','can_create','can_update','can_delete','can_documents'].map(field=><td key={field}><input type="checkbox" checked={!!p[field]} onChange={e=>void saveRolePermission(field,e.target.checked)}/></td>)}</tr>}))}</tbody></table></div><div className="notice info">Il superadmin mantiene sempre l’accesso completo. Per gli altri ruoli, i privilegi sono ora centralizzati per tipologia di utente.</div></section>}
    {manage&&<section className="card"><div className="card-head"><div><h2>Visibilità del menu per ruolo</h2><p>Determina quali sezioni dell'applicazione sono visibili a ciascun ruolo. Il permesso Visualizza governa anche l'accesso diretto alla relativa pagina.</p></div><Menu size={20}/></div><div className="table-wrap"><table><thead><tr><th>Ruolo</th><th>Voce menu</th><th>Visibile</th></tr></thead><tbody>{managedRoles.map(role=>menuPermissionResources.map(([resource,label])=>{const p=rolePermRows.find(x=>x.ruolo===role&&x.risorsa===resource)||{ruolo:role,risorsa:resource,can_view:false};const saveMenuPermission=async(value:boolean)=>{const payload={ente_id:currentEnteId,ruolo:role,risorsa:resource,can_view:value};const {data,error}=await supabase.from('permessi_ruoli').upsert(payload,{onConflict:'ente_id,ruolo,risorsa'}).select().single();if(error){alert('Salvataggio visibilità menu non riuscito: '+error.message);return}setRolePermRows(prev=>{const found=prev.some(x=>x.ruolo===role&&x.risorsa===resource);return found?prev.map(x=>x.ruolo===role&&x.risorsa===resource?{...x,...data}:x):[...prev,data]})};return <tr key={'menu-'+role+'-'+resource}><td><b>{role}</b></td><td>{label}</td><td><input type="checkbox" checked={!!p.can_view} disabled={role==='superadmin'} onChange={e=>void saveMenuPermission(e.target.checked)}/></td></tr>}))}</tbody></table></div><div className="notice info">La configurazione è per ruolo e per ente. Le voci nascoste non sono accessibili neppure tramite URL diretto.</div></section>}
    <section className="card admin-oauth"><div className="card-head"><div><h2>Microsoft / Azure</h2><p>Provider OAuth configurabile in Supabase Auth.</p></div><ShieldCheck size={20}/></div><code>https://cuaxulqyrhosqbfaympv.supabase.co/auth/v1/callback</code></section>
