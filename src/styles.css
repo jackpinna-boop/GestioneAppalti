@@ -312,3 +312,27 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .table-actions .icon-btn{width:30px;height:30px}
 .maintenance-alert-table .table-actions{justify-content:flex-start}
 @media(max-width:700px){.maintenance-section-heading{align-items:flex-start}.maintenance-section-heading svg{display:none}}
+
+/* Ruolo Società in House */
+.role-siservizi .topbar{background:#9a4f08}
+.role-siservizi .brand-mark{background:#b7650d}
+.role-siservizi .avatar{background:#d27a18}
+.role-siservizi .nav-item:hover{background:#fff3e3;color:#8a4708}
+.role-siservizi .nav-item.active{background:#fff0dc;color:#8a4708;box-shadow:inset 3px 0 0 #d77a16}
+.role-siservizi .stat-icon{background:#fff0dc;color:#9a4f08}
+.role-siservizi .progress-track i{background:#c86b10}
+.role-siservizi .btn.primary{background:#9a4f08;border-color:#9a4f08}
+.role-siservizi .btn.primary:hover{background:#b7650d;border-color:#b7650d}
+.role-siservizi .page-head h1,.role-siservizi .card-head h2,.role-siservizi .stat-card strong,.role-siservizi .file-hero strong,.role-siservizi .maintenance-summary h2,.role-siservizi .maintenance-system-head h3{color:#7f430b}
+.role-siservizi .timeline-dot{background:#d77a16}
+.role-siservizi .maintenance-icon{background:#fff0dc;color:#9a4f08}
+.role-siservizi .maintenance-building-list button:hover,.role-siservizi .maintenance-building-list button.selected{background:#fff0dc}
+.role-siservizi .maintenance-building-list button.selected{border-color:#e7b77a;color:#8a4708}
+.role-siservizi .nav-subitem:hover,.role-siservizi .nav-subitem.active{background:#fff0dc;color:#8a4708}
+.role-siservizi .dashboard-section-title{color:#8a4708}
+.role-siservizi .badge.blue{background:#fff0dc;color:#8a4708}
+.role-siservizi .tabs button.active{background:#9a4f08}
+.role-siservizi .request-tabs button.active,.role-siservizi .request-view-tabs button.active{background:#fff0dc;border-color:#e7b77a;color:#8a4708}
+.role-siservizi .search:focus-within,.role-siservizi .form-grid input:focus,.role-siservizi .form-grid select:focus,.role-siservizi .form-grid textarea:focus{border-color:#d77a16;box-shadow:0 0 0 3px #d77a161c}
+.role-siservizi .role-context{font-size:11px;font-weight:700;opacity:.9;border-left:1px solid #ffffff55;padding-left:10px;margin-left:2px}
+@media(max-width:900px){.role-siservizi .role-context{display:none}}
