@@ -2,5 +2,5 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(365,183): error TS7022: 's' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
-src/App.tsx(365,1517): error TS2448: Block-scoped variable 's' used before its declaration.
+src/App.tsx(365,183): error TS7022: 'sys' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/App.tsx(365,1519): error TS2448: Block-scoped variable 'sys' used before its declaration.
