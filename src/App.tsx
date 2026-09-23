@@ -661,21 +661,22 @@ function AdminPage({access}:{access:Access[]}){
  }
  async function saveEntity(e:any){
    e.preventDefault();setEntityMessage('');
-   if(!entity.id||!String(entity.denominazione??'').trim()){setEntityMessageType('error');setEntityMessage('Compila la denominazione dell\'ente.');return}
+   const entityId=entity.id||currentEnteId;
+   if(!entityId||!String(entity.denominazione??'').trim()){setEntityMessageType('error');setEntityMessage('Impossibile salvare: ente non identificato oppure denominazione mancante.');return}
    if(logoFile&&(!logoFile.type.startsWith('image/')||logoFile.size>2*1024*1024)){setEntityMessageType('error');setEntityMessage('Il logo deve essere un’immagine PNG, JPG, WEBP o SVG di dimensione massima 2 MB.');return}
    setSavingEntity(true);
    const oldLogoPath=entity.logo_path||null;let uploadedLogoPath:string|null=null;
    try{
      if(logoFile){
        const ext=(logoFile.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'');
-       const path=entity.id+'/logo-'+Date.now()+'.'+(ext||'png');
+       const path=entityId+'/logo-'+Date.now()+'.'+(ext||'png');
        const upload=await supabase.storage.from('ente-logos').upload(path,logoFile,{upsert:false,contentType:logoFile.type||'image/png'});
        if(upload.error)throw new Error('Caricamento logo non riuscito: '+upload.error.message);
        uploadedLogoPath=path;
      }
      const nextLogoPath=uploadedLogoPath||(removeLogo?null:oldLogoPath);
      const textValue=(value:any)=>String(value??'').trim();const payload={denominazione:textValue(entity.denominazione),codice_ipa:textValue(entity.codice_ipa)||null,codice_fiscale:textValue(entity.codice_fiscale)||null,tipo_ente:textValue(entity.tipo_ente)||null,pec:textValue(entity.pec)||null,email:textValue(entity.email)||null,telefono:textValue(entity.telefono)||null,attivo:!!entity.attivo,logo_path:nextLogoPath,ui_palette:entity.ui_palette||'blue'};
-     const updateResult=await supabase.from('enti').update(payload).eq('id',entity.id).select('id,denominazione,codice_ipa,codice_fiscale,tipo_ente,pec,email,telefono,attivo,logo_path,ui_palette').single();
+     const updateResult=await supabase.from('enti').update(payload).eq('id',entityId).select('id,denominazione,codice_ipa,codice_fiscale,tipo_ente,pec,email,telefono,attivo,logo_path,ui_palette').single();
      if(updateResult.error)throw new Error(updateResult.error.message);
      if(!updateResult.data)throw new Error('Il database non ha restituito l’ente aggiornato.');
      if(oldLogoPath&&oldLogoPath!==nextLogoPath)await supabase.storage.from('ente-logos').remove([oldLogoPath]);
