@@ -554,6 +554,14 @@ function AdminPage({access}:{access:Access[]}){
  const loadAudit=async()=>{if(!manage||!currentEnteId)return;const {data,error}=await supabase.from('audit_log').select('id,timestamp,user_id,azione,tabella,record_id,valore_precedente,valore_nuovo').eq('ente_id',currentEnteId).order('timestamp',{ascending:false}).limit(100);if(error){console.error('Errore caricamento log:',error);return}setAuditRows(data||[])};
  useEffect(()=>{void load();void loadPermissions();void loadAudit()},[currentEnteId,manage]);
 
+ const deleteAuditLog=async()=>{
+   if(!superadmin||!currentEnteId)return;
+   if(!confirm('Eliminare definitivamente tutte le operazioni registrate nel Registro modifiche dell’ente corrente? L’operazione non è reversibile.'))return;
+   const {error}=await supabase.from('audit_log').delete().eq('ente_id',currentEnteId);
+   if(error){alert('Eliminazione registro non riuscita: '+error.message);return}
+   setAuditRows([]);
+   alert('Registro modifiche eliminato correttamente.');
+ };
  async function assign(e:any){
    e.preventDefault();
    if(!form.user_id||!form.ente_id||!form.ruolo){alert('Compila Utente, Ente e Ruolo.');return}
@@ -662,7 +670,7 @@ function AdminPage({access}:{access:Access[]}){
    <section className="card admin-oauth"><div className="card-head"><div><h2>Microsoft / Azure</h2><p>Provider OAuth configurabile in Supabase Auth.</p></div><ShieldCheck size={20}/></div><code>https://cuaxulqyrhosqbfaympv.supabase.co/auth/v1/callback</code></section>
    </section>
    <section id="admin-audit" className="admin-section-group"><div className="admin-section-header"><div><span className="eyebrow">5 · Controllo</span><h2>Registro modifiche</h2><p>Tracciamento delle ultime operazioni effettuate sul sistema.</p></div><History size={22}/></div><div className="card">
-    <div className="card-head"><div><h2>Ultime 100 operazioni</h2><p>Modifiche registrate sull'intervento e sui relativi dati.</p></div><History size={20}/></div>
+    <div className="card-head"><div><h2>Ultime 100 operazioni</h2><p>Modifiche registrate sull'intervento e sui relativi dati.</p></div><div className="row-actions">{superadmin&&<button className="btn danger" onClick={()=>void deleteAuditLog()}><Trash2 size={15}/> Cancella registro</button>}<History size={20}/></div></div>
     {auditRows.length?<table><thead><tr><th>Data</th><th>Azione</th><th>Tabella</th><th>Record</th><th>Utente</th></tr></thead><tbody>{auditRows.map(x=><tr key={x.id}><td>{new Date(x.timestamp).toLocaleString('it-IT')}</td><td><span className="badge blue">{x.azione}</span></td><td>{x.tabella}</td><td>{x.record_id||'—'}</td><td>{users.find(u=>u.id===x.user_id)?.email||x.user_id||'Sistema'}</td></tr>)}</tbody></table>:<Empty title="Nessuna modifica registrata" text="Le modifiche future verranno tracciate automaticamente."/>}
    </div></section>
  </PageHead>
