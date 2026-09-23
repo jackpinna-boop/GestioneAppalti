@@ -99,12 +99,14 @@ function DashboardPage({access,onOpen,refresh}:{access:Access[];onOpen:(p:Page,i
  const [data,setData]=useState<any[]>([]);const [late,setLate]=useState<any[]>([]);
  const [dashboards,setDashboards]=useState<any[]>([]);
  const enteId=access[0]?.ente_id;
- if(manutentore)return <PageHead title="Dashboard" subtitle="Quadro delle richieste di intervento."><RequestsDashboard access={access} refresh={refresh} onOpen={onOpen}/></PageHead>
- useEffect(()=>{Promise.all([
+ useEffect(()=>{
+  if(manutentore){setData([]);setLate([]);setDashboards([]);return}
+  Promise.all([
   supabase.from('dashboard_interventi').select('*'),
   supabase.from('dashboard_ritardi').select('*').order('giorni_ritardo',{ascending:false}).limit(8),
   enteId?supabase.from('dashboard_config').select('dashboard_key,titolo,ordine,visibile').eq('ente_id',enteId).eq('visibile',true).order('ordine'):Promise.resolve({data:[],error:null})
- ]).then(([a,b,c])=>{setData(a.data||[]);setLate(b.data||[]);setDashboards(c.data||[])})},[refresh,enteId]);
+ ]).then(([a,b,c])=>{setData(a.data||[]);setLate(b.data||[]);setDashboards(c.data||[])})},[refresh,enteId,manutentore]);
+ if(manutentore)return <PageHead title="Dashboard" subtitle="Quadro delle richieste di intervento."><RequestsDashboard access={access} refresh={refresh} onOpen={onOpen}/></PageHead>
  const d=data[0];
  const enabled=new Set(dashboards.map(x=>x.dashboard_key));
  const ordered=enabled.size?dashboards:[{dashboard_key:'lavori',ordine:1},{dashboard_key:'richieste',ordine:2},{dashboard_key:'manutenzioni',ordine:3}];
