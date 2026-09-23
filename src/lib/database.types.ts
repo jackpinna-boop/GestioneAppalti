@@ -2013,3 +2013,43 @@ export const Constants = {
     },
   },
 } as const
+
+
+/** Fascicolo immobile - estensione applicativa */
+export interface TipologiaDocumentoImmobile {
+  id: string
+  codice: string
+  denominazione: string
+  categoria: string
+  attivo: boolean
+  created_at: string
+  updated_at: string
+}
+export interface DocumentoImmobile {
+  id: string
+  ente_id: string
+  edificio_id: string
+  tipologia_id: string
+  impianto_id: string | null
+  titolo: string
+  numero: string | null
+  protocollo: string | null
+  data_documento: string | null
+  data_emissione: string | null
+  data_scadenza: string | null
+  periodicita_mesi: number | null
+  data_prossima_verifica: string | null
+  emittente: string | null
+  tecnico: string | null
+  ditta: string | null
+  stato: 'valido' | 'in_scadenza' | 'scaduto' | 'da_verificare' | 'archiviato'
+  nome_file: string
+  storage_path: string
+  mime_type: string | null
+  size_bytes: number | null
+  versione: string | null
+  note: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
