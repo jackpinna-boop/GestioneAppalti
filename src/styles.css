@@ -336,3 +336,25 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .role-siservizi .search:focus-within,.role-siservizi .form-grid input:focus,.role-siservizi .form-grid select:focus,.role-siservizi .form-grid textarea:focus{border-color:#d77a16;box-shadow:0 0 0 3px #d77a161c}
 .role-siservizi .role-context{font-size:11px;font-weight:700;opacity:.9;border-left:1px solid #ffffff55;padding-left:10px;margin-left:2px}
 @media(max-width:900px){.role-siservizi .role-context{display:none}}
+
+
+/* Ente branding, palette e accordion amministrazione */
+.entity-logo-header{width:34px;height:34px;border-radius:9px;object-fit:contain;background:#fff;padding:3px;flex:none}
+.entity-logo-editor{display:flex;align-items:center;gap:16px;padding:12px;border:1px dashed #d5dee8;border-radius:10px;background:#fafbfd}
+.entity-logo-preview{width:82px;height:62px;border:1px solid #dfe6ee;border-radius:9px;background:#fff;display:grid;place-items:center;overflow:hidden;flex:none}
+.entity-logo-preview img{max-width:100%;max-height:100%;object-fit:contain}
+.entity-logo-placeholder{display:grid;place-items:center;gap:3px;color:#8a97a8;font-size:9px}
+.entity-logo-controls{display:grid;gap:6px;align-content:center}
+.logo-upload-label{display:inline-flex!important;align-items:center;gap:7px;width:max-content;border:1px solid #cfd9e4;border-radius:8px;padding:8px 11px;background:#fff;color:#36536e;cursor:pointer}
+.logo-upload-label input{display:none}
+.entity-logo-controls small{font-size:9px;color:#7a8797}
+.accordion-trigger{cursor:pointer;user-select:none;border-radius:10px;transition:background .15s,border-color .15s}
+.accordion-trigger:hover{background:#f8fafc}
+.accordion-trigger:focus-visible{outline:2px solid #6c96b7;outline-offset:2px}
+.accordion-icon{display:flex;align-items:center;gap:9px;color:#477394}
+.accordion-icon svg:last-child{transition:transform .15s}
+.accordion-icon svg:last-child.is-open{transform:rotate(180deg)}
+.theme-orange .topbar{background:#9a4f08}.theme-orange .brand-mark{background:#b7650d}.theme-orange .avatar{background:#d27a18}.theme-orange .nav-item:hover{background:#fff3e3;color:#8a4708}.theme-orange .nav-item.active{background:#fff0dc;color:#8a4708;box-shadow:inset 3px 0 0 #d77a16}.theme-orange .btn.primary{background:#9a4f08;border-color:#9a4f08}.theme-orange .btn.primary:hover{background:#b7650d;border-color:#b7650d}.theme-orange .page-head h1,.theme-orange .card-head h2{color:#7f430b}.theme-orange .form-grid input:focus,.theme-orange .form-grid select:focus,.theme-orange .form-grid textarea:focus,.theme-orange .search:focus-within{border-color:#d77a16;box-shadow:0 0 0 3px #d77a161c}
+.theme-green .topbar{background:#176b4d}.theme-green .brand-mark{background:#20855f}.theme-green .avatar{background:#2a9a70}.theme-green .nav-item:hover{background:#eaf7f0;color:#176b4d}.theme-green .nav-item.active{background:#e4f4ec;color:#176b4d;box-shadow:inset 3px 0 0 #20855f}.theme-green .btn.primary{background:#176b4d;border-color:#176b4d}.theme-green .btn.primary:hover{background:#20855f;border-color:#20855f}.theme-green .page-head h1,.theme-green .card-head h2{color:#176b4d}.theme-green .form-grid input:focus,.theme-green .form-grid select:focus,.theme-green .form-grid textarea:focus,.theme-green .search:focus-within{border-color:#20855f;box-shadow:0 0 0 3px #20855f1c}
+.theme-gray .topbar{background:#4b5563}.theme-gray .brand-mark{background:#5b6573}.theme-gray .avatar{background:#6b7280}.theme-gray .nav-item:hover{background:#f1f3f5;color:#374151}.theme-gray .nav-item.active{background:#eceff1;color:#374151;box-shadow:inset 3px 0 0 #6b7280}.theme-gray .btn.primary{background:#4b5563;border-color:#4b5563}.theme-gray .btn.primary:hover{background:#374151;border-color:#374151}.theme-gray .page-head h1,.theme-gray .card-head h2{color:#374151}.theme-gray .form-grid input:focus,.theme-gray .form-grid select:focus,.theme-gray .form-grid textarea:focus,.theme-gray .search:focus-within{border-color:#6b7280;box-shadow:0 0 0 3px #6b72801c}
+@media(max-width:700px){.entity-logo-editor{align-items:flex-start}.entity-logo-controls{min-width:0}.entity-logo-preview{width:70px;height:56px}}
