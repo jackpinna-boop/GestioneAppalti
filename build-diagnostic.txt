@@ -2,12 +2,4 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(241,59): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(241,464): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(241,518): error TS2304: Cannot find name 'setResolving'.
-src/App.tsx(263,420): error TS2304: Cannot find name 'setResolving'.
-src/App.tsx(266,286): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(266,355): error TS2304: Cannot find name 'setResolving'.
-src/App.tsx(266,472): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(266,512): error TS2304: Cannot find name 'resolving'.
-src/App.tsx(266,1032): error TS2304: Cannot find name 'setResolving'.
+src/App.tsx(690,4): error TS1005: '}' expected.
