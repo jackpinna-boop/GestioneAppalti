@@ -2,4 +2,8 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(690,4): error TS1005: '}' expected.
+src/App.tsx(749,5): error TS17008: JSX element 'section' has no corresponding closing tag.
+src/App.tsx(749,704): error TS2657: JSX expressions must have one parent element.
+src/App.tsx(749,2424): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/App.tsx(749,2427): error TS17002: Expected corresponding JSX closing tag for 'div'.
+src/App.tsx(784,2): error TS1005: '}' expected.
