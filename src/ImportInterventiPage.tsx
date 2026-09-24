@@ -124,9 +124,9 @@ const typologyRules=[
   {needle:['manutenzione straordinaria'],code:'MAN',label:'Manutenzione straordinaria'}
 ]
 
-const interventionCode=(sourceId:string,year?:number|null)=>'INT-'+String(sourceId).padStart(6,'0')+'/'+String(year||new Date().getFullYear());
+const interventionNature=(type:string)=>{const n=norm(type);return n.includes('serviz')||n.includes('progett')||n.includes('accordo')?'SERVIZIO':'LAVORO'} as const;
 const SOURCE_MAP:SourceMap[]=[
-  {index:0,source:'ID SharePoint',meaning:'Identificativo della riga sorgente',target:'tracciabilità import',action:'conservato nelle note; il codice gestionale è INT-XXXXXX/anno',confidence:'alta'},
+  {index:0,source:'ID SharePoint',meaning:'Identificativo della riga sorgente',target:'tracciabilità import',action:'il codice gestionale viene generato automaticamente dal database',confidence:'alta'},
   {index:1,source:'Title',meaning:'Titolo sintetico',target:'interventi.titolo',action:'import diretto',confidence:'alta'},
   {index:2,source:'Edificio',meaning:'Edificio/i SharePoint; può contenere più sedi',target:'interventi.edificio_id',action:'match per codice; multi-edificio = verifica manuale',confidence:'alta'},
   {index:3,source:'nomeintervento',meaning:'Descrizione estesa dell’intervento',target:'interventi.descrizione',action:'import diretto',confidence:'alta'},
@@ -366,13 +366,6 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
     if(!window.confirm('Confermare la normalizzazione e importazione di '+selected.length+' interventi? Verranno create/collegate, quando documentate, procedura CIG, operatore economico, contratto, finanziamento, atto, programmazione e fasi.'))return
     setLoading(true);setMessage('')
     try{
-      const codes=selected.map(r=>interventionCode(r.sourceId,r.referenceYear))
-      const existing=await supabase.from('interventi').select('codice_intervento').eq('ente_id',enteId).in('codice_intervento',codes)
-      if(existing.error)throw existing.error
-      const existingSet=new Set((existing.data||[]).map((x:any)=>x.codice_intervento))
-      const duplicateRows=selected.filter(r=>existingSet.has(interventionCode(r.sourceId,r.referenceYear)))
-      if(duplicateRows.length)throw new Error('Importazione bloccata: già presenti '+duplicateRows.length+' codici sorgente ('+duplicateRows.map(r=>interventionCode(r.sourceId,r.referenceYear)).join(', ')+').')
-
       let created=0
       let normalizedProcedures=0
       let normalizedContracts=0
@@ -388,6 +381,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
             p_ente_id:enteId,
             p_data:{
               sourceId:r.sourceId,
+              natura:interventionNature(r.type),
               buildingId:r.buildingId,
               buildingIds:r.buildingIds,
               title:r.title,
