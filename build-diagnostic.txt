@@ -2,5 +2,6 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
+src/App.tsx(445,430): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
 src/ImportInterventiPage.tsx(127,156): error TS1005: ',' expected.
 src/ImportInterventiPage.tsx(127,159): error TS1005: ',' expected.
