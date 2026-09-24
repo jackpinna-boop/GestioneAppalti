@@ -29,6 +29,7 @@ type ImportRow = {
   buildingRaw:string
   buildingCodes:string[]
   buildingId:string|null
+  buildingIds:string[]
   buildingMatch:'automatico'|'manuale'|'multi-edificio'|'non_trovato'
   buildingConfidence:number
   description:string
@@ -187,13 +188,20 @@ function findTypology(description:string,type:string,maintenance:string,typologi
 }
 
 function matchBuilding(codes:string[],title:string,raw:string,buildings:Building[]){
-  if(codes.length>1)return {id:null,state:'multi-edificio' as const,confidence:0}
+  if(codes.length>1){
+    const ids=codes.map(code=>{
+      const canonical=canonicalBuildingCode(code)
+      return buildings.find(b=>b.codice_edificio.toUpperCase()===code)?.id || buildings.find(b=>b.codice_edificio.toUpperCase()===canonical)?.id || null
+    })
+    const missing=ids.some(x=>!x)
+    return {id:null,ids:ids.filter(Boolean) as string[],state:'multi-edificio' as const,confidence:missing?0:100}
+  }
   const code=codes[0]
   const canonical=canonicalBuildingCode(code||'')
   const exactRaw=buildings.find(b=>b.codice_edificio.toUpperCase()===code)
-  if(exactRaw)return {id:exactRaw.id,state:'automatico' as const,confidence:100}
+  if(exactRaw)return {id:exactRaw.id,ids:[exactRaw.id],state:'automatico' as const,confidence:100}
   const exact=buildings.find(b=>b.codice_edificio.toUpperCase()===canonical)
-  if(exact)return {id:exact.id,state:'automatico' as const,confidence:100}
+  if(exact)return {id:exact.id,ids:[exact.id],state:'automatico' as const,confidence:100}
   const titleNorm=norm(title)
   const rawNorm=norm(raw)
   const candidates=buildings.map(b=>{
@@ -204,9 +212,9 @@ function matchBuilding(codes:string[],title:string,raw:string,buildings:Building
     return {b,score:Math.min(99,rawHits+Math.min(45,hits*8))}
   }).sort((a,b)=>b.score-a.score)
   const best=candidates[0]
-  if(best&&best.score>=75)return {id:best.b.id,state:'automatico' as const,confidence:best.score}
-  if(best&&best.score>=45)return {id:best.b.id,state:'manuale' as const,confidence:best.score}
-  return {id:null,state:'non_trovato' as const,confidence:0}
+  if(best&&best.score>=75)return {id:best.b.id,ids:[best.b.id],state:'automatico' as const,confidence:best.score}
+  if(best&&best.score>=45)return {id:best.b.id,ids:[best.b.id],state:'manuale' as const,confidence:best.score}
+  return {id:null,ids:[],state:'non_trovato' as const,confidence:0}
 }
 
 export default function ImportInterventiPage({access}:{access:Access[]}){
@@ -304,7 +312,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
         if(!description)warnings.push('Descrizione mancante.')
         if(amount===null)warnings.push('Importo stanziato assente o non riconosciuto.')
         if(!buildingCodes.length)errors.push('Edificio sorgente non riconosciuto.')
-        if(bm.state==='multi-edificio')errors.push('La riga riguarda più edifici: selezionare manualmente l’edificio principale.')
+        if(bm.state==='multi-edificio' && bm.confidence<100)errors.push('Uno o più edifici della riga multi-edificio non sono presenti nel gestionale.')
         if(bm.state==='non_trovato')errors.push('Edificio non presente nel gestionale: selezione manuale obbligatoria.')
         if(bm.state==='manuale')warnings.push('Abbinamento edificio solo per similarità: verificare.')
         if(!cup)warnings.push('CUP assente.')
@@ -318,7 +326,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
         if(determinationDate)warnings.push('Data determina presente: verrà creato un atto di tipo determina; numero/protocollo restano da completare.')
         if(legacyCode&&legacyCode.length>12)warnings.push('Codice legacy incoerente: conservato solo nella tracciabilità.')
         parsed.push({
-          csvRow:idx+1,sourceId,title,buildingRaw,buildingCodes,buildingId:bm.id,buildingMatch:bm.state,buildingConfidence:bm.confidence,
+          csvRow:idx+1,sourceId,title,buildingRaw,buildingCodes,buildingId:bm.id,buildingIds:bm.ids,buildingMatch:bm.state,buildingConfidence:bm.confidence,
           description,sourceCode,amount,estimatedAmount,sourceStatus,status:statusMap(sourceStatus),note,cig,cup,operator,financing,programCode,
           determinationDate,type,maintenanceType,referenceYear:refYear,plannedStart,plannedEnd,started,legacyCode,programStatus,rawKey,
           typologyId:tm.id,typologyLabel:tm.label,selected:errors.length===0,errors,warnings
@@ -342,7 +350,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
     if(!b)return
     const r=rows[index]
     const errors=r.errors.filter(x=>!x.toLowerCase().includes('edificio'))
-    updateRow(index,{buildingId:b.id,buildingMatch:'manuale',buildingConfidence:100,errors,selected:errors.length===0})
+    updateRow(index,{buildingId:b.id,buildingIds:[b.id],buildingMatch:'manuale',buildingConfidence:100,errors,selected:errors.length===0})
   }
 
   const toggleSelected=(index:number)=>{
@@ -352,7 +360,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
   }
 
   const confirmImport=async()=>{
-    const selected=rows.filter(r=>r.selected&&r.errors.length===0&&r.buildingId)
+    const selected=rows.filter(r=>r.selected&&r.errors.length===0&&(r.buildingId||r.buildingIds.length))
     if(!selected.length){setMessage('Nessun record valido selezionato.');return}
     if(!window.confirm('Confermare la normalizzazione e importazione di '+selected.length+' interventi? Verranno create/collegate, quando documentate, procedura CIG, operatore economico, contratto, finanziamento, atto, programmazione e fasi.'))return
     setLoading(true);setMessage('')
@@ -380,6 +388,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
             p_data:{
               sourceId:r.sourceId,
               buildingId:r.buildingId,
+              buildingIds:r.buildingIds,
               title:r.title,
               description:r.description||null,
               typologyId:r.typologyId||null,
@@ -480,11 +489,17 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
                 <td><strong>{r.sourceId}</strong><br/><small>CSV {r.csvRow}</small></td>
                 <td><strong>{r.title||'—'}</strong><br/><small>{r.description.slice(0,120)}{r.description.length>120?'…':''}</small></td>
                 <td>
-                  <select value={r.buildingId||''} onChange={e=>updateBuilding(idx,e.target.value)}>
+                  {r.buildingMatch==='multi-edificio' ? <div className="multi-building-list">
+                    {r.buildingCodes.map(code=>{
+                      const canonical=canonicalBuildingCode(code)
+                      const matched=buildings.find(x=>x.codice_edificio.toUpperCase()===code)||buildings.find(x=>x.codice_edificio.toUpperCase()===canonical)
+                      return <label className="check-inline" key={code}><input type="checkbox" checked={!!matched&&r.buildingIds.includes(matched.id)} disabled={!matched}/>{code} · {matched?.denominazione||'non trovato'}</label>
+                    })}
+                  </div> : <select value={r.buildingId||''} onChange={e=>updateBuilding(idx,e.target.value)}>
                     <option value="">— seleziona —</option>
                     {buildings.map(x=><option key={x.id} value={x.id}>{x.codice_edificio} · {x.denominazione}</option>)}
-                  </select>
-                  <small>{b?.codice_edificio||'nessun abbinamento'} · {r.buildingConfidence}%</small>
+                  </select>}
+                  <small>{r.buildingMatch==='multi-edificio' ? r.buildingIds.length+' edifici associati' : (b?.codice_edificio||'nessun abbinamento')+' · '+r.buildingConfidence+'%'}</small>
                 </td>
                 <td>{r.amount===null?'—':r.amount.toLocaleString('it-IT',{style:'currency',currency:'EUR'})}</td>
                 <td><span className="badge">{r.status}</span><br/><small>{r.sourceStatus}</small></td>
