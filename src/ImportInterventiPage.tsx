@@ -124,7 +124,7 @@ const typologyRules=[
   {needle:['manutenzione straordinaria'],code:'MAN',label:'Manutenzione straordinaria'}
 ]
 
-const interventionNature=(type:string)=>{const n=norm(type);return n.includes('serviz')||n.includes('progett')||n.includes('accordo')?'SERVIZIO':'LAVORO'} as const;
+const interventionNature=(type:string):'SERVIZIO'|'LAVORO'=>{const n=norm(type);return n.includes('serviz')||n.includes('progett')||n.includes('accordo')?'SERVIZIO':'LAVORO'};
 const SOURCE_MAP:SourceMap[]=[
   {index:0,source:'ID SharePoint',meaning:'Identificativo della riga sorgente',target:'tracciabilità import',action:'il codice gestionale viene generato automaticamente dal database',confidence:'alta'},
   {index:1,source:'Title',meaning:'Titolo sintetico',target:'interventi.titolo',action:'import diretto',confidence:'alta'},
