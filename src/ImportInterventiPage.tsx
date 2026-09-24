@@ -407,7 +407,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
           })
           if(error)throw error
           const result:any=data||{}
-          if(result.status==='existing')throw new Error('Record già presente con codice '+interventionCode(r.sourceId,r.referenceYear))
+          if(result.status==='existing')throw new Error('Record già presente per ID SharePoint '+r.sourceId)
           if(result.contract_id){
             const fix=await supabase.from('contratti').update({data_consegna:null}).eq('id',result.contract_id)
             if(fix.error)throw fix.error
@@ -420,7 +420,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
           if(result.atto_id)normalizedActs++
           if(r.referenceYear||r.status==='progettazione'||['affidamento','contratto','esecuzione','fine_lavori','collaudo','chiuso'].includes(r.status))normalizedPhases++
         }catch(e:any){
-          failures.push(interventionCode(r.sourceId,r.referenceYear)+': '+(e?.message||String(e)))
+          failures.push('ID SharePoint '+r.sourceId+': '+(e?.message||String(e)))
         }
       }
 
