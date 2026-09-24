@@ -2,12 +2,11 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(392,1682): error TS1005: ',' expected.
-src/App.tsx(392,1689): error TS1005: ':' expected.
-src/App.tsx(392,1837): error TS1005: ',' expected.
-src/App.tsx(392,1847): error TS1005: ',' expected.
-src/App.tsx(392,1853): error TS1005: ',' expected.
-src/App.tsx(392,1854): error TS1136: Property assignment expected.
-src/App.tsx(392,1865): error TS1005: ',' expected.
-src/App.tsx(392,4441): error TS1128: Declaration or statement expected.
-src/App.tsx(488,536): error TS1005: '>' expected.
+src/App.tsx(516,809): error TS1109: Expression expected.
+src/App.tsx(516,810): error TS1109: Expression expected.
+src/App.tsx(516,812): error TS1005: '...' expected.
+src/App.tsx(516,1443): error TS1003: Identifier expected.
+src/App.tsx(530,2009): error TS1109: Expression expected.
+src/App.tsx(530,2010): error TS1109: Expression expected.
+src/App.tsx(530,2012): error TS1005: '...' expected.
+src/App.tsx(530,2913): error TS1003: Identifier expected.
