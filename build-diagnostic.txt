@@ -2,15 +2,7 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(515,811): error TS1109: Expression expected.
-src/App.tsx(515,812): error TS1109: Expression expected.
-src/App.tsx(515,814): error TS1005: '...' expected.
-src/App.tsx(515,1471): error TS1003: Identifier expected.
-src/App.tsx(529,2011): error TS1109: Expression expected.
-src/App.tsx(529,2012): error TS1109: Expression expected.
-src/App.tsx(529,2014): error TS1005: '...' expected.
-src/App.tsx(529,2960): error TS1003: Identifier expected.
-src/App.tsx(530,2407): error TS1109: Expression expected.
-src/App.tsx(530,2408): error TS1109: Expression expected.
-src/App.tsx(530,2410): error TS1005: '...' expected.
-src/App.tsx(530,3067): error TS1003: Identifier expected.
+src/App.tsx(543,2407): error TS1109: Expression expected.
+src/App.tsx(543,2408): error TS1109: Expression expected.
+src/App.tsx(543,2410): error TS1005: '...' expected.
+src/App.tsx(543,3067): error TS1003: Identifier expected.
