@@ -180,12 +180,13 @@ export default function ImportImpiantiPage({access}:{access:Access[]}){
     <section className="card">
       <div className="card-head"><div><h2>Anteprima e validazione</h2><p>Correggi gli abbinamenti prima di confermare.</p></div><Search size={20}/></div>
       <div className="import-toolbar"><input className="search-input" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca scuola, edificio o matricola"/><label className="check-inline"><input type="checkbox" checked={onlyIssues} onChange={e=>setOnlyIssues(e.target.checked)}/> Solo anomalie</label></div>
-      <div className="table-wrap"><table><thead><tr><th>CSV</th><th>Matricola</th><th>kW</th><th>Edificio</th><th>Conf.</th><th>Stato</th><th>Seleziona</th></tr></thead><tbody>
+      <div className="table-wrap"><table><thead><tr><th>CSV</th><th>Matricola</th><th>kW</th><th>Edificio</th><th>Pratica</th><th>Conf.</th><th>Stato</th><th>Seleziona</th></tr></thead><tbody>
        {visible.map((r)=>{const idx=rows.indexOf(r);return <tr key={(r.id||'r')+idx}>
         <td><strong>{r.codice_scuola}</strong><br/><small>{r.indirizzo_csv}</small></td>
         <td>{r.matricola}<br/><small>{r.matricola_inail_vigente}</small></td>
         <td>{r.potenza_kw??'—'}</td>
         <td><select value={r.edificio_id||''} onChange={e=>{const b=buildings.find(x=>x.id===e.target.value);updateRow(idx,{edificio_id:b?.id||null,edificio_confidenza:b?100:0,edificio_match_stato:b?'manuale':'non_trovato',errori:b?r.errori.filter(x=>!x.startsWith('Edificio non identificato')):[...r.errori,'Edificio non identificato.']})}}><option value="">— seleziona —</option>{buildings.map(b=><option key={b.id} value={b.id}>{b.codice_edificio} · {b.denominazione}</option>)}</select></td>
+        <td>{r.link_pratica?<a className="btn secondary" href={r.link_pratica} target="_blank" rel="noopener noreferrer" title={r.link_pratica}>Apri pratica</a>:<span>—</span>}</td>
         <td>{r.edificio_confidenza}%</td>
         <td>{r.errori.length?<span className="badge red">Bloccato</span>:r.avvisi.length?<span className="badge amber">Verifica</span>:<span className="badge green">OK</span>}<br/><small>{r.stato_suggerito}</small></td>
         <td><input type="checkbox" checked={r.selezionato} disabled={r.errori.length>0} onChange={e=>updateRow(idx,{selezionato:e.target.checked})}/></td>
