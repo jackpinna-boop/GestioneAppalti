@@ -190,6 +190,8 @@ function matchBuilding(codes:string[],title:string,raw:string,buildings:Building
   if(codes.length>1)return {id:null,state:'multi-edificio' as const,confidence:0}
   const code=codes[0]
   const canonical=canonicalBuildingCode(code||'')
+  const exactRaw=buildings.find(b=>b.codice_edificio.toUpperCase()===code)
+  if(exactRaw)return {id:exactRaw.id,state:'automatico' as const,confidence:100}
   const exact=buildings.find(b=>b.codice_edificio.toUpperCase()===canonical)
   if(exact)return {id:exact.id,state:'automatico' as const,confidence:100}
   const titleNorm=norm(title)
@@ -245,7 +247,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
 
   const loadReferences=async()=>{
     const [b,t]=await Promise.all([
-      supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune').order('denominazione'),
+      supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune').eq('ente_id',enteId).order('denominazione'),
       supabase.from('tipologie_intervento').select('id,codice,denominazione,attivo').eq('attivo',true).order('codice')
     ])
     if(b.error)throw b.error
