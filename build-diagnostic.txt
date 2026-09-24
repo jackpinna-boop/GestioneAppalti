@@ -2,7 +2,4 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(543,2407): error TS1109: Expression expected.
-src/App.tsx(543,2408): error TS1109: Expression expected.
-src/App.tsx(543,2410): error TS1005: '...' expected.
-src/App.tsx(543,3067): error TS1003: Identifier expected.
+src/App.tsx(543,2409): error TS1005: '}' expected.
