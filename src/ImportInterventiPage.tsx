@@ -132,17 +132,17 @@ const SOURCE_MAP:SourceMap[]=[
   {index:5,source:'ImportoStanziato',meaning:'Importo stanziato',target:'interventi.importo_programmato',action:'conversione € italiana',confidence:'alta'},
   {index:6,source:'StatoProcedura',meaning:'Stato testuale SharePoint',target:'interventi.stato',action:'normalizzazione verso enum applicativo',confidence:'alta'},
   {index:7,source:'Note',meaning:'Note operative',target:'interventi.note',action:'import + tracciabilità sorgente',confidence:'alta'},
-  {index:8,source:'CIG',meaning:'CIG',target:'procedure_affidamento.cig',action:'mostrato e conservato nelle note; normalizzazione fase 2',confidence:'alta'},
+  {index:8,source:'CIG',meaning:'CIG',target:'procedure_affidamento.cig',action:'crea/aggiorna procedura di affidamento',confidence:'alta'},
   {index:9,source:'CUP',meaning:'CUP',target:'interventi.cup',action:'import diretto',confidence:'alta'},
-  {index:10,source:'operatoreconomico',meaning:'Operatore economico in testo libero',target:'operatori_economici',action:'conservato; normalizzazione fase 2',confidence:'alta'},
-  {index:11,source:'Finanziamento',meaning:'Fonte di finanziamento',target:'finanziamenti',action:'conservato; normalizzazione fase 2',confidence:'alta'},
-  {index:12,source:'Programma Triennale',meaning:'Numero/voce di programmazione',target:'programmazioni',action:'conservato come dato sorgente; mapping fase 2',confidence:'media'},
-  {index:13,source:'DataDetermina',meaning:'Data della determina',target:'atti / procedura',action:'conservata nelle note; normalizzazione fase 2',confidence:'alta'},
+  {index:10,source:'operatoreconomico',meaning:'Operatore economico in testo libero',target:'operatori_economici',action:'normalizzazione automatica in anagrafica',confidence:'alta'},
+  {index:11,source:'Finanziamento',meaning:'Fonte di finanziamento',target:'finanziamenti',action:'associazione automatica alla fonte master',confidence:'alta'},
+  {index:12,source:'Programma Triennale',meaning:'Numero/voce di programmazione',target:'programmazioni',action:'associazione automatica a programmazione annuale',confidence:'media'},
+  {index:13,source:'DataDetermina',meaning:'Data della determina',target:'atti / procedura',action:'crea atto di tipo determina, senza inventare numero',confidence:'alta'},
   {index:14,source:'Tipologia di intervento',meaning:'Tipologia SharePoint',target:'tipologie_intervento',action:'match per descrizione + tipologia',confidence:'media'},
   {index:15,source:'Manutenzioni',meaning:'Natura manutentiva',target:'tipologie_intervento / classificazione',action:'supporto al mapping tipologico',confidence:'media'},
   {index:16,source:'ImportoStimato',meaning:'Importo stimato, presente solo in pochi record',target:'dato sorgente',action:'conservato nelle note; non sovrascrive importo programmato',confidence:'media'},
   {index:17,source:'AnnoDiRiferimento',meaning:'Annualità',target:'interventi.annualita_programmazione',action:'conversione anno; se assente viene proposta inferenza dalla data determina',confidence:'alta'},
-  {index:18,source:'DataPrevistaInizio',meaning:'Data prevista inizio',target:'fasi_intervento',action:'non importata in questa fase; segnalata per fase 2',confidence:'media'},
+  {index:18,source:'DataPrevistaInizio',meaning:'Data prevista inizio',target:'fasi_intervento',action:'trasferita nelle fasi come date previste',confidence:'media'},
   {index:19,source:'DataPrevistaFine',meaning:'Data prevista fine',target:'fasi_intervento',action:'non importata in questa fase; segnalata per fase 2',confidence:'media'},
   {index:20,source:'Avviati?',meaning:'Indicatore legacy avvio',target:'fasi_intervento',action:'non usato per determinare lo stato',confidence:'bassa'},
   {index:21,source:'Titolo visualizzato',meaning:'Valore duplicato/calcolato del titolo',target:'—',action:'non importato',confidence:'alta'},
@@ -310,10 +310,10 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
         if(!refYear)warnings.push('Annualità non disponibile.')
         if(tm.id===null)warnings.push('Tipologia applicativa da verificare.')
         if(plannedStart||plannedEnd)warnings.push('Date previste presenti: saranno trasferite nella gestione delle fasi in un passaggio dedicato.')
-        if(operator)warnings.push('Operatore economico presente in testo libero: non viene creato automaticamente.')
-        if(financing)warnings.push('Finanziamento presente: non viene normalizzato automaticamente in questa fase.')
-        if(cig)warnings.push('CIG presente: sarà normalizzato nella procedura di affidamento in fase 2.')
-        if(determinationDate)warnings.push('Data determina presente: sarà trasferita nella gestione atti in fase 2.')
+        if(operator)warnings.push('Operatore economico: verrà normalizzato nell’anagrafica; verificare ragione sociale e identificativo fiscale.')
+        if(financing)warnings.push('Finanziamento: verrà associato alla fonte master; per JTF verrà creata la fonte master se assente.')
+        if(cig)warnings.push('CIG presente: verrà associato alla procedura di affidamento; la tipologia della procedura resta da verificare se non presente nel CSV.')
+        if(determinationDate)warnings.push('Data determina presente: verrà creato un atto di tipo determina; numero/protocollo restano da completare.')
         if(legacyCode&&legacyCode.length>12)warnings.push('Codice legacy incoerente: conservato solo nella tracciabilità.')
         parsed.push({
           csvRow:idx+1,sourceId,title,buildingRaw,buildingCodes,buildingId:bm.id,buildingMatch:bm.state,buildingConfidence:bm.confidence,
@@ -352,7 +352,7 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
   const confirmImport=async()=>{
     const selected=rows.filter(r=>r.selected&&r.errors.length===0&&r.buildingId)
     if(!selected.length){setMessage('Nessun record valido selezionato.');return}
-    if(!window.confirm('Confermare l’importazione di '+selected.length+' interventi? L’operazione scrive nella tabella interventi.'))return
+    if(!window.confirm('Confermare la normalizzazione e importazione di '+selected.length+' interventi? Verranno create/collegate, quando documentate, procedura CIG, operatore economico, contratto, finanziamento, atto, programmazione e fasi.'))return
     setLoading(true);setMessage('')
     try{
       const codes=selected.map(r=>'SP-'+r.sourceId)
@@ -361,25 +361,70 @@ export default function ImportInterventiPage({access}:{access:Access[]}){
       const existingSet=new Set((existing.data||[]).map((x:any)=>x.codice_intervento))
       const duplicateRows=selected.filter(r=>existingSet.has('SP-'+r.sourceId))
       if(duplicateRows.length)throw new Error('Importazione bloccata: già presenti '+duplicateRows.length+' codici sorgente ('+duplicateRows.map(r=>'SP-'+r.sourceId).join(', ')+').')
-      const payload=selected.map(r=>({
-        ente_id:enteId,
-        edificio_id:r.buildingId,
-        codice_intervento:'SP-'+r.sourceId,
-        titolo:r.title,
-        descrizione:r.description||null,
-        tipologia_intervento_id:r.typologyId||null,
-        cup:r.cup||null,
-        importo_programmato:r.amount||0,
-        importo_finanziato:0,
-        importo_contrattuale:0,
-        stato:r.status as any,
-        annualita_programmazione:r.referenceYear,
-        note:buildNote(r)
-      }))
-      const {error}=await supabase.from('interventi').insert(payload)
-      if(error)throw error
-      setRows(prev=>prev.map(r=>selected.some(s=>s.sourceId===r.sourceId)?{...r,selected:false}:r))
-      setMessage('Importazione completata: '+selected.length+' interventi inseriti. CIG, operatori, finanziamenti, date di fase e atti restano tracciati nelle note per la normalizzazione successiva.')
+
+      let created=0
+      let normalizedProcedures=0
+      let normalizedContracts=0
+      let normalizedOperators=0
+      let normalizedFinancing=0
+      let normalizedActs=0
+      let normalizedPhases=0
+      const failures:string[]=[]
+
+      for(const r of selected){
+        try{
+          const {data,error}=await supabase.rpc('import_intervento_sharepoint',{
+            p_ente_id:enteId,
+            p_data:{
+              sourceId:r.sourceId,
+              buildingId:r.buildingId,
+              title:r.title,
+              description:r.description||null,
+              typologyId:r.typologyId||null,
+              cup:r.cup||null,
+              amount:r.amount??0,
+              status:r.status,
+              sourceStatus:r.sourceStatus,
+              note:r.note||'',
+              sourceCode:r.sourceCode,
+              legacyCode:r.legacyCode,
+              cig:r.cig||null,
+              operator:r.operator||null,
+              financing:r.financing||null,
+              programCode:r.programCode||null,
+              determinationDate:r.determinationDate||null,
+              type:r.type||null,
+              referenceYear:r.referenceYear,
+              plannedStart:r.plannedStart||null,
+              plannedEnd:r.plannedEnd||null
+            }
+          })
+          if(error)throw error
+          const result:any=data||{}
+          if(result.status==='existing')throw new Error('Record già presente con codice SP-'+r.sourceId)
+          if(result.contract_id){
+            const fix=await supabase.from('contratti').update({data_consegna:null}).eq('id',result.contract_id)
+            if(fix.error)throw fix.error
+          }
+          created++
+          if(result.procedura_id)normalizedProcedures++
+          if(result.contratto_id)normalizedContracts++
+          if(result.operatore_id)normalizedOperators++
+          if(r.financing)normalizedFinancing++
+          if(result.atto_id)normalizedActs++
+          if(r.referenceYear||r.status==='progettazione'||['affidamento','contratto','esecuzione','fine_lavori','collaudo','chiuso'].includes(r.status))normalizedPhases++
+        }catch(e:any){
+          failures.push('SP-'+r.sourceId+': '+(e?.message||String(e)))
+        }
+      }
+
+      if(failures.length){
+        setMessage('Importazione parzialmente completata: '+created+' record importati e normalizzati; '+failures.length+' record non importati. '+failures.join(' | '))
+        setRows(prev=>prev.map(r=>created>0&&selected.some(s=>s.sourceId===r.sourceId)?{...r,selected:false}:r))
+      }else{
+        setRows(prev=>prev.map(r=>selected.some(s=>s.sourceId===r.sourceId)?{...r,selected:false}:r))
+        setMessage('Importazione e normalizzazione completate: '+created+' interventi; '+normalizedProcedures+' procedure CIG; '+normalizedContracts+' contratti; '+normalizedOperators+' operatori; '+normalizedFinancing+' associazioni finanziarie; '+normalizedActs+' atti; fasi aggiornate per '+normalizedPhases+' record.')
+      }
     }catch(e:any){
       setMessage('Importazione annullata: '+(e?.message||String(e)))
     }finally{setLoading(false)}
