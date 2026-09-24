@@ -2,8 +2,13 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(749,5): error TS17008: JSX element 'section' has no corresponding closing tag.
-src/App.tsx(749,704): error TS2657: JSX expressions must have one parent element.
-src/App.tsx(749,2424): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
-src/App.tsx(749,2427): error TS17002: Expected corresponding JSX closing tag for 'div'.
-src/App.tsx(784,2): error TS1005: '}' expected.
+src/App.tsx(416,1369): error TS2304: Cannot find name 'thermalMatricole'.
+src/App.tsx(416,1393): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/App.tsx(416,1439): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/App.tsx(416,1663): error TS2304: Cannot find name 'setSheetSystem'.
+src/App.tsx(416,1681): error TS2552: Cannot find name 'setShowSystem'. Did you mean 'setSystems'?
+src/App.tsx(798,2735): error TS2304: Cannot find name 'inailFor'.
+src/App.tsx(798,3266): error TS2304: Cannot find name 'openSheet'.
+src/App.tsx(798,6136): error TS2304: Cannot find name 'inailFor'.
+src/App.tsx(798,7374): error TS2304: Cannot find name 'attrsFor'.
+src/App.tsx(798,7509): error TS2304: Cannot find name 'attrsFor'.
