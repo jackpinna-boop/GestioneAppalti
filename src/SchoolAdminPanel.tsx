@@ -78,7 +78,7 @@ export default function SchoolAdminPanel({access}:Props){
  const schoolBuildingIds=useMemo(()=>new Set(activeSchoolBuildings.map(x=>x.edificio_id)),[activeSchoolBuildings])
  const availableBuildings=useMemo(()=>buildings.filter(b=>schoolBuildingIds.has(b.id)),[buildings,schoolBuildingIds])
  const schoolUserIds=useMemo(()=>new Set(schoolUsers.map(u=>u.user_id)),[schoolUsers])
- const selectableExistingUsers=useMemo(()=>managedUsers.filter(u=>!schoolUserIds.has(u.id)),[managedUsers,schoolUserIds])
+ const selectableExistingUsers=useMemo(()=>managedUsers.filter(u=>!schoolUserIds.has(u.id)&&!u.roles?.some((r:any)=>['superadmin','admin_ente'].includes(r.ruolo))),[managedUsers,schoolUserIds])
 
  const profileName=(id:string)=>{
    const p=managedUsers.find(x=>x.id===id)
