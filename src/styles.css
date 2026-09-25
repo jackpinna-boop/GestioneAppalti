@@ -378,3 +378,12 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .text-btn{border:0;background:transparent;color:#176b4d;font-weight:700;cursor:pointer;padding:4px 0;margin-left:8px}
 .import-file{font-size:13px;color:#667085;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:900px){.import-map-row{grid-template-columns:1fr 1fr}.import-map-row em{grid-column:1/-1}.import-row-detail{grid-template-columns:1fr}}
+
+.report-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.report-filter{display:flex;flex-direction:column;gap:6px}.report-filter span{font-size:12px;font-weight:700;color:#516176}.report-filter select{min-height:40px;border:1px solid #d4dce6;border-radius:8px;padding:0 10px;background:#fff;color:#243247}
+.report-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.report-kpi{padding:18px}.report-kpi span{display:block;font-size:12px;color:#66758a;font-weight:700;text-transform:uppercase;letter-spacing:.03em}.report-kpi strong{display:block;font-size:28px;margin-top:6px;color:#17324d}
+.report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-bottom:18px}.report-chart-card{padding:18px}.report-chart-card .card-head{margin-bottom:18px}.report-chart-card .card-head p,.report-quality .card-head p{margin:4px 0 0;color:#6b7788;font-size:13px}
+.report-bars{display:flex;flex-direction:column;gap:12px}.report-bar-row{display:flex;flex-direction:column;gap:5px}.report-bar-label{display:flex;justify-content:space-between;gap:12px;font-size:13px}.report-bar-label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.report-bar-label b{white-space:nowrap}.report-bar-track{height:10px;background:#edf1f5;border-radius:99px;overflow:hidden}.report-bar-track i{display:block;height:100%;background:#1d6f63;border-radius:99px;min-width:2%}
+.report-quality{padding:18px;margin-bottom:18px}.report-quality .card-head{align-items:flex-start}.report-quality .card-head button{margin-left:auto}.report-quality table{margin-top:14px}
+@media(max-width:1000px){.report-filters,.report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.report-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.report-filters,.report-kpis{grid-template-columns:1fr}}
