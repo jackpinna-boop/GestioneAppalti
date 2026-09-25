@@ -593,7 +593,8 @@ function ReportPage({refresh,access}:{refresh:number;access:Access[]}){
  const buildingMap=useMemo(()=>Object.fromEntries(edifici.map(x=>[x.id,x])),[edifici]);
  const sourceMap=useMemo(()=>Object.fromEntries(sources.map(x=>[x.id,x])),[sources]);
  const years=useMemo(()=>Array.from(new Set(interventi.map(x=>x.annualita_programmazione).filter((x:any)=>x!==null&&x!==undefined))).sort((a:any,b:any)=>Number(b)-Number(a)),[interventi]);
- const filtered=useMemo(()=>interventi.filter(x=>(natura==='TUTTI'||x.natura===natura)&&(anno==='TUTTI'||String(x.annualita_programmazione)===anno)&&(istituto==='TUTTI'||getBuildingIds(x.id,x.edificio_id).includes(istituto)),[interventi,natura,anno,istituto,links]);
+ const fundingTypes=useMemo(()=>Array.from(new Set(sources.map(x=>x.tipologia).filter(Boolean))).sort(),[sources]);
+ const filtered=useMemo(()=>interventi.filter(x=>(natura==='TUTTI'||x.natura===natura)&&(anno==='TUTTI'||String(x.annualita_programmazione)===anno)&&(istituto==='TUTTI'||getBuildingIds(x.id,x.edificio_id).includes(istituto))&&(fonte==='TUTTI'||fundings.some(f=>f.intervento_id===x.id&&sourceMap[f.fonte_id]?.tipologia===fonte))),[interventi,natura,anno,istituto,fonte,links,fundings,sourceMap]);
  function getBuildingIds(interventoId:string,primaryId:string|null){
    const ids=links.filter(x=>x.intervento_id===interventoId).map(x=>x.edificio_id);
    return ids.length?Array.from(new Set(ids)):(primaryId?[primaryId]:[]);
@@ -660,7 +661,7 @@ function ReportPage({refresh,access}:{refresh:number;access:Access[]}){
      <div className="report-filter"><span>Anno</span><select value={anno} onChange={e=>setAnno(e.target.value)}><option value="TUTTI">Tutti</option>{years.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
      <div className="report-filter"><span>Natura</span><select value={natura} onChange={e=>setNatura(e.target.value)}><option value="TUTTI">Lavori + Servizi</option><option value="LAVORO">Lavori</option><option value="SERVIZIO">Servizi</option></select></div>
      <div className="report-filter"><span>Istituto</span><select value={istituto} onChange={e=>setIstituto(e.target.value)}><option value="TUTTI">Tutti</option>{edifici.map(b=><option key={b.id} value={b.id}>{b.denominazione||b.codice_edificio}</option>)}</select></div>
-     <div className="report-filter"><span>Importo analizzato</span><select value={importoTipo} onChange={e=>setImportoTipo(e.target.value)}><option value="importo_programmato">Programmato</option><option value="importo_finanziato">Finanziato</option><option value="importo_contrattuale">Contrattuale</option></select></div>
+     <div className="report-filter"><span>Tipologia finanziamento</span><select value={fonte} onChange={e=>setFonte(e.target.value)}><option value="TUTTI">Tutte</option>{fundingTypes.map((x:any)=><option key={x} value={x}>{x}</option>)}</select></div><div className="report-filter"><span>Importo analizzato</span><select value={importoTipo} onChange={e=>setImportoTipo(e.target.value)}><option value="importo_programmato">Programmato</option><option value="importo_finanziato">Finanziato</option><option value="importo_contrattuale">Contrattuale</option></select></div>
    </div>
    {loading?<div className="notice info">Caricamento dati report…</div>:<>
    <div className="report-kpis">
