@@ -13,6 +13,7 @@ const fmtDate=(v:string|null|undefined)=>v?new Intl.DateTimeFormat('it-IT').form
 export default function SchoolPortalPage({session,access}:{session:any;access:Access[]}){
  const userId=session.user.id
  const [schools,setSchools]=useState<School[]>([])
+ const [schoolBuildingMap,setSchoolBuildingMap]=useState<Record<string,string>>({})
  const [buildings,setBuildings]=useState<SchoolBuilding[]>([])
  const [rows,setRows]=useState<SchoolRequest[]>([])
  const [selected,setSelected]=useState<SchoolRequest|null>(null)
@@ -27,20 +28,22 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
 
  const load=async()=>{
    setLoading(true)
-   const [su,se,sue,ed,rq,lg]=await Promise.all([
+   const [su,se,sue,sed,ed,rq,lg]=await Promise.all([
      supabase.from('scuola_utenti').select('id,scuola_id,ruolo').eq('user_id',userId).eq('attivo',true),
      supabase.from('scuole').select('id,denominazione,codice_meccanografico').eq('attiva',true).order('denominazione'),
      supabase.from('scuola_utenti_edifici').select('scuola_utente_id,edificio_id').eq('attivo',true),
+     supabase.from('scuole_edifici').select('scuola_id,edificio_id').eq('attivo',true),
      supabase.from('edifici').select('id,denominazione,codice_edificio,indirizzo,comune').order('denominazione'),
      supabase.from('richieste_intervento').select('id,codice_richiesta,titolo_sintetico,descrizione_estesa,data_richiesta,stato_risoluzione,priorita,created_by,richieste_intervento_sedi(id,edificio_id,edifici(id,denominazione,codice_edificio,indirizzo,comune))').order('data_richiesta',{ascending:false}),
      supabase.from('scuola_access_log').select('id,azione,timestamp,metadata,richiesta_id,edificio_id,scuola_id').eq('user_id',userId).order('timestamp',{ascending:false}).limit(100)
    ])
-   if(su.error||se.error||sue.error||ed.error||rq.error){setMessage('Errore nel caricamento del Portale Scuola.');console.error(su.error,se.error,sue.error,ed.error,rq.error)}
+   if(su.error||se.error||sue.error||sed.error||ed.error||rq.error){setMessage('Errore nel caricamento del Portale Scuola.');console.error(su.error,se.error,sue.error,sed.error,ed.error,rq.error)}
    const links=su.data||[]
    const linkIds=new Set(links.map((x:any)=>x.scuola_utente_id))
    const schoolIds=new Set(links.map((x:any)=>x.scuola_id))
    const buildingIds=new Set((sue.data||[]).filter((x:any)=>linkIds.has(x.scuola_utente_id)).map((x:any)=>x.edificio_id))
    setSchools((se.data||[]).filter((x:any)=>schoolIds.has(x.id)))
+   const sbm:any={};(sed.data||[]).forEach((x:any)=>{sbm[x.edificio_id]=x.scuola_id});setSchoolBuildingMap(sbm)
    setBuildings((ed.data||[]).filter((x:any)=>buildingIds.has(x.id)))
    setRows((rq.data||[]) as SchoolRequest[])
    setLogs(lg.data||[])
@@ -52,9 +55,8 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
    const sede=r.richieste_intervento_sedi?.[0]?.edificio_id
    const byBuilding=buildingFilter==='all'||sede===buildingFilter
    if(schoolFilter==='all') return byBuilding
-   const schoolBuildings=new Set(buildings.filter(b=>b.id===sede).map(b=>b.id))
-   return byBuilding&&schoolBuildings.size>0
- }),[rows,buildingFilter,schoolFilter,buildings])
+   return byBuilding&&schoolBuildingMap[sede]===schoolFilter
+ }),[rows,buildingFilter,schoolFilter,buildings,schoolBuildingMap])
  const open=rows.filter(x=>['aperta','da_valutare'].includes(x.stato_risoluzione)).length
  const inProgress=rows.filter(x=>x.stato_risoluzione==='in_carico').length
  const resolved=rows.filter(x=>x.stato_risoluzione==='risolta').length
