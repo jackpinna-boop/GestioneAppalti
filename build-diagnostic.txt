@@ -2,10 +2,10 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(439,543): error TS2352: Conversion of type '{ id: any; ente_id: any; edificio_id: any; codice_intervento: any; natura: any; titolo: any; descrizione: any; cup: any; importo_programmato: any; importo_finanziato: any; importo_contrattuale: any; ... 7 more ...; finanziamenti_intervento: { ...; }[]; }[]' to type 'Intervention[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Type '{ id: any; ente_id: any; edificio_id: any; codice_intervento: any; natura: any; titolo: any; descrizione: any; cup: any; importo_programmato: any; importo_finanziato: any; importo_contrattuale: any; ... 7 more ...; finanziamenti_intervento: { ...; }[]; }' is not comparable to type 'Intervention'.
-    Types of property 'finanziamenti_intervento' are incompatible.
-      Type '{ importo: any; annualita: any; fonti_finanziamento: { codice: any; denominazione: any; }[]; }[]' is not comparable to type '{ importo: number; annualita: number | null; fonti_finanziamento?: { codice: string | null; denominazione: string | null; } | null | undefined; }[]'.
-        Type '{ importo: any; annualita: any; fonti_finanziamento: { codice: any; denominazione: any; }[]; }' is not comparable to type '{ importo: number; annualita: number | null; fonti_finanziamento?: { codice: string | null; denominazione: string | null; } | null | undefined; }'.
-          Types of property 'fonti_finanziamento' are incompatible.
-            Type '{ codice: any; denominazione: any; }[]' is missing the following properties from type '{ codice: string | null; denominazione: string | null; }': codice, denominazione
+src/App.tsx(482,44): error TS1005: '}' expected.
+src/App.tsx(482,51): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/App.tsx(482,54): error TS1109: Expression expected.
+src/App.tsx(482,87): error TS1003: Identifier expected.
+src/App.tsx(482,89): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/App.tsx(482,144): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/App.tsx(482,1302): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
