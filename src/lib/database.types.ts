@@ -116,6 +116,7 @@ export type Database = {
           azione: string
           ente_id: string | null
           id: number
+          intervento_id: string | null
           ip: unknown
           record_id: string | null
           tabella: string | null
@@ -128,6 +129,7 @@ export type Database = {
           azione: string
           ente_id?: string | null
           id?: never
+          intervento_id?: string | null
           ip?: unknown
           record_id?: string | null
           tabella?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           azione?: string
           ente_id?: string | null
           id?: never
+          intervento_id?: string | null
           ip?: unknown
           record_id?: string | null
           tabella?: string | null
@@ -2018,7 +2021,7 @@ export const Constants = {
         "sospeso",
         "annullato",
       ],
-      progetto_livello: ["pfte", "esecutivo"],
+      progetto_livello: ["in_programmazione", "programmato", "dip", "pfte", "esecutivo"],
     },
   },
 } as const
