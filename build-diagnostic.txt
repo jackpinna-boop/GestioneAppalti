@@ -2,23 +2,16 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
+src/App.tsx(246,167): error TS2304: Cannot find name 'id'.
 src/App.tsx(475,104): error TS2304: Cannot find name 'canDeleteSection'.
 src/App.tsx(476,102): error TS2304: Cannot find name 'canDeleteSection'.
 src/App.tsx(477,94): error TS2304: Cannot find name 'canDeleteSection'.
 src/App.tsx(478,106): error TS2304: Cannot find name 'canDeleteSection'.
 src/App.tsx(479,103): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(480,281): error TS2322: Type '{ title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; canDelete: any; refresh: number; setRefresh: (x: number) => void; }' is not assignable to type 'IntrinsicAttributes & { title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
-  Property 'canDelete' does not exist on type 'IntrinsicAttributes & { title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
 src/App.tsx(480,292): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(481,234): error TS2322: Type '{ title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; canDelete: any; refresh: number; setRefresh: (x: number) => void; }' is not assignable to type 'IntrinsicAttributes & { title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
-  Property 'canDelete' does not exist on type 'IntrinsicAttributes & { title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
 src/App.tsx(481,245): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(482,259): error TS2322: Type '{ title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; canDelete: any; refresh: number; setRefresh: (x: number) => void; }' is not assignable to type 'IntrinsicAttributes & { title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
-  Property 'canDelete' does not exist on type 'IntrinsicAttributes & { title: string; id: string; table: string; columns: string[]; fields: EField[]; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
 src/App.tsx(482,270): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(483,115): error TS2322: Type '{ id: string; enteId: string; write: boolean; canDelete: any; refresh: number; setRefresh: (x: number) => void; }' is not assignable to type 'IntrinsicAttributes & { id: string; enteId: string; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
-  Property 'canDelete' does not exist on type 'IntrinsicAttributes & { id: string; enteId: string; write: boolean; refresh: number; setRefresh: (x: number) => void; }'.
 src/App.tsx(483,126): error TS2304: Cannot find name 'canDeleteSection'.
 src/App.tsx(485,102): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(498,2981): error TS2304: Cannot find name 'remove'.
+src/App.tsx(498,3190): error TS2304: Cannot find name 'remove'.
 src/App.tsx(519,577): error TS2304: Cannot find name 'remove'.
