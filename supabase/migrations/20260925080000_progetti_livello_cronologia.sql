@@ -79,7 +79,7 @@ BEGIN
       INSERT INTO public.audit_log
         (ente_id, intervento_id, user_id, azione, tabella, record_id, valore_precedente, valore_nuovo)
       VALUES
-        (v_ente_id, r.intervento_id, auth.uid(), TG_OP, TG_TABLE_NAME, v_record_id, v_old, v_new);
+        (v_ente_id, r.intervento_id, auth.uid(), TG_OP, TG_TABLE_NAME, NULLIF(v_record_id,'')::uuid, v_old, v_new);
     END LOOP;
     RETURN COALESCE(NEW, OLD);
   END IF;
@@ -94,7 +94,7 @@ BEGIN
 
   -- La tabella ponte atti_intervento non ha una colonna id.
   IF TG_TABLE_NAME = 'atti_intervento' THEN
-    v_record_id := concat_ws(':', v_row->>'atto_id', v_row->>'intervento_id');
+    v_record_id := COALESCE(v_row->>'atto_id', v_row->>'intervento_id');
   END IF;
 
   INSERT INTO public.audit_log
