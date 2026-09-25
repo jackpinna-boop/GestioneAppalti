@@ -2,16 +2,4 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(246,167): error TS2304: Cannot find name 'id'.
-src/App.tsx(475,104): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(476,102): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(477,94): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(478,106): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(479,103): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(480,292): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(481,245): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(482,270): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(483,126): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(485,102): error TS2304: Cannot find name 'canDeleteSection'.
-src/App.tsx(498,3190): error TS2304: Cannot find name 'remove'.
-src/App.tsx(519,577): error TS2304: Cannot find name 'remove'.
+src/SchoolAdminPanel.tsx(94,52): error TS18047: 'linked.data' is possibly 'null'.
