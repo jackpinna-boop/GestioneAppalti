@@ -311,6 +311,7 @@ export default function SchoolAdminPanel({access}:Props){
    <div className="modal" style={{maxWidth:760}}>
     <div className="modal-head"><h2>{userMode==='create'?'Crea nuovo utente':userMode==='associate'?'Associa utente esistente':'Modifica utente'}</h2><button className="icon-btn" onClick={()=>setUserModal(false)}><X size={18}/></button></div>
     <div className="notice info">I dati dell’account vengono gestiti tramite il sistema utenti già in uso. L’associazione scolastica è separata dall’account globale.</div>
+    {message&&<div className="notice warning">{message}</div>}
     {userMode==='associate'?<div className="form-grid">
       <label className="span-2">Utente esistente<select value={userId} onChange={e=>{
         const id=e.target.value;setUserId(id);const u=managedUsers.find(x=>x.id===id);if(u)setUserForm(f=>({...f,nome:u.nome,cognome:u.cognome,email:u.email,telefono:u.telefono,attivo:u.attivo}))
