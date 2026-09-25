@@ -406,3 +406,7 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .school-portal-confirm{padding:12px;border:1px solid #d8e4f0;background:#f3f8fc;border-radius:10px;font-size:13px}
 @media(max-width:900px){.school-portal{padding:18px}.school-kpis{grid-template-columns:repeat(2,1fr)}.school-portal-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.school-kpis{grid-template-columns:1fr 1fr}.school-portal-actions{align-items:flex-start;gap:12px;flex-direction:column}.school-filters{flex-direction:column}.school-filters label{min-width:0}.school-portal-head h1{font-size:24px}}
+
+
+.school-admin-panel{margin-top:20px}.school-admin-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:24px}.school-admin-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}.school-admin-item{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--border,#e5e7eb);background:var(--card-bg,#fff);padding:11px;border-radius:10px;cursor:pointer}.school-admin-item.active{border-color:#2563eb}.school-admin-item span{display:flex;flex-direction:column}.school-admin-item small{opacity:.65;margin-top:2px}.school-admin-form{margin-top:12px}.school-admin-panel h3{margin-top:0}
+@media(max-width:900px){.school-admin-grid{grid-template-columns:1fr}}
