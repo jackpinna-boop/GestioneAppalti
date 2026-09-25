@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Building2, CheckCircle2, CircleAlert, FileText, History, LogOut, Plus, X } from 'lucide-react'
+import { Building2, CheckCircle2, CircleAlert, FileText, History, LogOut, Plus, X, Paperclip, Download } from 'lucide-react'
 import { supabase } from './lib/supabase'
 
 type Access={user_id:string;ente_id:string;ruolo:string;ente:string;logo_path?:string|null;ui_palette?:string}
@@ -7,6 +7,7 @@ type Access={user_id:string;ente_id:string;ruolo:string;ente:string;logo_path?:s
 type SchoolBuilding={id:string;denominazione:string;codice_edificio:string|null;indirizzo:string|null;comune:string|null}
 type School={id:string;denominazione:string;codice_meccanografico:string|null}
 type SchoolRequest={id:string;codice_richiesta:string|null;titolo_sintetico:string;descrizione_estesa:string;data_richiesta:string;stato_risoluzione:string;priorita:string|null;created_by:string;richieste_intervento_sedi:any[]}
+type SchoolAttachment={id:string;nome_file:string;mime_type:string;dimensione_bytes:number;storage_path:string;created_at:string;url?:string}
 
 const fmtDate=(v:string|null|undefined)=>v?new Intl.DateTimeFormat('it-IT').format(new Date(v+'T00:00:00')):'—'
 
@@ -22,6 +23,8 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
  const [cancelRow,setCancelRow]=useState<SchoolRequest|null>(null)
  const [message,setMessage]=useState('')
  const [loading,setLoading]=useState(true)
+ const [attachments,setAttachments]=useState<SchoolAttachment[]>([])
+ const [loadingAttachments,setLoadingAttachments]=useState(false)
  const [saving,setSaving]=useState(false)
  const [schoolFilter,setSchoolFilter]=useState('all')
  const [buildingFilter,setBuildingFilter]=useState('all')
@@ -66,6 +69,10 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
    e.preventDefault();setSaving(true);setMessage('')
    const f=new FormData(e.currentTarget)
    const buildingId=String(f.get('edificio')||'')
+   const files=f.getAll('allegati').filter((x):x is File=>x instanceof File&&x.size>0)
+   const allowed=['application/pdf','image/jpeg','image/png','image/gif','image/webp','image/bmp','image/tiff']
+   const invalid=files.find(file=>file.size>5242880||!allowed.includes(file.type))
+   if(invalid){setMessage(`Allegato non valido: "${invalid.name}". Sono ammessi PDF e immagini con dimensione massima di 5 MB per file.`);setSaving(false);return}
    const {data,error}=await supabase.rpc('school_create_request',{
      p_ente_id:access[0]?.ente_id,
      p_edificio_id:buildingId,
@@ -76,7 +83,21 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
      p_note_immobile:String(f.get('note')||'')||null
    })
    if(error){setMessage(error.message||'Impossibile registrare la richiesta.')}
-   else {setShowNew(false);setMessage('Richiesta registrata correttamente.');await load()}
+   else {
+     const requestId=data as string
+     let uploadError=''
+     for(const file of files){
+       const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_')
+       const path=`${requestId}/${crypto.randomUUID()}-${safeName}`
+       const up=await supabase.storage.from('richieste-intervento').upload(path,file,{contentType:file.type,upsert:false})
+       if(up.error){uploadError=up.error.message;break}
+       const meta=await supabase.from('richieste_intervento_allegati').insert({richiesta_id:requestId,created_by:userId,nome_file:file.name,mime_type:file.type,dimensione_bytes:file.size,storage_path:path})
+       if(meta.error){await supabase.storage.from('richieste-intervento').remove([path]);uploadError=meta.error.message;break}
+     }
+     setShowNew(false)
+     setMessage(uploadError? `Richiesta registrata, ma uno o più allegati non sono stati caricati: ${uploadError}` : 'Richiesta registrata correttamente.')
+     await load()
+   }
    setSaving(false)
  }
 
@@ -90,7 +111,16 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
  }
 
  const openRequest=async(r:SchoolRequest)=>{
-   setSelected(r)
+   setSelected(r);setAttachments([]);setLoadingAttachments(true)
+   const {data,error}=await supabase.from('richieste_intervento_allegati').select('id,nome_file,mime_type,dimensione_bytes,storage_path,created_at').eq('richiesta_id',r.id).order('created_at')
+   if(!error&&data){
+     const withUrls=await Promise.all(data.map(async(a:any)=>{
+       const signed=await supabase.storage.from('richieste-intervento').createSignedUrl(a.storage_path,300)
+       return {...a,url:signed.data?.signedUrl}
+     }))
+     setAttachments(withUrls)
+   }
+   setLoadingAttachments(false)
    await supabase.from('scuola_access_log').insert({user_id:userId,ente_id:access[0]?.ente_id,richiesta_id:r.id,edificio_id:r.richieste_intervento_sedi?.[0]?.edificio_id||null,azione:'VISUALIZZAZIONE_RICHIESTA',metadata:{origine:'PORTALE_SCUOLA'}})
  }
 
@@ -113,8 +143,8 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
     </section>
     <aside className="card"><div className="card-head"><div><h2>Registro attività</h2><p>Accessi e operazioni effettuate dal tuo account.</p></div><History size={20}/></div>{logs.length?<div className="school-log-list">{logs.slice(0,20).map(x=><div className="school-log-row" key={x.id}><CheckCircle2 size={15}/><div><b>{x.azione}</b><span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></div></div>)}</div>:<EmptyLog/>}</aside>
    </div>
-   {selected&&<Modal title={selected.codice_richiesta||'Richiesta'} close={()=>setSelected(null)}><Info label="Titolo" value={selected.titolo_sintetico}/><Info label="Edificio" value={selected.richieste_intervento_sedi?.[0]?.edifici?.denominazione}/><Info label="Data" value={fmtDate(selected.data_richiesta)}/><Info label="Stato" value={selected.stato_risoluzione}/><div className="school-request-description">{selected.descrizione_estesa}</div>{selected.stato_risoluzione!=='annullata'&&selected.stato_risoluzione!=='risolta'&&selected.created_by===userId&&<div className="form-actions"><button className="btn danger" onClick={()=>{setSelected(null);setCancelRow(selected);setMessage('')}}>Annulla richiesta</button></div>}</Modal>}
-   {showNew&&<Modal title="Nuova segnalazione" close={()=>setShowNew(false)}><form className="form-grid" onSubmit={create}><label>Edificio<select name="edificio" required><option value="">Seleziona…</option>{buildings.map(b=><option key={b.id} value={b.id}>{b.denominazione} — {b.comune||''}</option>)}</select></label><label>Priorità<select name="priorita" defaultValue="ordinaria"><option value="ordinaria">Ordinaria</option><option value="urgente">Urgente</option><option value="emergenza">Emergenza</option></select></label><label>Tipologia<select name="tipo" defaultValue="ordinaria"><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option><option value="da_valutare">Da valutare</option></select></label><label className="span-2">Titolo<input name="titolo" required maxLength={200}/></label><label className="span-2">Descrizione<textarea name="descrizione" required rows={6}/></label><label className="span-2">Note immobile<textarea name="note" rows={3}/></label><div className="school-portal-confirm span-2">La segnalazione sarà registrata con il tuo utente e non sarà eliminabile. Per correggere un errore dovrai annullarla.</div><div className="form-actions span-2"><button type="button" className="btn secondary" onClick={()=>setShowNew(false)}>Annulla</button><button className="btn primary" disabled={saving}>{saving?'Registrazione…':'Registra segnalazione'}</button></div></form></Modal>}
+   {selected&&<Modal title={selected.codice_richiesta||'Richiesta'} close={()=>setSelected(null)}><Info label="Titolo" value={selected.titolo_sintetico}/><Info label="Edificio" value={selected.richieste_intervento_sedi?.[0]?.edifici?.denominazione}/><Info label="Data" value={fmtDate(selected.data_richiesta)}/><Info label="Stato" value={selected.stato_risoluzione}/><div className="school-request-description">{selected.descrizione_estesa}</div><div className="school-attachments"><div className="card-head"><div><h3><Paperclip size={16}/> Allegati</h3><p>PDF e immagini · massimo 5 MB per file</p></div></div>{loadingAttachments?<div>Caricamento allegati…</div>:attachments.length?<div>{attachments.map(a=><div className="school-attachment-row" key={a.id}><FileText size={16}/><span>{a.nome_file}<small>{(a.dimensione_bytes/1048576).toFixed(2)} MB</small></span>{a.url&&<a className="btn secondary small" href={a.url} target="_blank" rel="noreferrer"><Download size={14}/> Apri</a>}</div>)}</div>:<div className="table-sub">Nessun allegato.</div>}</div>{selected.stato_risoluzione!=='annullata'&&selected.stato_risoluzione!=='risolta'&&selected.created_by===userId&&<div className="form-actions"><button className="btn danger" onClick={()=>{setSelected(null);setCancelRow(selected);setMessage('')}}>Annulla richiesta</button></div>}</Modal>}
+   {showNew&&<Modal title="Nuova segnalazione" close={()=>setShowNew(false)}><form className="form-grid" onSubmit={create}><label>Edificio<select name="edificio" required><option value="">Seleziona…</option>{buildings.map(b=><option key={b.id} value={b.id}>{b.denominazione} — {b.comune||''}</option>)}</select></label><label>Priorità<select name="priorita" defaultValue="ordinaria"><option value="ordinaria">Ordinaria</option><option value="urgente">Urgente</option><option value="emergenza">Emergenza</option></select></label><label>Tipologia<select name="tipo" defaultValue="ordinaria"><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option><option value="da_valutare">Da valutare</option></select></label><label className="span-2">Titolo<input name="titolo" required maxLength={200}/></label><label className="span-2">Descrizione<textarea name="descrizione" required rows={6}/></label><label className="span-2">Note immobile<textarea name="note" rows={3}/></label><label className="span-2">Allegati <input name="allegati" type="file" multiple accept=".pdf,image/*"/><small className="table-sub">Sono ammessi PDF e immagini. Dimensione massima: <b>5 MB per file</b>.</small></label><div className="school-portal-confirm span-2">La segnalazione sarà registrata con il tuo utente e non sarà eliminabile. Per correggere un errore dovrai annullarla.</div><div className="form-actions span-2"><button type="button" className="btn secondary" onClick={()=>setShowNew(false)}>Annulla</button><button className="btn primary" disabled={saving}>{saving?'Registrazione…':'Registra segnalazione'}</button></div></form></Modal>}
    {cancelRow&&<Modal title="Annulla richiesta" close={()=>setCancelRow(null)}><p>La richiesta resterà nello storico come annullata. Indica il motivo dell’annullamento.</p><textarea value={message} onChange={e=>setMessage(e.target.value)} rows={5} placeholder="Motivazione…" required/><div className="form-actions"><button className="btn secondary" onClick={()=>setCancelRow(null)}>Chiudi</button><button className="btn danger" disabled={saving||!message.trim()} onClick={()=>void cancel()}>{saving?'Annullamento…':'Conferma annullamento'}</button></div></Modal>}
  </div>
 }
