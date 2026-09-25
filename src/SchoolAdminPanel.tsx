@@ -177,6 +177,21 @@ export default function SchoolAdminPanel({access}:Props){
    setUserForm({nome:'',cognome:'',email:'',telefono:'',password:'',ruolo:'dirigente_scolastico',attivo:true,data_fine:''})
    setSelectedBuildings(activeSchoolBuildings.map(x=>x.edificio_id));setMessage('');setUserModal(true)
  }
+ const removeBuilding=async(buildingId:string)=>{
+   if(!selected)return
+   const name=buildingName(buildingId)
+   if(!confirm(`Rimuovere "${name}" dagli edifici associati all’istituto? Gli utenti non potranno più operare su questo edificio.`))return
+   const users=schoolUsers.map(u=>u.id)
+   if(users.length){
+     const r=await supabase.from('scuola_utenti_edifici').delete().in('scuola_utente_id',users).eq('edificio_id',buildingId)
+     if(r.error){setMessage(r.error.message);return}
+   }
+   const r=await supabase.from('scuole_edifici').delete().eq('scuola_id',selected.id).eq('edificio_id',buildingId)
+   if(r.error){setMessage(r.error.message);return}
+   setMessage('Edificio rimosso dall’istituto.')
+   await loadSelected(selected.id)
+ }
+ 
  const openEditUser=(u:ManagedUser)=>{
    if(!selected)return
    const su=schoolUsers.find(x=>x.user_id===u.id)
@@ -220,21 +235,7 @@ export default function SchoolAdminPanel({access}:Props){
        if(current)await syncSchoolRoleAfterChange(uid,current.ruolo,userForm.ruolo)
      }
 
-     let schoolUserId=schoolUsers.find(x=>x.user_id===uid)?.id
-     const schoolPayload={scuola_id:selected.id,user_id:uid,ruolo:userForm.ruolo,attivo:userForm.attivo,data_inizio:schoolUsers.find(x=>x.user_id===uid)?.data_inizio||today(),data_fine:userForm.data_fine||null}
-     const su=await supabase.from('scuola_utenti').upsert(schoolPayload,{onConflict:'scuola_id,user_id'}).select('id').single()
-     if(su.error||!su.data)throw new Error(su.error?.message||'Associazione utente/istituto non riuscita.')
-     schoolUserId=su.data.id
-
-     const existing=assignments.filter(a=>a.scuola_utente_id===schoolUserId)
-     const wanted=new Set(selectedBuildings)
-     for(const a of existing){
-       if(!wanted.has(a.edificio_id)){const r=await supabase.from('scuola_utenti_edifici').update({attivo:false,data_fine:userForm.data_fine||today()}).eq('id',a.id);if(r.error)throw new Error(r.error.message)}
-     }
-     for(const bid of selectedBuildings){
-       const r=await supabase.from('scuola_utenti_edifici').upsert({scuola_utente_id:schoolUserId,edificio_id:bid,attivo:true,data_inizio:today(),data_fine:userForm.data_fine||null},{onConflict:'scuola_utente_id,edificio_id'})
-       if(r.error)throw new Error(r.error.message)
-     }
+     await invokeAdminUsers({action:'school_associate',user_id:uid,scuola_id:selected.id,ruolo:userForm.ruolo,attivo:userForm.attivo,data_fine:userForm.data_fine||null,edificio_ids:selectedBuildings})
      setUserModal(false);setMessage(userMode==='create'?'Utente creato e associato all’istituto.':userMode==='associate'?'Utente associato all’istituto.':'Utente modificato correttamente.')
      await load();await loadSelected(selected.id)
    }catch(e:any){
@@ -304,7 +305,12 @@ export default function SchoolAdminPanel({access}:Props){
     <label>Edificio da associare<select value={schoolBuildingId} onChange={e=>setSchoolBuildingId(e.target.value)}><option value="">Seleziona edificio…</option>{buildings.map(b=><option key={b.id} value={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}</select></label>
     <div className="form-actions"><button className="btn secondary" onClick={()=>void linkBuilding()}><Plus size={15}/> Associa edificio</button></div>
    </div>
-   <div className="school-admin-item"><Building2 size={16}/><span>{activeSchoolBuildings.length?activeSchoolBuildings.map(x=><small key={x.id}>• {buildingName(x.edificio_id)}</small>):<small>Nessun edificio associato</small>}</span></div>
+   <div className="school-admin-assignments">
+    {activeSchoolBuildings.length?activeSchoolBuildings.map(x=><div className="school-admin-item" key={x.id}>
+      <Building2 size={16}/><span><small>• {buildingName(x.edificio_id)}</small></span>
+      <div className="row-actions"><button className="icon-btn dark-icon" title="Rimuovi edificio" onClick={()=>void removeBuilding(x.edificio_id)}><Trash2 size={15}/></button></div>
+    </div>):<div className="school-admin-item"><Building2 size={16}/><span><small>Nessun edificio associato</small></span></div>}
+   </div>
   </div>}
 
   {userModal&&selected&&<div className="modal-backdrop">
