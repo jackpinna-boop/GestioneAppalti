@@ -126,7 +126,7 @@ function AppShell({session}:{session:any}){
  {canMenu('amministrazione')&&<Nav icon={<Settings/>} label="Amministrazione" active={page==='amministrazione'} onClick={()=>navigate('amministrazione')}/>}
  {canMenu('import_impianti')&&<><Nav icon={<Upload/>} label="Importazione impianti" active={page==='import-impianti'} onClick={()=>navigate('import-impianti')}/><Nav icon={<Upload/>} label="Importazione interventi" active={page==='import-interventi'} onClick={()=>navigate('import-interventi')}/></>}
  </nav><div className="sidebar-footer"><ShieldCheck size={16}/><span>{ente}</span></div></aside>
- <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='richieste'&&<RequestsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='intervento'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<BuildingFile id={selectedId} access={access} onBack={()=>navigate('fascicolo')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<BuildingFascicoliPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='report'&&<ReportPage refresh={refresh}/>} {page==='manutenzioni-scadenze'&&<MaintenanceAlertsPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh} initialBuildingId={selectedId}/>} {page==='amministrazione'&&<AdminPage access={access}/>} {page==='import-impianti'&&<ImportImpiantiPage access={access}/>} {page==='import-interventi'&&<ImportInterventiPage access={access}/>} </main></div></div>
+ <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='richieste'&&<RequestsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='intervento'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<BuildingFile id={selectedId} access={access} onBack={()=>navigate('fascicolo')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<BuildingFascicoliPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='report'&&<ReportPage access={access} refresh={refresh}/>} {page==='manutenzioni-scadenze'&&<MaintenanceAlertsPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh} initialBuildingId={selectedId}/>} {page==='amministrazione'&&<AdminPage access={access}/>} {page==='import-impianti'&&<ImportImpiantiPage access={access}/>} {page==='import-interventi'&&<ImportInterventiPage access={access}/>} </main></div></div>
 }
 
 function Nav({icon,label,active,onClick}:{icon:any;label:string;active:boolean;onClick:()=>void}){return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{active&&<ChevronRight size={15}/>}</button>}
@@ -565,7 +565,117 @@ function CollaudoPanel({id}:{id:string}){return <DataPanel title="Collaudo / CRE
 function ContractLinkedPanel({title,id,table,columns}:{title:string;id:string;table:string;columns:string[]}){const [rows,setRows]=useState<any[]>([]);useEffect(()=>{supabase.from('contratti').select('id').eq('intervento_id',id).then(async({data})=>{const ids=(data||[]).map((x:any)=>x.id);if(!ids.length){setRows([]);return}const {data:items}=await supabase.from(table).select('*').in('contratto_id',ids);setRows(items||[])})},[id,table]);return <DataTable title={title} rows={rows} columns={columns}/>}
 function DataPanel({title,query,columns}:{title:string;query:()=>any;columns:string[]}){const [rows,setRows]=useState<any[]>([]);useEffect(()=>{query().then(({data}:any)=>setRows(data||[]))},[]);return <DataTable title={title} rows={rows} columns={columns}/>}
 function DataTable({title,rows,columns}:{title:string;rows:any[];columns:string[]}){return <section className="card table-card"><div className="card-head"><h2>{title}</h2><FileText size={20}/></div>{rows.length?<table><thead><tr>{columns.map(c=><th key={c}>{statusLabel(c)}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={r.id||i}>{columns.map(c=><td key={c}>{c.startsWith('importo')||c==='variazione'?money(r[c]):c.startsWith('data_')||c==='periodo_da'||c==='periodo_a'?date(r[c]):r[c]===null||r[c]===undefined?'—':String(r[c])}</td>)}</tr>)}</tbody></table>:<Empty title="Nessun dato" text="Non risultano registrazioni per questa sezione."/>}</section>}
-function ReportPage({refresh}:{refresh:number}){const [rows,setRows]=useState<any[]>([]);useEffect(()=>{supabase.from('dashboard_avanzamento').select('*').order('prossima_scadenza',{ascending:true}).then(({data})=>setRows(data||[]))},[refresh]);return <PageHead title="Report" subtitle="Monitoraggio sintetico di avanzamento e scadenze."><section className="card table-card"><table><thead><tr><th>Intervento</th><th>Titolo</th><th>Stato</th><th>Avanzamento</th><th>Prossima scadenza</th></tr></thead><tbody>{rows.map(x=><tr key={x.intervento_id}><td>{x.codice_intervento}</td><td>{x.titolo}</td><td><span className={'badge '+statusClass(x.stato)}>{statusLabel(x.stato)}</span></td><td>{Number(x.avanzamento||0).toFixed(0)}%</td><td>{date(x.prossima_scadenza)}</td></tr>)}</tbody></table></section></PageHead>}
+function ReportPage({refresh,access}:{refresh:number;access:Access[]}){
+ const enteId=access[0]?.ente_id||'';
+ const [interventi,setInterventi]=useState<any[]>([]),[edifici,setEdifici]=useState<any[]>([]),[links,setLinks]=useState<any[]>([]),[quotes,setQuotes]=useState<any[]>([]),[fundings,setFundings]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[avanzamento,setAvanzamento]=useState<any[]>([]);
+ const [loading,setLoading]=useState(true),[natura,setNatura]=useState('TUTTI'),[anno,setAnno]=useState('TUTTI'),[istituto,setIstituto]=useState('TUTTI'),[fonte,setFonte]=useState('TUTTI'),[importoTipo,setImportoTipo]=useState('importo_programmato'),[showQuality,setShowQuality]=useState(true);
+ const load=async()=>{
+   if(!enteId)return; setLoading(true);
+   const [i,e,l,q,fv,ff,a]=await Promise.all([
+     supabase.from('interventi').select('id,codice_intervento,titolo,natura,stato,annualita_programmazione,importo_programmato,importo_finanziato,importo_contrattuale,edificio_id').eq('ente_id',enteId),
+     supabase.from('edifici').select('id,denominazione,codice_edificio').eq('ente_id',enteId).order('denominazione'),
+     supabase.from('interventi_edifici').select('intervento_id,edificio_id').eq('ente_id',enteId),
+     supabase.from('interventi_edifici_quote').select('id,intervento_id,edificio_id,percentuale,importo_attribuito,criterio_attribuzione,note').eq('ente_id',enteId),
+     supabase.from('finanziamenti_intervento').select('id,intervento_id,fonte_id,importo,percentuale,annualita').eq('intervento_id','00000000-0000-0000-0000-000000000000'),
+     supabase.from('fonti_finanziamento').select('id,codice,denominazione,tipologia').order('denominazione'),
+     supabase.from('dashboard_avanzamento').select('*').order('prossima_scadenza',{ascending:true})
+   ]);
+   if(i.error||e.error||l.error||q.error||a.error)console.error('Errore caricamento Report:',i.error||e.error||l.error||q.error||a.error);
+   setInterventi(i.data||[]);setEdifici(e.data||[]);setLinks(l.data||[]);setQuotes(q.data||[]);setAvanzamento(a.data||[]);
+   const ids=(i.data||[]).map((x:any)=>x.id);
+   if(ids.length){
+     const {data:fund,error:fe}=await supabase.from('finanziamenti_intervento').select('id,intervento_id,fonte_id,importo,percentuale,annualita').in('intervento_id',ids);
+     if(fe)console.error('Errore finanziamenti Report:',fe); setFundings(fund||[]);
+   }else setFundings([]);
+   setSources(ff.data||[]); setLoading(false);
+ };
+ useEffect(()=>{void load()},[enteId,refresh]);
+ const buildingMap=useMemo(()=>Object.fromEntries(edifici.map(x=>[x.id,x])),[edifici]);
+ const sourceMap=useMemo(()=>Object.fromEntries(sources.map(x=>[x.id,x])),[sources]);
+ const years=useMemo(()=>Array.from(new Set(interventi.map(x=>x.annualita_programmazione).filter((x:any)=>x!==null&&x!==undefined))).sort((a:any,b:any)=>Number(b)-Number(a)),[interventi]);
+ const filtered=useMemo(()=>interventi.filter(x=>(natura==='TUTTI'||x.natura===natura)&&(anno==='TUTTI'||String(x.annualita_programmazione)===anno)&&(istituto==='TUTTI'||getBuildingIds(x.id,x.edificio_id).includes(istituto)),[interventi,natura,anno,istituto,links]);
+ function getBuildingIds(interventoId:string,primaryId:string|null){
+   const ids=links.filter(x=>x.intervento_id===interventoId).map(x=>x.edificio_id);
+   return ids.length?Array.from(new Set(ids)):(primaryId?[primaryId]:[]);
+ }
+ const allocationFor=(x:any,bid:string)=>{
+   const qs=quotes.filter(q=>q.intervento_id===x.id);
+   if(!qs.length){
+     const bids=getBuildingIds(x.id,x.edificio_id);
+     return bids.length===1&&bids[0]===bid?1:0;
+   }
+   const q=qs.find(q=>q.edificio_id===bid);
+   if(!q)return 0;
+   if(q.criterio_attribuzione==='UNICA')return 1;
+   if(q.criterio_attribuzione==='PERCENTUALE')return Number(q.percentuale||0)/100;
+   if(q.criterio_attribuzione==='IMPORTO')return Number(x[importoTipo]||0)>0?Number(q.importo_attribuito||0)/Number(x[importoTipo]||0):0;
+   return 0;
+ };
+ const amountFor=(x:any,bid:string)=>{
+   const qs=quotes.filter(q=>q.intervento_id===x.id);
+   const bids=getBuildingIds(x.id,x.edificio_id);
+   if(!qs.length)return bids.length===1&&bids[0]===bid?Number(x[importoTipo]||0):0;
+   const q=qs.find(q=>q.edificio_id===bid);
+   if(!q)return 0;
+   if(q.criterio_attribuzione==='UNICA')return Number(x[importoTipo]||0);
+   if(q.criterio_attribuzione==='PERCENTUALE')return Number(x[importoTipo]||0)*Number(q.percentuale||0)/100;
+   if(q.criterio_attribuzione==='IMPORTO')return Number(q.importo_attribuito||0);
+   return 0;
+ };
+ const quality=useMemo(()=>filtered.map(x=>{
+   const bids=getBuildingIds(x.id,x.edificio_id),qs=quotes.filter(q=>q.intervento_id===x.id);
+   if(bids.length<=1)return null;
+   if(!qs.length)return {x,bids,qs,status:'NON_RIPARTITO'};
+   const pct=qs.filter(q=>q.criterio_attribuzione==='PERCENTUALE').reduce((s,q)=>s+Number(q.percentuale||0),0);
+   const imp=qs.filter(q=>q.criterio_attribuzione==='IMPORTO').reduce((s,q)=>s+Number(q.importo_attribuito||0),0);
+   const hasSingle=qs.some(q=>q.criterio_attribuzione==='UNICA');
+   const total=Number(x[importoTipo]||0);
+   const allocated=hasSingle?total:(imp+total*pct/100);
+   const valid=hasSingle||Math.abs(allocated-total)<0.01;
+   return {x,bids,qs,status:valid?'OK':'INCOMPLETA'};
+ }),[filtered,quotes,importoTipo,links]);
+ const byInstitution=useMemo(()=>{
+   const map:Record<string,{name:string,count:number,lavori:number,servizi:number,amount:number,unallocated:number}>={};
+   filtered.forEach(x=>getBuildingIds(x.id,x.edificio_id).forEach(bid=>{
+     const b=buildingMap[bid]; if(!b)return; const key=bid;
+     if(!map[key])map[key]={name:b.denominazione||b.codice_edificio,count:0,lavori:0,servizi:0,amount:0,unallocated:0};
+     map[key].count+=1; if(x.natura==='LAVORO')map[key].lavori+=1;else map[key].servizi+=1;
+     const amount=amountFor(x,bid); map[key].amount+=amount;
+     const factor=allocationFor(x,bid); if(getBuildingIds(x.id,x.edificio_id).length>1&&factor===0)map[key].unallocated+=Number(x[importoTipo]||0);
+   }));
+   return Object.values(map).sort((a,b)=>b.amount-a.amount||b.count-a.count);
+ },[filtered,buildingMap,quotes,importoTipo,links]);
+ const byFunding=useMemo(()=>{
+   const map:Record<string,number>={};
+   fundings.filter(f=>filtered.some(x=>x.id===f.intervento_id)).forEach(f=>{const s=sourceMap[f.fonte_id];const key=s?.tipologia||s?.denominazione||'Fonte non classificata';map[key]=(map[key]||0)+Number(f.importo||0)});
+   return Object.entries(map).map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount);
+ },[fundings,filtered,sourceMap]);
+ const total=filtered.length,lavori=filtered.filter(x=>x.natura==='LAVORO').length,servizi=filtered.filter(x=>x.natura==='SERVIZIO').length,totalAmount=filtered.reduce((s,x)=>s+Number(x[importoTipo]||0),0);
+ const maxInst=Math.max(1,...byInstitution.map(x=>x.amount)),maxFund=Math.max(1,...byFunding.map(x=>x.amount));
+ const fmt=(n:number)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
+ const qualityBad=quality.filter(Boolean).filter((x:any)=>x.status!=='OK');
+ const statusRows=filtered.map(x=>avanzamento.find(a=>a.intervento_id===x.id)).filter(Boolean);
+ return <PageHead title="Report" subtitle="Cruscotto dinamico di lavori, servizi, istituti e finanziamenti.">
+   <div className="report-filters card">
+     <div className="report-filter"><span>Anno</span><select value={anno} onChange={e=>setAnno(e.target.value)}><option value="TUTTI">Tutti</option>{years.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
+     <div className="report-filter"><span>Natura</span><select value={natura} onChange={e=>setNatura(e.target.value)}><option value="TUTTI">Lavori + Servizi</option><option value="LAVORO">Lavori</option><option value="SERVIZIO">Servizi</option></select></div>
+     <div className="report-filter"><span>Istituto</span><select value={istituto} onChange={e=>setIstituto(e.target.value)}><option value="TUTTI">Tutti</option>{edifici.map(b=><option key={b.id} value={b.id}>{b.denominazione||b.codice_edificio}</option>)}</select></div>
+     <div className="report-filter"><span>Importo analizzato</span><select value={importoTipo} onChange={e=>setImportoTipo(e.target.value)}><option value="importo_programmato">Programmato</option><option value="importo_finanziato">Finanziato</option><option value="importo_contrattuale">Contrattuale</option></select></div>
+   </div>
+   {loading?<div className="notice info">Caricamento dati report…</div>:<>
+   <div className="report-kpis">
+     <div className="card report-kpi"><span>Lavori</span><strong>{lavori}</strong></div><div className="card report-kpi"><span>Servizi</span><strong>{servizi}</strong></div><div className="card report-kpi"><span>Totale interventi</span><strong>{total}</strong></div><div className="card report-kpi"><span>Importo {importoTipo.replace('importo_','')}</span><strong>{fmt(totalAmount)}</strong></div>
+   </div>
+   <div className="report-grid">
+     <section className="card report-chart-card"><div className="card-head"><div><h2>Numero lavori/servizi per istituto</h2><p>Conteggio distinto degli interventi: un intervento vale una sola volta per istituto.</p></div><Building2 size={20}/></div>{byInstitution.length?<div className="report-bars">{byInstitution.map(r=><div className="report-bar-row" key={r.name}><div className="report-bar-label"><span>{r.name}</span><b>{r.count}</b></div><div className="report-bar-track"><i style={{width:`${Math.max(2,r.count/Math.max(1,...byInstitution.map(x=>x.count))*100)}%`}}/></div></div>):<Empty title="Nessun dato" text="I filtri selezionati non restituiscono interventi."/>}</section>
+     <section className="card report-chart-card"><div className="card-head"><div><h2>Importi lavori/servizi per istituto</h2><p>Gli importi multi-edificio sono attribuiti solo se esiste una ripartizione esplicita.</p></div><WalletCards size={20}/></div>{byInstitution.length?<div className="report-bars">{byInstitution.map(r=><div className="report-bar-row" key={r.name}><div className="report-bar-label"><span>{r.name}</span><b>{fmt(r.amount)}</b></div><div className="report-bar-track"><i style={{width:`${Math.max(2,r.amount/maxInst*100)}%`}}/></div></div>):<Empty title="Nessun dato" text="I filtri selezionati non restituiscono interventi."/>}</section>
+     <section className="card report-chart-card"><div className="card-head"><div><h2>Importi per tipologia di finanziamento</h2><p>Aggregazione delle quote registrate nelle fonti di finanziamento.</p></div><BarChart3 size={20}/></div>{byFunding.length?<div className="report-bars">{byFunding.map(r=><div className="report-bar-row" key={r.name}><div className="report-bar-label"><span>{r.name}</span><b>{fmt(r.amount)}</b></div><div className="report-bar-track"><i style={{width:`${Math.max(2,r.amount/maxFund*100)}%`}}/></div></div>):<Empty title="Nessun finanziamento" text="Non risultano fonti di finanziamento per i filtri selezionati."/>}</section>
+   </div>
+   <section className="card report-quality"><div className="card-head"><div><h2>Controllo coerenza accordi multi-edificio</h2><p>Un'associazione a più edifici non moltiplica automaticamente l'importo.</p></div><CircleAlert size={20}/><button className="btn secondary" onClick={()=>setShowQuality(!showQuality)}>{showQuality?'Nascondi':'Mostra'}</button></div>{showQuality&&<>{qualityBad.length?<div className="notice warning">{qualityBad.length} interventi richiedono una ripartizione economica o una correzione.</div>:<div className="notice success">Nessuna incongruenza di ripartizione rilevata nei dati filtrati.</div>}<table><thead><tr><th>Intervento</th><th>Edifici</th><th>Stato ripartizione</th><th>Importo non attribuito</th></tr></thead><tbody>{quality.filter(Boolean).map((q:any)=><tr key={q.x.id}><td>{q.x.codice_intervento}</td><td>{q.bids.map((id:string)=>buildingMap[id]?.denominazione||id).join(', ')}</td><td><span className={'badge '+(q.status==='OK'?'green':'warning')}>{q.status==='OK'?'Coerente':'Da verificare'}</span></td><td>{q.status==='OK'?fmt(0):fmt(Math.max(0,Number(q.x[importoTipo]||0)-(q.qs.some((v:any)=>v.criterio_attribuzione==='UNICA')?Number(q.x[importoTipo]||0):q.qs.reduce((s:number,v:any)=>s+(v.criterio_attribuzione==='IMPORTO'?Number(v.importo_attribuito||0):Number(q.x[importoTipo]||0)*Number(v.percentuale||0)/100),0)))}</td></tr>)}</tbody></table></>}</section>
+   <section className="card table-card"><div className="card-head"><div><h2>Avanzamento e scadenze</h2><p>Vista sintetica mantenuta dal report precedente.</p></div><CalendarDays size={20}/></div><table><thead><tr><th>Intervento</th><th>Titolo</th><th>Stato</th><th>Avanzamento</th><th>Prossima scadenza</th></tr></thead><tbody>{statusRows.map(x=><tr key={x.intervento_id}><td>{x.codice_intervento}</td><td>{x.titolo}</td><td><span className={'badge '+statusClass(x.stato)}>{statusLabel(x.stato)}</span></td><td>{Number(x.avanzamento||0).toFixed(0)}%</td><td>{date(x.prossima_scadenza)}</td></tr>)}</tbody></table></section>
+   </>}
+ </PageHead>
+}
 function DashboardConfig({access}:{access:Access[]}){
  const [rows,setRows]=useState<any[]>([]);const [loading,setLoading]=useState(false);const [msg,setMsg]=useState('');
  const enteId=access[0]?.ente_id;const canAdmin=access.some(x=>['superadmin','admin_ente'].includes(x.ruolo));
