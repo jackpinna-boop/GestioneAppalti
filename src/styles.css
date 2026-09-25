@@ -387,3 +387,22 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .report-quality{padding:18px;margin-bottom:18px}.report-quality .card-head{align-items:flex-start}.report-quality .card-head button{margin-left:auto}.report-quality table{margin-top:14px}
 @media(max-width:1000px){.report-filters,.report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.report-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.report-filters,.report-kpis{grid-template-columns:1fr}}
+
+
+.school-portal{min-height:100%;padding:28px;max-width:1500px;margin:0 auto}
+.school-portal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.school-portal-kicker{font-size:12px;letter-spacing:.12em;font-weight:800;opacity:.72}
+.school-portal-head h1{margin:4px 0 4px;font-size:30px}
+.school-portal-head p{margin:0;opacity:.72}
+.school-portal-notice{display:flex;gap:10px;align-items:center;padding:13px 15px;border:1px solid #e7d9ad;background:#fff9e8;border-radius:12px;margin-bottom:18px}
+.school-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.school-kpis>div{background:var(--card-bg,#fff);border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:16px}
+.school-kpis span{display:block;font-size:12px;opacity:.7}.school-kpis strong{display:block;font-size:28px;margin-top:4px}
+.school-portal-actions{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.school-portal-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:18px}
+.school-filters{display:flex;gap:12px;padding:14px 0}.school-filters label{min-width:220px}
+.school-log-list{display:flex;flex-direction:column}.school-log-row{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border,#eee)}.school-log-row div{display:flex;flex-direction:column;gap:2px}.school-log-row span{font-size:12px;opacity:.65}
+.school-request-description{white-space:pre-wrap;margin:18px 0;padding:14px;background:#f8fafc;border-radius:10px}
+.school-portal-confirm{padding:12px;border:1px solid #d8e4f0;background:#f3f8fc;border-radius:10px;font-size:13px}
+@media(max-width:900px){.school-portal{padding:18px}.school-kpis{grid-template-columns:repeat(2,1fr)}.school-portal-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.school-kpis{grid-template-columns:1fr 1fr}.school-portal-actions{align-items:flex-start;gap:12px;flex-direction:column}.school-filters{flex-direction:column}.school-filters label{min-width:0}.school-portal-head h1{font-size:24px}}
