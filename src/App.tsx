@@ -999,8 +999,90 @@ function MaintenanceAlertsPage({access,onOpen,refresh}:{access:Access[];onOpen:(
  </PageHead>
 }
 
-function MaintenanceSystemForm({row,building,labels,attributes,onCancel,onSubmit}:{row:MaintenanceSystem|null;building:Building|undefined;labels:any[];attributes:any[];onCancel:()=>void;onSubmit:(e:any)=>void}){const tipo=row?.tipo||labels[0]?.codice||'';const type=labels.find((x:any)=>String(x.codice).toLowerCase()===String(tipo).toLowerCase());const attrs=attributes.filter((x:any)=>x.tipologia_id===type?.id);const [values,setValues]=useState<Record<string,string>>({});const [thermalRows,setThermalRows]=useState<Array<{id?:string;current?:boolean;matricola:string;potenza:string}>>([{matricola:'',potenza:'',current:true}]);useEffect(()=>{let active=true;(async()=>{if(!row){setValues({});setThermalRows([{matricola:'',potenza:'',current:true}]);return}const {data}=await supabase.from('valori_attributi_impianto').select('attributo_id,valore').eq('impianto_id',row.id);if(active){const m:any={};(data||[]).forEach((x:any)=>{m[x.attributo_id]=x.valore||''});setValues(m);if(String(tipo).toUpperCase()==='TERMICO'){const rr=await supabase.from('impianti_termici_matricole').select('id,matricola_inail,potenza_kw,vigente,tipo_matricola').eq('impianto_id',row.id).order('vigente',{ascending:false}).order('created_at');setThermalRows((rr.data||[]).map((x:any)=>({id:x.id,matricola:x.matricola_inail,potenza:x.potenza_kw==null?'':String(x.potenza_kw),current:!!x.vigente}))||[{matricola:'',potenza:'',current:true}])}}})();return()=>{active=false}},[row?.id,tipo]);const isThermal=String(tipo).toUpperCase()==='TERMICO';const addThermal=()=>setThermalRows(v=>[...v,{matricola:'',potenza:'',current:true}]);const updateThermal=(i:number,k:string,v:string)=>setThermalRows(rows=>rows.map((r,n)=>n===i?{...r,[k]:v}:r));const removeThermal=(i:number)=>setThermalRows(rows=>rows.length<=1?rows:rows.filter((_,n)=>n!==i));
-return <form className="form-grid" onSubmit={e=>{if(isThermal){const payload:any=e;payload.__thermalRows=thermalRows}onSubmit(e)}}><label>Tipologia<select name="tipo" defaultValue={tipo}>{labels.map((x:any)=><option key={x.id} value={x.codice}>{x.denominazione}</option>)}</select></label><label>Stato<select name="stato" defaultValue={row?.stato||'attivo'}><option value="attivo">Attivo</option><option value="fuori_servizio">Fuori servizio</option><option value="in_dismissione">In dismissione</option></select></label><label className="span-2">Denominazione<input name="denominazione" defaultValue={row?.denominazione||type?.denominazione||''} required/></label><label>Codice<input name="codice" defaultValue={row?.codice||''}/></label><label>Ubicazione<input name="ubicazione" defaultValue={row?.ubicazione||''}/></label><label>Marca / modello<input name="marca_modello" defaultValue={row?.marca_modello||''}/></label><label>Matricola principale<input name="matricola" defaultValue={row?.matricola||''}/></label><label>Anno installazione<input name="anno_installazione" type="number" min="1800" max="2200" defaultValue={row?.anno_installazione??''}/></label><label>Ultima manutenzione<input name="data_ultima" type="date" defaultValue={row?.data_ultima_manutenzione||''}/></label><label>Prossima manutenzione<input name="data_prossima" type="date" defaultValue={row?.data_prossima_manutenzione||''}/></label><label>Periodicità (mesi)<input name="periodicita" type="number" min="1" max="120" defaultValue={row?.periodicita_mesi??''}/></label><label>Ditta manutentrice<input name="ditta" defaultValue={row?.ditta_manutentrice||''}/></label><label>Referente<input name="referente" defaultValue={row?.referente||''}/></label><label>Numero rapporto<input name="rapporto" defaultValue={row?.numero_rapporto||''}/></label>{isThermal&&<div className="span-2 card" style={{padding:16}}><div className="card-head"><div><h3>Matricole INAIL e potenze</h3><p>È possibile associare più matricole INAIL allo stesso impianto, ciascuna con la propria potenza. Indicare quale matricola è vigente.</p></div><Plus size={18}/></div>{thermalRows.map((r,i)=><div key={i} className="form-grid" style={{marginBottom:8}}><label>Matricola INAIL<input value={r.matricola} onChange={e=>updateThermal(i,'matricola',e.target.value)} placeholder="es. INAIL-12345"/></label><label>Potenza<input value={r.potenza} onChange={e=>updateThermal(i,'potenza',e.target.value)} type="number" min="0" step=".1" placeholder="kW"/></label><label className="permission-check"><input type="checkbox" checked={!!r.current} onChange={e=>updateThermal(i,'current',String(e.target.checked))}/><span>Matricola vigente</span></label>{thermalRows.length>1&&<button type="button" className="icon-btn" title="Rimuovi matricola" onClick={()=>removeThermal(i)}><Trash2 size={15}/></button>}</div>)}<button type="button" className="btn secondary" onClick={addThermal}><Plus size={15}/> Aggiungi matricola INAIL</button></div>}{attrs.filter((a:any)=>!['MATRICOLA_INAIL','MATRICOLA_INAIL_VIGENTE','POTENZA_TERMICA'].includes(a.codice)).map((a:any)=>a.tipo==='boolean'?<label key={a.id} className="permission-check"><input name={'attr_'+a.id} type="checkbox" checked={values[a.id]==='true'} onChange={e=>setValues({...values,[a.id]:String(e.target.checked)})}/><span>{a.denominazione}{a.unita?' ('+a.unita+')':''}</span></label>:a.tipo==='select'?<label key={a.id}>{a.denominazione}<select name={'attr_'+a.id} value={values[a.id]||''} onChange={e=>setValues({...values,[a.id]:e.target.value})}><option value="">Seleziona…</option>{(Array.isArray(a.opzioni)?a.opzioni:[]).map((o:any)=><option key={String(o)} value={String(o)}>{String(o)}</option>)}</select></label>:<label key={a.id}>{a.denominazione}{a.unita?' ('+a.unita+')':''}<input name={'attr_'+a.id} type={a.tipo==='number'?'number':a.tipo==='date'?'date':'text'} value={values[a.id]||''} onChange={e=>setValues({...values,[a.id]:e.target.value})} required={a.obbligatorio}/></label>)}<label className="span-2">Note<textarea name="note" defaultValue={row?.note||''}/></label><div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">{row?'Salva modifiche':'Censisci impianto'}</button></div></form>}function MaintenanceEventForm({row,systems,onCancel,onSubmit}:{row:MaintenanceEvent|null;systems:MaintenanceSystem[];onCancel:()=>void;onSubmit:(e:any)=>void}){
+function MaintenanceSystemForm({row,building,labels,attributes,onCancel,onSubmit}:{row:MaintenanceSystem|null;building:Building|undefined;labels:any[];attributes:any[];onCancel:()=>void;onSubmit:(e:any)=>void}) {
+  const tipo=row?.tipo||labels[0]?.codice||'';
+  const type=labels.find((x:any)=>String(x.codice).toLowerCase()===String(tipo).toLowerCase());
+  const attrs=attributes.filter((x:any)=>x.tipologia_id===type?.id);
+  const [values,setValues]=useState<Record<string,string>>({});
+  const [thermalRows,setThermalRows]=useState<Array<{id?:string;current?:boolean;matricola:string;potenza:string}>>([{matricola:'',potenza:'',current:true}]);
+
+  useEffect(()=>{
+    let active=true;
+    (async()=>{
+      if(!row){
+        setValues({});
+        setThermalRows([{matricola:'',potenza:'',current:true}]);
+        return;
+      }
+      const {data}=await supabase.from('valori_attributi_impianto').select('attributo_id,valore').eq('impianto_id',row.id);
+      if(!active)return;
+      const m:Record<string,string>={};
+      (data||[]).forEach((x:any)=>{m[x.attributo_id]=x.valore||''});
+      setValues(m);
+      if(String(tipo).toUpperCase()==='TERMICO'){
+        const rr=await supabase.from('impianti_termici_matricole').select('id,matricola_inail,potenza_kw,vigente,tipo_matricola').eq('impianto_id',row.id).order('vigente',{ascending:false}).order('created_at');
+        if(!active)return;
+        const mapped=(rr.data||[]).map((x:any)=>({id:x.id,matricola:x.matricola_inail||'',potenza:x.potenza_kw==null?'':String(x.potenza_kw),current:!!x.vigente}));
+        setThermalRows(mapped.length?mapped:[{matricola:'',potenza:'',current:true}]);
+      }
+    })();
+    return()=>{active=false};
+  },[row?.id,tipo]);
+
+  const isThermal=String(tipo).toUpperCase()==='TERMICO';
+  const addThermal=()=>setThermalRows(v=>[...v,{matricola:'',potenza:'',current:true}]);
+  const updateThermal=(i:number,key:'matricola'|'potenza'|'current',value:string|boolean)=>setThermalRows(rows=>rows.map((r,n)=>n===i?{...r,[key]:value}:r));
+  const removeThermal=(i:number)=>setThermalRows(rows=>rows.length<=1?rows:rows.filter((_,n)=>n!==i));
+
+  const handleSubmit=(e:any)=>{
+    if(isThermal)e.__thermalRows=thermalRows;
+    onSubmit(e);
+  };
+
+  return (
+    <form className="form-grid" onSubmit={handleSubmit}>
+      <label>Tipologia<select name="tipo" defaultValue={tipo}>{labels.map((x:any)=><option key={x.id} value={x.codice}>{x.denominazione}</option>)}</select></label>
+      <label>Stato<select name="stato" defaultValue={row?.stato||'attivo'}><option value="attivo">Attivo</option><option value="fuori_servizio">Fuori servizio</option><option value="in_dismissione">In dismissione</option></select></label>
+      <label className="span-2">Denominazione<input name="denominazione" defaultValue={row?.denominazione||type?.denominazione||''} required/></label>
+      <label>Codice<input name="codice" defaultValue={row?.codice||''}/></label>
+      <label>Ubicazione<input name="ubicazione" defaultValue={row?.ubicazione||''}/></label>
+      <label>Marca / modello<input name="marca_modello" defaultValue={row?.marca_modello||''}/></label>
+      <label>Matricola principale<input name="matricola" defaultValue={row?.matricola||''}/></label>
+      <label>Anno installazione<input name="anno_installazione" type="number" min="1800" max="2200" defaultValue={row?.anno_installazione??''}/></label>
+      <label>Ultima manutenzione<input name="data_ultima" type="date" defaultValue={row?.data_ultima_manutenzione||''}/></label>
+      <label>Prossima manutenzione<input name="data_prossima" type="date" defaultValue={row?.data_prossima_manutenzione||''}/></label>
+      <label>Periodicità (mesi)<input name="periodicita" type="number" min="1" max="120" defaultValue={row?.periodicita_mesi??''}/></label>
+      <label>Ditta manutentrice<input name="ditta" defaultValue={row?.ditta_manutentrice||''}/></label>
+      <label>Referente<input name="referente" defaultValue={row?.referente||''}/></label>
+      <label>Numero rapporto<input name="rapporto" defaultValue={row?.numero_rapporto||''}/></label>
+
+      {isThermal && (
+        <div className="span-2 card" style={{padding:16}}>
+          <div className="card-head"><div><h3>Matricole INAIL e potenze</h3><p>È possibile associare più matricole INAIL allo stesso impianto, ciascuna con la propria potenza. Indicare quale matricola è vigente.</p></div><Plus size={18}/></div>
+          {thermalRows.map((r,i)=>(
+            <div key={i} className="form-grid" style={{marginBottom:8}}>
+              <label>Matricola INAIL<input value={r.matricola} onChange={e=>updateThermal(i,'matricola',e.target.value)} placeholder="es. INAIL-12345"/></label>
+              <label>Potenza<input value={r.potenza} onChange={e=>updateThermal(i,'potenza',e.target.value)} type="number" min="0" step=".1" placeholder="kW"/></label>
+              <label className="permission-check"><input type="checkbox" checked={!!r.current} onChange={e=>updateThermal(i,'current',e.target.checked)}/><span>Matricola vigente</span></label>
+              {thermalRows.length>1 && <button type="button" className="icon-btn" title="Rimuovi matricola" onClick={()=>removeThermal(i)}><Trash2 size={15}/></button>}
+            </div>
+          ))}
+          <button type="button" className="btn secondary" onClick={addThermal}><Plus size={15}/> Aggiungi matricola INAIL</button>
+        </div>
+      )}
+
+      {attrs.filter((a:any)=>!['MATRICOLA_INAIL','MATRICOLA_INAIL_VIGENTE','POTENZA_TERMICA'].includes(a.codice)).map((a:any)=>{
+        if(a.tipo==='boolean') return <label key={a.id} className="permission-check"><input name={'attr_'+a.id} type="checkbox" checked={values[a.id]==='true'} onChange={e=>setValues({...values,[a.id]:String(e.target.checked)})}/><span>{a.denominazione}{a.unita?' ('+a.unita+')':''}</span></label>;
+        if(a.tipo==='select') return <label key={a.id}>{a.denominazione}<select name={'attr_'+a.id} value={values[a.id]||''} onChange={e=>setValues({...values,[a.id]:e.target.value})}><option value="">Seleziona…</option>{(Array.isArray(a.opzioni)?a.opzioni:[]).map((o:any)=><option key={String(o)} value={String(o)}>{String(o)}</option>)}</select></label>;
+        return <label key={a.id}>{a.denominazione}{a.unita?' ('+a.unita+')':''}<input name={'attr_'+a.id} type={a.tipo==='number'?'number':a.tipo==='date'?'date':'text'} value={values[a.id]||''} onChange={e=>setValues({...values,[a.id]:e.target.value})} required={a.obbligatorio}/></label>;
+      })}
+
+      <label className="span-2">Note<textarea name="note" defaultValue={row?.note||''}/></label>
+      <div className="form-actions span-2"><button type="button" className="btn secondary" onClick={onCancel}>Annulla</button><button className="btn primary">{row?'Salva modifiche':'Censisci impianto'}</button></div>
+    </form>
+  );
+}
+function MaintenanceEventForm({row,systems,onCancel,onSubmit}:{row:MaintenanceEvent|null;systems:MaintenanceSystem[];onCancel:()=>void;onSubmit:(e:any)=>void}){
  return <form className="form-grid" onSubmit={onSubmit}>
   <label>Impianto<select name="impianto" defaultValue={row?.impianto_id||''}><option value="">Generale edificio</option>{systems.map(s=><option value={s.id} key={s.id}>{s.denominazione}</option>)}</select></label>
   <label>Tipo<select name="tipo" defaultValue={row?.tipo||'ordinaria'}><option value="ordinaria">Ordinaria</option><option value="straordinaria">Straordinaria</option><option value="verifica">Verifica</option><option value="emergenza">Emergenza</option></select></label>
