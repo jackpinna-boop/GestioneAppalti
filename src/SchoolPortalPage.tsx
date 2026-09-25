@@ -94,6 +94,7 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
        const meta=await supabase.from('richieste_intervento_allegati').insert({richiesta_id:requestId,created_by:userId,nome_file:file.name,mime_type:file.type,dimensione_bytes:file.size,storage_path:path})
        if(meta.error){await supabase.storage.from('richieste-intervento').remove([path]);uploadError=meta.error.message;break}
      }
+     if(files.length && !uploadError) await supabase.rpc('school_mark_request_attachments',{p_request_id:requestId})
      setShowNew(false)
      setMessage(uploadError? `Richiesta registrata, ma uno o più allegati non sono stati caricati: ${uploadError}` : 'Richiesta registrata correttamente.')
      await load()
