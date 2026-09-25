@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx'
 import AuthScreen from './AuthScreen'
 import ImportImpiantiPage from './ImportImpiantiPage'
 import ImportInterventiPage from './ImportInterventiPage'
+import SchoolPortalPage from './SchoolPortalPage'
 
 type Page='dashboard'|'edifici'|'richieste'|'interventi'|'intervento'|'fascicolo'|'report'|'amministrazione'|'import-impianti'|'import-interventi'|'manutenzioni'|'manutenzioni-scadenze'
 type Access={user_id:string;ente_id:string;ruolo:string;ente:string;logo_path?:string|null;ui_palette?:string}
@@ -114,6 +115,7 @@ function AppShell({session}:{session:any}){
  const pageAllowed=(p:Page)=>canMenu(pageResource(p));
  useEffect(()=>{if(!menuReady)return;if(!pageAllowed(page))navigate('dashboard')},[menuReady,page,menuPermissions])
  if(!menuReady)return <div className="loading-screen">Caricamento autorizzazioni…</div>
+ if(access.some(x=>['dirigente_scolastico','delegato_scolastico'].includes(x.ruolo))) return <SchoolPortalPage session={session} access={access}/>
  return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav>
  {canMenu('dashboard')&&<Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/>}
