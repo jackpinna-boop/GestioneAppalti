@@ -91,7 +91,7 @@ export default function SchoolAdminPanel({access}:Props){
    if(!buildingId){setSelected(null);setSchoolName('');setCode('');setMessage('');return}
    const linked=await supabase.from('scuole_edifici').select('scuola_id').eq('edificio_id',buildingId).eq('attivo',true).limit(1).maybeSingle()
    if(linked.error){setMessage(linked.error.message);return}
-   const school=linked.data?schools.find(s=>s.id===linked.data.scuola_id):null
+   const linkedSchoolId=linked.data?.scuola_id||''\n   const school=linkedSchoolId?schools.find(s=>s.id===linkedSchoolId):null
    const building=instituteBuildings.find(b=>b.id===buildingId)
    if(school){
      setSelected(school);setSchoolName(school.denominazione||'');setCode(school.codice_meccanografico||'')
