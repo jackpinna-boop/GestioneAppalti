@@ -16,7 +16,7 @@ type MaintenanceSystem={id:string;ente_id:string;edificio_id:string;tipo:string;
 type MaintenanceEvent={id:string;edificio_id:string;impianto_id:string|null;tipo:string;stato:string;data_richiesta:string;data_programmata:string|null;data_esecuzione:string|null;descrizione:string;esito:string|null;costo_previsto:number;costo_consuntivo:number;operatore:string|null;numero_rapporto:string|null;note:string|null}
 const money=(n:number|null|undefined)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(n||0))
 const date=(s:string|null|undefined)=>s?new Intl.DateTimeFormat('it-IT').format(new Date(s+'T00:00:00')):'—'
-const statusLabel=(s:string)=>String(s||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())
+const statusLabel=(s:string)=>({in_programmazione:'In programmazione',programmato:'Programmato',dip:'DIP',pfte:'PFTE',esecutivo:'ESE'} as Record<string,string>)[String(s||'')]||String(s||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())
 const statusClass=(s:string)=>({programmato:'gray',progettazione:'blue',approvato:'blue',affidamento:'amber',contratto:'amber',esecuzione:'green',fine_lavori:'green',collaudo:'purple',chiuso:'green',sospeso:'red',annullato:'red'}[s]||'gray')
 const buildingStatusMeta=(s:string|null|undefined)=>({attivo:{label:'Attivo',className:'green'},chiuso:{label:'Chiuso',className:'gray'},non_attivo:{label:'Non attivo',className:'red'},trasferito:{label:'Trasferito',className:'blue'},in_concessione:{label:'In concessione',className:'amber'}} as Record<string,{label:string;className:string}>)[String(s||'')]||{label:'Non specificato',className:'gray'}
 const isManutentore=(a:Access[])=>a.some(x=>['manutentore','siservizi'].includes(x.ruolo))
