@@ -16,6 +16,45 @@ async function canManageTarget(actor:any,targetUserId:string,enteId?:string){if(
 async function getUsers(actor:any){const {data:ud,error:ue}=await admin.auth.admin.listUsers({page:1,perPage:1000});if(ue)throw new Error(ue.message);const {data:profiles,error:pe}=await admin.from("profiles").select("id,nome,cognome,email,telefono,attivo");if(pe)throw new Error(pe.message);const {data:roles,error:re}=await admin.from("user_roles").select("user_id,ente_id,ruolo,enti(id,denominazione)");if(re)throw new Error(re.message);const managed=actor.isSuperadmin?null:new Set(actor.managedEnteIds),pm=new Map((profiles||[]).map(p=>[p.id,p])),rb=new Map<string,any[]>();for(const r of roles||[]){if(managed&&!managed.has(r.ente_id))continue;const a=rb.get(r.user_id)||[];a.push(r);rb.set(r.user_id,a)}return(ud.users||[]).filter(u=>actor.isSuperadmin||rb.has(u.id)).map(u=>cleanUser(u,pm.get(u.id),rb.get(u.id)||[])).sort((a,b)=>(a.cognome+a.nome+a.email).localeCompare(b.cognome+b.nome+b.email,"it"))}
 Deno.serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:cors});try{const actor=await currentActor(req),body=await req.json().catch(()=>({})),action=body.action||"list";if(action==="list")return json({users:await getUsers(actor)});
 if(action==="create"){const email=String(body.email||"").trim().toLowerCase(),password=String(body.password||""),nome=String(body.nome||"").trim(),cognome=String(body.cognome||"").trim(),telefono=String(body.telefono||"").trim()||null,enteId=String(body.ente_id||""),ruolo=String(body.ruolo||"tecnico"),attivo=body.attivo!==false;if(!email||!password||password.length<8||!enteId||!allRoles.includes(ruolo))return json({error:"Email, password (minimo 8 caratteri), ente e ruolo sono obbligatori."},400);if(!actor.isSuperadmin&&(!actor.managedEnteIds.includes(enteId)||ruolo==="superadmin"))return json({error:"Non autorizzato per questo ente/ruolo."},403);const {data:created,error:ce}=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{nome,cognome}});if(ce||!created.user)return json({error:ce?.message||"Creazione utente fallita."},400);const uid=created.user.id;const {error:pe}=await admin.from("profiles").upsert({id:uid,nome,cognome,email,telefono,attivo});if(pe){await admin.auth.admin.deleteUser(uid);return json({error:"Profilo utente non creato: "+pe.message},500)}const {error:re}=await admin.from("user_roles").insert({user_id:uid,ente_id:enteId,ruolo});if(re){await admin.from("profiles").delete().eq("id",uid);await admin.auth.admin.deleteUser(uid);return json({error:"Ruolo utente non creato: "+re.message},500)}if(!attivo)await admin.auth.admin.updateUserById(uid,{ban_duration:"876000h"});return json({user:(await getUsers(actor)).find(u=>u.id===uid)})}
+if(action==="school_associate"){
+ const userId=String(body.user_id||"").trim(),schoolId=String(body.scuola_id||"").trim(),ruolo=String(body.ruolo||"").trim(),attivo=body.attivo!==false,dataFine=body.data_fine?String(body.data_fine):null,buildingIds=Array.isArray(body.edificio_ids)?body.edificio_ids.map((x:any)=>String(x)).filter(Boolean):[];
+ if(!userId||!schoolId||!["dirigente_scolastico","delegato_scolastico"].includes(ruolo)||!buildingIds.length)return json({error:"Utente, istituto, ruolo scolastico e almeno un edificio sono obbligatori."},400);
+ const {data:school,error:se}=await admin.from("scuole").select("id,ente_id").eq("id",schoolId).maybeSingle();
+ if(se||!school)return json({error:se?.message||"Istituto non trovato."},404);
+ if(!actor.isSuperadmin&&!actor.managedEnteIds.includes(school.ente_id))return json({error:"Non autorizzato a gestire questo istituto."},403);
+ const {data:targetRole,error:tre}=await admin.from("user_roles").select("user_id,ruolo").eq("user_id",userId).eq("ente_id",school.ente_id);
+ if(tre)return json({error:tre.message},500);
+ if(!targetRole?.length)return json({error:"L'utente non appartiene all'ente selezionato."},400);
+ const {data:buildings,error:be}=await admin.from("scuole_edifici").select("edificio_id").eq("scuola_id",schoolId).eq("attivo",true).in("edificio_id",buildingIds);
+ if(be)return json({error:be.message},500);
+ if((buildings||[]).length!==new Set(buildingIds).size)return json({error:"Uno o più edifici selezionati non sono associati all'istituto."},400);
+ const {data:existing,error:ee}=await admin.from("scuola_utenti").select("id,ruolo,data_inizio").eq("scuola_id",schoolId).eq("user_id",userId).maybeSingle();
+ if(ee)return json({error:ee.message},500);
+ let schoolUserId=existing?.id;
+ const payload={scuola_id:schoolId,user_id:userId,ruolo,attivo,data_inizio:existing?.data_inizio||new Date().toISOString().slice(0,10),data_fine:dataFine};
+ const {data:su,error:sue}=existing
+   ? await admin.from("scuola_utenti").update(payload).eq("id",existing.id).select("id").single()
+   : await admin.from("scuola_utenti").insert(payload).select("id").single();
+ if(sue||!su)return json({error:sue?.message||"Associazione utente/istituto non riuscita."},400);
+ schoolUserId=su.id;
+ const oldRole=existing?.ruolo;
+ if(oldRole!==ruolo){
+   const {error:re}=await admin.from("user_roles").upsert({user_id:userId,ente_id:school.ente_id,ruolo},{onConflict:"user_id,ente_id,ruolo"});
+   if(re)return json({error:"Ruolo scolastico non aggiornato: "+re.message},400);
+   if(oldRole){
+     const {data:other}=await admin.from("scuola_utenti").select("id").eq("user_id",userId).eq("ruolo",oldRole).eq("attivo",true).neq("id",schoolUserId).limit(1);
+     if(!other?.length)await admin.from("user_roles").delete().eq("user_id",userId).eq("ente_id",school.ente_id).eq("ruolo",oldRole);
+   }
+ }else{
+   const {error:re}=await admin.from("user_roles").upsert({user_id:userId,ente_id:school.ente_id,ruolo},{onConflict:"user_id,ente_id,ruolo"});
+   if(re)return json({error:"Ruolo scolastico non aggiornato: "+re.message},400);
+ }
+ await admin.from("scuola_utenti_edifici").delete().eq("scuola_utente_id",schoolUserId);
+ const assignmentRows=buildingIds.map((edificio_id:string)=>({scuola_utente_id:schoolUserId,edificio_id,attivo:true,data_inizio:new Date().toISOString().slice(0,10),data_fine:dataFine}));
+ const {error:ae}=await admin.from("scuola_utenti_edifici").insert(assignmentRows);
+ if(ae)return json({error:"Edifici autorizzati non aggiornati: "+ae.message},400);
+ return json({ok:true,school_user_id:schoolUserId});
+}
 if(!["update","delete"].includes(action))return json({error:"Azione non supportata."},400);const userId=String(body.user_id||"");if(!userId||userId===actor.actorId)return json({error:"Non è possibile modificare o eliminare il proprio utente da questa sezione."},400);const targetEnteId=String(body.ente_id||"");if(!(await canManageTarget(actor,userId,actor.isSuperadmin?undefined:targetEnteId)))return json({error:"Utente non autorizzato o fuori dal perimetro dell'ente."},403);
 if(action==="delete"){const {error}=await admin.auth.admin.deleteUser(userId,false);if(error)return json({error:error.message},400);return json({ok:true})}
 const nome=String(body.nome||"").trim(),cognome=String(body.cognome||"").trim(),email=String(body.email||"").trim().toLowerCase(),telefono=String(body.telefono||"").trim()||null,attivo=body.attivo!==false,password=String(body.password||"");const attrs:any={user_metadata:{nome,cognome},...(email?{email,email_confirm:true}:{}),...(password?{password}:{}),ban_duration:attivo?"none":"876000h"};const {error:ue}=await admin.auth.admin.updateUserById(userId,attrs);if(ue)return json({error:ue.message},400);const {error:pe}=await admin.from("profiles").update({nome,cognome,email:email||null,telefono,attivo}).eq("id",userId);if(pe)return json({error:"Profilo non aggiornato: "+pe.message},500);if(targetEnteId&&allRoles.includes(String(body.ruolo||""))){const ruolo=String(body.ruolo);if(!actor.isSuperadmin&&!actor.managedEnteIds.includes(targetEnteId))return json({error:"Non autorizzato per questo ente."},403);if(!actor.isSuperadmin&&ruolo==="superadmin")return json({error:"Non autorizzato ad assegnare superadmin."},403);const {error:delRoleError}=await admin.from("user_roles").delete().eq("user_id",userId).eq("ente_id",targetEnteId);if(delRoleError)return json({error:"Ruolo precedente non rimosso: "+delRoleError.message},400);const {error:re}=await admin.from("user_roles").insert({user_id:userId,ente_id:targetEnteId,ruolo});if(re)return json({error:"Ruolo non aggiornato: "+re.message},400)}return json({user:(await getUsers(actor)).find(u=>u.id===userId)})}catch(error){console.error(error);return json({error:error instanceof Error?error.message:String(error)},401)}})
