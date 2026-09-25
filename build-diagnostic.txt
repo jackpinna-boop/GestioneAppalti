@@ -2,6 +2,7 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
+src/App.tsx(132,1335): error TS1005: '}' expected.
 src/App.tsx(1117,6): error TS17008: JSX element 'PageHead' has no corresponding closing tag.
 src/App.tsx(1125,81): error TS17014: JSX fragment has no corresponding closing tag.
 src/App.tsx(1133,12): error TS17008: JSX element 'div' has no corresponding closing tag.
