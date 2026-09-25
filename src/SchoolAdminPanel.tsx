@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react'
-import {Building2,Plus,Save,Trash2,Users} from 'lucide-react'
+import {Building2,Plus,Save,Users} from 'lucide-react'
 import {supabase} from './lib/supabase'
 
 export default function SchoolAdminPanel({access}:{access:any[]}){
@@ -11,7 +11,6 @@ export default function SchoolAdminPanel({access}:{access:any[]}){
  const saveSchool=async()=>{if(!schoolName.trim())return;const payload={ente_id:enteId,denominazione:schoolName.trim(),codice_meccanografico:code.trim()||null};const q=selected?supabase.from('scuole').update(payload).eq('id',selected.id):supabase.from('scuole').insert(payload);const {error}=await q;if(error)setMessage(error.message);else{setMessage('Istituto salvato.');setSchoolName('');setCode('');setSelected(null);await load()}}
  const linkBuilding=async()=>{if(!selected||!buildingId)return;const {error}=await supabase.from('scuole_edifici').upsert({scuola_id:selected.id,edificio_id:buildingId,attivo:true},{onConflict:'scuola_id,edificio_id'});if(error)setMessage(error.message);else{setMessage('Edificio associato.');setBuildingId('');await load()}}
  const assign=async()=>{if(!selected||!userId)return;const {data,error}=await supabase.from('scuola_utenti').upsert({scuola_id:selected.id,user_id:userId,ruolo:role,attivo:true},{onConflict:'scuola_id,user_id'}).select('id').single();if(error||!data){setMessage(error?.message||'Impossibile assegnare l’utente.');return}const {error:e2}=await supabase.from('scuola_utenti_edifici').upsert({scuola_utente_id:data.id,edificio_id:buildingId,attivo:true},{onConflict:'scuola_utente_id,edificio_id'});if(e2)setMessage(e2.message);else{setMessage('Utente assegnato all’edificio.');setUserId('');await load()}}
- const schoolBuildings=selected?((awaitable=>awaitable)([])):[]; // placeholder avoided below
  return <section className="card school-admin-panel"><div className="card-head"><div><h2>Scuole e delegati</h2><p>Gestione del perimetro autorizzativo del Portale Scuola.</p></div><Users size={20}/></div>
   {message&&<div className="notice info">{message}</div>}
   <div className="school-admin-grid">
