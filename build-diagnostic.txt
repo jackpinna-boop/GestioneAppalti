@@ -2,5 +2,4 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/SchoolPortalPage.tsx(33,154): error TS2367: This comparison appears to be unintentional because the types 'string[]' and 'string' have no overlap.
-src/SchoolPortalPage.tsx(78,64): error TS2367: This comparison appears to be unintentional because the types 'string[]' and 'string' have no overlap.
+src/App.tsx(64,51): error TS2339: Property 'numero_progressivo' does not exist on type '{ id: any; codice_richiesta: any; numero_protocollo: any; data_richiesta: any; scuola_id: any; }'.
