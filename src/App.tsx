@@ -36,55 +36,39 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
  const [hasNew,setHasNew]=useState(false);
  const [initialized,setInitialized]=useState(false);
 
- const parseJson=(value:any)=>{
-  if(!value)return null;
-  if(typeof value==='object')return value;
-  try{return JSON.parse(value)}catch{return null}
- };
-
  const loadNotifications=async()=>{
   if(!enteId)return;
-  const {data,error}=await supabase.from('audit_log')
-   .select('id,timestamp,azione,tabella,record_id,intervento_id,valore_nuovo,valore_precedente')
-   .eq('ente_id',enteId)
-   .order('timestamp',{ascending:false})
-   .limit(7);
-  if(error){console.error('Errore caricamento notifiche:',error);return}
-  const audit=data||[];
-  // Carichiamo un insieme recente di richieste e risolviamo la notifica
-  // confrontando tutti gli identificativi possibili del log.
-  const {data:requestData}=await supabase.from('richieste_intervento')
-   .select('id,codice_richiesta,numero_protocollo,data_richiesta,scuola_id')
+  // Le notifiche della campanella sono basate sulle richieste effettivamente
+  // presenti nell'ente: in questo modo restano disponibili anche quando
+  // l'audit log non contiene un collegamento leggibile alla richiesta.
+  const {data,error}=await supabase.from('richieste_intervento')
+   .select('id,codice_richiesta,numero_protocollo,data_protocollo,data_richiesta,titolo_sintetico,scuola_id')
    .eq('ente_id',enteId)
    .order('data_richiesta',{ascending:false})
-   .limit(500);
-  const requests=requestData||[];
-  const byKey:Record<string,any>={};
-  for(const r of requests){
-   [r.id,r.codice_richiesta,r.numero_protocollo,r.numero_progressivo].filter(v=>v!==null&&v!==undefined&&String(v)!=='').forEach(v=>{byKey[String(v).trim()]=r});
-  }
-  const parse=(v:any)=>{if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v)}catch{return null}};
-  const resolved=audit.map((x:any)=>{
-   const n=parse(x.valore_nuovo); const o=parse(x.valore_precedente);
-   const keys=[x.record_id,x.intervento_id,n?.id,n?.codice_richiesta,n?.numero_protocollo,n?.numero_progressivo,o?.id,o?.codice_richiesta,o?.numero_protocollo,o?.numero_progressivo]
-    .filter(v=>v!==null&&v!==undefined&&String(v)!=='').map(v=>String(v).trim());
-   const request=keys.map(k=>byKey[k]).find(Boolean)||null;
-   return {...x,request,schoolId:request?.scuola_id||n?.scuola_id||o?.scuola_id||null};
-  });
-  const requestIds=resolved.map((x:any)=>x.request?.id).filter(Boolean);
-  const {data:links}=requestIds.length
-   ? await supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId).in('richiesta_id',requestIds)
-   : {data:[] as any[]};
-  const schoolIds=[...new Set(resolved.map((x:any)=>x.schoolId).concat((links||[]).map((x:any)=>x.scuola_id)).filter(Boolean).map(String))];
-  const {data:schools}=schoolIds.length
-   ? await supabase.from('scuole').select('id,codice_meccanografico,denominazione').in('id',schoolIds)
-   : {data:[] as any[]};
-  const schoolById=Object.fromEntries((schools||[]).map((s:any)=>[String(s.id),s]));
+   .order('numero_progressivo',{ascending:false})
+   .limit(7);
+  if(error){console.error('Errore caricamento notifiche:',error);setItems([]);return}
+
+  const requests=data||[];
+  const ids=requests.map((r:any)=>r.id).filter(Boolean);
+  const [linksResult,schoolsByIdResult]=await Promise.all([
+   ids.length?supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId).in('richiesta_id',ids):Promise.resolve({data:[] as any[]}),
+   supabase.from('scuole').select('id,codice_meccanografico,denominazione').eq('attiva',true)
+  ]);
+  const schoolById=Object.fromEntries((schoolsByIdResult.data||[]).map((s:any)=>[String(s.id),s]));
   const schoolByRequest:Record<string,any>={};
-  for(const l of (links||[])){if(l.richiesta_id&&!schoolByRequest[String(l.richiesta_id)]&&schoolById[String(l.scuola_id)])schoolByRequest[String(l.richiesta_id)]=schoolById[String(l.scuola_id)]}
-  for(const x of resolved){if(x.request&&!schoolByRequest[String(x.request.id)]&&x.schoolId)schoolByRequest[String(x.request.id)]=schoolById[String(x.schoolId)]||null}
-  setItems(resolved.map((x:any)=>({...x,school:x.request?schoolByRequest[String(x.request.id)]||null:null})));
-  const newest=resolved[0]?.timestamp||'';
+  for(const r of requests){
+   if(r.scuola_id&&schoolById[String(r.scuola_id)])schoolByRequest[String(r.id)]=schoolById[String(r.scuola_id)];
+  }
+  for(const l of (linksResult.data||[])){
+   if(l.richiesta_id&&!schoolByRequest[String(l.richiesta_id)]&&schoolById[String(l.scuola_id)])
+    schoolByRequest[String(l.richiesta_id)]=schoolById[String(l.scuola_id)];
+  }
+
+  const resolved=requests.map((request:any)=>({...request,school:schoolByRequest[String(request.id)]||null}));
+  setItems(resolved);
+
+  const newest=resolved[0]?.data_richiesta||'';
   const seen=localStorage.getItem(storageKey)||'';
   if(!initialized){
    if(!seen&&newest)localStorage.setItem(storageKey,newest);
@@ -93,10 +77,17 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
   }else setHasNew(!!newest&&newest>seen);
  };
 
+ useEffect(()=>{
+  setInitialized(false);
+  void loadNotifications();
+  const timer=window.setInterval(()=>void loadNotifications(),30000);
+  return()=>window.clearInterval(timer);
+ },[enteId,userId]);
+
  const openNotifications=()=>{
   setOpen(v=>!v);
-  if(items[0]?.timestamp){
-   localStorage.setItem(storageKey,items[0].timestamp);
+  if(items[0]?.data_richiesta){
+   localStorage.setItem(storageKey,items[0].data_richiesta);
    setHasNew(false);
   }
  };
@@ -104,29 +95,16 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
  const openNotification=(x:any)=>{
   setOpen(false);
   setHasNew(false);
-  const requestId=x.request?.id;
-  if(requestId){
-   onOpen('richieste',String(requestId));
-   return;
+  if(x?.id){
+   onOpen('richieste',String(x.id));
   }
-  // Se il log non è riconducibile a una richiesta, non tentare
-  // di aprire una scheda inesistente.
-  console.warn('Notifica senza richiesta associata',x);
  };
 
  const notificationText=(x:any)=>{
-  const request=x.request;
   const school=x.school;
-  if(request){
-   const protocol=request.numero_protocollo?String(request.numero_protocollo):'—';
-   const codice=school?.codice_meccanografico||'—';
-   return `Aggiornamento richiesta · ${codice} · Prot. ${protocol}`;
-  }
-  const action=String(x.azione||'').toLowerCase();
-  if(action.includes('insert')||action.includes('crea')||action.includes('create')) return 'Nuovo elemento inserito';
-  if(action.includes('update')||action.includes('modif')) return 'Elemento aggiornato';
-  if(action.includes('delete')||action.includes('elimin')) return 'Elemento eliminato';
-  return 'Aggiornamento del sistema';
+  const codice=school?.codice_meccanografico||'—';
+  const protocollo=x.numero_protocollo||'—';
+  return `Richiesta di intervento · ${codice} · Prot. ${protocollo}`;
  };
 
  return <div className="notification-wrap">
@@ -135,10 +113,15 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
   </button>
   {open&&<div className="notification-menu">
    <div className="notification-head"><strong>Notifiche</strong><span>Ultime 7</span></div>
-   {items.length?items.map((x:any)=><button type="button" className="notification-item" key={x.id} onClick={()=>openNotification(x)} title={x.request?'Apri la relativa segnalazione':'Dettaglio non disponibile'}>
+   {items.length?items.map((x:any)=><div className="notification-item" key={x.id}>
     <div className="notification-item-icon"><Bell size={14}/></div>
-    <div><strong>{notificationText(x)}</strong>{x.school?.denominazione&&<span className="notification-school">{x.school.denominazione}</span>}<span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></div>
-   </button>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
+    <div className="notification-item-body">
+     <strong>{notificationText(x)}</strong>
+     <span className="notification-school">{x.school?.denominazione||'Scuola non associata'}</span>
+     <span>Data richiesta: {x.data_richiesta?date(x.data_richiesta):'—'} · Protocollo: {x.data_protocollo?date(x.data_protocollo):'—'}</span>
+     <button type="button" className="notification-open" onClick={()=>openNotification(x)}><Eye size={13}/> Apri segnalazione</button>
+    </div>
+   </div>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
   </div>}
  </div>
 }
