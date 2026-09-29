@@ -45,7 +45,7 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
    ])
    if(su.error||se.error||sue.error||sed.error||ed.error||rq.error){setMessage('Errore nel caricamento del Portale Scuola.');console.error(su.error,se.error,sue.error,sed.error,ed.error,rq.error)}
    const links=su.data||[]
-   const linkIds=new Set(links.map((x:any)=>x.scuola_utente_id))
+   const linkIds=new Set(links.map((x:any)=>x.id))
    const schoolIds=new Set(links.map((x:any)=>x.scuola_id))
    const buildingIds=new Set((sue.data||[]).filter((x:any)=>linkIds.has(x.scuola_utente_id)).map((x:any)=>x.edificio_id))
    setSchools((se.data||[]).filter((x:any)=>schoolIds.has(x.id)))
