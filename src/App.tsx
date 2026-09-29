@@ -27,7 +27,7 @@ const canWrite=(a:Access[])=>a.length>0
 const canManage=(a:Access[])=>a.some(x=>['superadmin','admin_ente','rup'].includes(x.ruolo))
 const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore','siservizi']
 
-function NotificationBell({access}:{access:Access[]}){
+function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?:string)=>void}){
  const enteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
  const userId=access[0]?.user_id||'';
  const storageKey=`gestione-appalti.notifications.seen.${userId}.${enteId}`;
@@ -72,6 +72,7 @@ function NotificationBell({access}:{access:Access[]}){
   }
  };
 
+ const openNotification=(x:any)=>{ setOpen(false); setHasNew(false); if(x.record_id&&String(x.tabella||'').toLowerCase().includes('richiest')) onOpen('richieste',x.record_id); };
  const notificationText=(x:any)=>{
   const action=String(x.azione||'').toLowerCase();
   const table=String(x.tabella||'').toLowerCase();
@@ -87,9 +88,9 @@ function NotificationBell({access}:{access:Access[]}){
   </button>
   {open&&<div className="notification-menu">
    <div className="notification-head"><strong>Notifiche</strong><span>Ultime 7</span></div>
-   {items.length?items.map((x:any)=><div className="notification-item" key={x.id}>
+   {items.length?items.map((x:any)=><button type="button" className="notification-item" key={x.id} onClick={()=>openNotification(x)} title="Apri segnalazione">
     <div className="notification-item-icon"><Bell size={14}/></div>
-    <div><strong>{notificationText(x)}</strong><span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></div>
+    <div><strong>{notificationText(x)}</strong><span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></button>
    </div>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
   </div>}
  </div>
@@ -185,7 +186,7 @@ function AppShell({session}:{session:any}){
  useEffect(()=>{if(!menuReady)return;if(!pageAllowed(page))navigate('dashboard')},[menuReady,page,menuPermissions])
  if(!menuReady)return <div className="loading-screen">Caricamento autorizzazioni…</div>
  if(access.some(x=>['dirigente_scolastico','delegato_scolastico'].includes(x.ruolo))) return <SchoolPortalPage session={session} access={access}/>
- return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><NotificationBell access={access}/><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
+ return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><NotificationBell access={access} onOpen={navigate}/><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav>
  {canMenu('dashboard')&&<Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/>}
  {canMenu('edifici')&&<Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/>}
@@ -197,7 +198,7 @@ function AppShell({session}:{session:any}){
  {canMenu('amministrazione')&&<Nav icon={<Settings/>} label="Amministrazione" active={page==='amministrazione'} onClick={()=>navigate('amministrazione')}/>}
  {canMenu('import_impianti')&&<><Nav icon={<Upload/>} label="Importazione impianti" active={page==='import-impianti'} onClick={()=>navigate('import-impianti')}/><Nav icon={<Upload/>} label="Importazione interventi" active={page==='import-interventi'} onClick={()=>navigate('import-interventi')}/></>}
  </nav><div className="sidebar-footer"><ShieldCheck size={16}/><span>{ente}</span></div></aside>
- <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='richieste'&&<RequestsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='intervento'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<BuildingFile id={selectedId} access={access} onBack={()=>navigate('fascicolo')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<BuildingFascicoliPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='report'&&<ReportPage refresh={refresh}/>} {page==='manutenzioni-scadenze'&&<MaintenanceAlertsPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh} initialBuildingId={selectedId}/>} {page==='amministrazione'&&<><AdminPage access={access}/>{access.some(x=>['superadmin','admin_ente'].includes(x.ruolo))&&<SchoolAdminPanel access={access}/>}</>} {page==='import-impianti'&&<ImportImpiantiPage access={access}/>} {page==='import-interventi'&&<ImportInterventiPage access={access}/>} </main></div></div>
+ <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='richieste'&&<RequestsPage access={access} refresh={refresh} setRefresh={setRefresh} initialId={selectedId}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='intervento'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<BuildingFile id={selectedId} access={access} onBack={()=>navigate('fascicolo')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<BuildingFascicoliPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='report'&&<ReportPage refresh={refresh}/>} {page==='manutenzioni-scadenze'&&<MaintenanceAlertsPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh} initialBuildingId={selectedId}/>} {page==='amministrazione'&&<><AdminPage access={access}/>{access.some(x=>['superadmin','admin_ente'].includes(x.ruolo))&&<SchoolAdminPanel access={access}/>}</>} {page==='import-impianti'&&<ImportImpiantiPage access={access}/>} {page==='import-interventi'&&<ImportInterventiPage access={access}/>} </main></div></div>
 }
 
 function Nav({icon,label,active,onClick}:{icon:any;label:string;active:boolean;onClick:()=>void}){return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{active&&<ChevronRight size={15}/>}</button>}
@@ -247,7 +248,7 @@ const requestTypeClass=(s:string)=>({ordinaria:'blue',straordinaria:'amber',da_v
 
 function SortableTh({label,active,direction,onClick}:{label:string;active:boolean;direction:'asc'|'desc';onClick:()=>void}){return <th><button type="button" className={'sort-header '+(active?'active':'')} onClick={onClick} title={active?(direction==='asc'?'Ordine crescente — clicca per decrescente':'Ordine decrescente — clicca per crescente'):'Ordina'}>{label}<span className="sort-indicator">{active?(direction==='asc'?'↑':'↓'):'↕'}</span></button></th>}
 
-function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:number;setRefresh:(x:number)=>void}){
+function RequestsPage({access,refresh,setRefresh,initialId}:{access:Access[];refresh:number;setRefresh:(x:number)=>void;initialId?:string|null}){
  const [rows,setRows]=useState<RequestRow[]>([]); const [buildings,setBuildings]=useState<any[]>([]); const [schoolByRequest,setSchoolByRequest]=useState<Record<string,{codice:string|null;denominazione:string|null}>>({});
  const [ambiti,setAmbiti]=useState<any[]>([]); const [q,setQ]=useState(''); const [filter,setFilter]=useState('tutte'); const [buildingFilter,setBuildingFilter]=useState('all'); const [ambitoFilter,setAmbitoFilter]=useState('all'); const [priorityFilter,setPriorityFilter]=useState('all');
  const [show,setShow]=useState(false); const [editing,setEditing]=useState<RequestRow|null>(null); const [detail,setDetail]=useState<RequestRow|null>(null);const [resolving,setResolving]=useState<RequestRow|null>(null);
@@ -275,6 +276,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   setLoading(false);
  };
  useEffect(()=>{load()},[refresh,access[0]?.ente_id]);
+ useEffect(()=>{if(initialId&&rows.length){const found=rows.find(r=>r.id===initialId);if(found)setDetail(found)}},[initialId,rows]);
 
  const requestStatus=(x:RequestRow):'aperta'|'risolta'|'da_valutare'=>{
   const raw=String(x.stato_risoluzione??'')
