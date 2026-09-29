@@ -430,3 +430,6 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .theme-green .notification-dot{border-color:#176b4d}
 .theme-gray .notification-dot{border-color:#4b5563}
 @media(max-width:600px){.notification-menu{right:-70px;width:300px}.notification-btn{width:34px;height:34px}}
+
+.notification-item{width:100%;box-sizing:border-box;border:0;text-align:left;font:inherit;color:inherit;background:#fff;cursor:pointer}
+.notification-item:hover{background:#f6f9fc}
