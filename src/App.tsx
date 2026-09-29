@@ -51,52 +51,40 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
    .limit(7);
   if(error){console.error('Errore caricamento notifiche:',error);return}
   const audit=data||[];
-  // Le righe di audit possono riferirsi alla richiesta tramite record_id oppure
-  // tramite l'id contenuto nel JSON storico della riga.
-  const candidateIds=[...new Set(audit.flatMap((x:any)=>{
-   const n=parseJson(x.valore_nuovo); const o=parseJson(x.valore_precedente);
-   return [x.record_id,n?.id,o?.id].filter(Boolean).map(String);
-  }))];
-
-  let requests:any[]=[];
-  let links:any[]=[];
-  let schools:any[]=[];
-  if(candidateIds.length){
-   const [rq,lk]=await Promise.all([
-    supabase.from('richieste_intervento').select('id,codice_richiesta,numero_protocollo,data_richiesta,scuola_id').eq('ente_id',enteId).in('id',candidateIds),
-    supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId).in('richiesta_id',candidateIds)
-   ]);
-   requests=rq.data||[]; links=lk.data||[];
+  // Carichiamo un insieme recente di richieste e risolviamo la notifica
+  // confrontando tutti gli identificativi possibili del log.
+  const {data:requestData}=await supabase.from('richieste_intervento')
+   .select('id,codice_richiesta,numero_protocollo,data_richiesta,scuola_id')
+   .eq('ente_id',enteId)
+   .order('data_richiesta',{ascending:false})
+   .limit(500);
+  const requests=requestData||[];
+  const byKey:Record<string,any>={};
+  for(const r of requests){
+   [r.id,r.codice_richiesta,r.numero_protocollo,r.numero_progressivo].filter(v=>v!==null&&v!==undefined&&String(v)!=='').forEach(v=>{byKey[String(v).trim()]=r});
   }
-  const schoolIds=[...new Set([
-   ...links.map((x:any)=>x.scuola_id),
-   ...requests.map((x:any)=>x.scuola_id)
-  ].filter(Boolean).map(String))];
-  if(schoolIds.length){
-   const sc=await supabase.from('scuole').select('id,codice_meccanografico,denominazione').in('id',schoolIds);
-   schools=sc.data||[];
-  }
-
-  const reqById=Object.fromEntries(requests.map((r:any)=>[String(r.id),r]));
-  const schoolById=Object.fromEntries(schools.map((s:any)=>[String(s.id),s]));
-  const schoolByRequest:Record<string,any>={};
-  for(const link of links){
-   if(link.richiesta_id&&!schoolByRequest[String(link.richiesta_id)]&&schoolById[String(link.scuola_id)])
-    schoolByRequest[String(link.richiesta_id)]=schoolById[String(link.scuola_id)];
-  }
-  for(const request of requests){
-   if(request.scuola_id&&!schoolByRequest[String(request.id)]&&schoolById[String(request.scuola_id)])
-    schoolByRequest[String(request.id)]=schoolById[String(request.scuola_id)];
-  }
-
-  const next=audit.map((x:any)=>{
-   const n=parseJson(x.valore_nuovo); const o=parseJson(x.valore_precedente);
-   const request=reqById[String(x.record_id)]||reqById[String(n?.id)]||reqById[String(o?.id)]||null;
-   const school=schoolByRequest[String(request?.id)]||schoolById[String(n?.scuola_id)]||schoolById[String(o?.scuola_id)]||null;
-   return {...x,request,school};
+  const parse=(v:any)=>{if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v)}catch{return null}};
+  const resolved=audit.map((x:any)=>{
+   const n=parse(x.valore_nuovo); const o=parse(x.valore_precedente);
+   const keys=[x.record_id,x.intervento_id,n?.id,n?.codice_richiesta,n?.numero_protocollo,n?.numero_progressivo,o?.id,o?.codice_richiesta,o?.numero_protocollo,o?.numero_progressivo]
+    .filter(v=>v!==null&&v!==undefined&&String(v)!=='').map(v=>String(v).trim());
+   const request=keys.map(k=>byKey[k]).find(Boolean)||null;
+   return {...x,request,schoolId:request?.scuola_id||n?.scuola_id||o?.scuola_id||null};
   });
-  setItems(next);
-  const newest=next[0]?.timestamp||'';
+  const requestIds=resolved.map((x:any)=>x.request?.id).filter(Boolean);
+  const {data:links}=requestIds.length
+   ? await supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId).in('richiesta_id',requestIds)
+   : {data:[] as any[]};
+  const schoolIds=[...new Set(resolved.map((x:any)=>x.schoolId).concat((links||[]).map((x:any)=>x.scuola_id)).filter(Boolean).map(String))];
+  const {data:schools}=schoolIds.length
+   ? await supabase.from('scuole').select('id,codice_meccanografico,denominazione').in('id',schoolIds)
+   : {data:[] as any[]};
+  const schoolById=Object.fromEntries((schools||[]).map((s:any)=>[String(s.id),s]));
+  const schoolByRequest:Record<string,any>={};
+  for(const l of (links||[])){if(l.richiesta_id&&!schoolByRequest[String(l.richiesta_id)]&&schoolById[String(l.scuola_id)])schoolByRequest[String(l.richiesta_id)]=schoolById[String(l.scuola_id)]}
+  for(const x of resolved){if(x.request&&!schoolByRequest[String(x.request.id)]&&x.schoolId)schoolByRequest[String(x.request.id)]=schoolById[String(x.schoolId)]||null}
+  setItems(resolved.map((x:any)=>({...x,school:x.request?schoolByRequest[String(x.request.id)]||null:null})));
+  const newest=resolved[0]?.timestamp||'';
   const seen=localStorage.getItem(storageKey)||'';
   if(!initialized){
    if(!seen&&newest)localStorage.setItem(storageKey,newest);
@@ -116,10 +104,14 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
  const openNotification=(x:any)=>{
   setOpen(false);
   setHasNew(false);
-  const parse=(v:any)=>{if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v)}catch{return null}};
-  const n=parse(x.valore_nuovo); const o=parse(x.valore_precedente);
-  const requestId=x.request?.id||x.record_id||n?.id||o?.id;
-  if(requestId) onOpen('richieste',String(requestId));
+  const requestId=x.request?.id;
+  if(requestId){
+   onOpen('richieste',String(requestId));
+   return;
+  }
+  // Se il log non è riconducibile a una richiesta, non tentare
+  // di aprire una scheda inesistente.
+  console.warn('Notifica senza richiesta associata',x);
  };
 
  const notificationText=(x:any)=>{
