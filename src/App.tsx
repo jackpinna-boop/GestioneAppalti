@@ -203,14 +203,20 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  useEffect(()=>{load()},[refresh,access[0]?.ente_id]);
 
  const requestStatus=(x:RequestRow):'aperta'|'risolta'|'da_valutare'=>{
-  const raw=String(x.stato_risoluzione??'').trim().toLowerCase().replace(/\\s+/g,'_');
+  const raw=String(x.stato_risoluzione??'')
+   .trim()
+   .toLowerCase()
+   .normalize('NFD')
+   .replace(/[\\u0300-\\u036f]/g,'')
+   .replace(/[\\s-]+/g,'_');
   if(raw==='risolta'||raw==='aperta'||raw==='da_valutare') return raw;
   return x.risolto?'risolta':'aperta';
  };
+ const normalizedRows=rows.map(x=>({row:x,status:requestStatus(x)}));
  const statusCounts={
-  da_valutare:rows.filter(x=>requestStatus(x)==='da_valutare').length,
-  aperte:rows.filter(x=>requestStatus(x)==='aperta').length,
-  risolte:rows.filter(x=>requestStatus(x)==='risolta').length
+  da_valutare:normalizedRows.filter(x=>x.status==='da_valutare').length,
+  aperte:normalizedRows.filter(x=>x.status==='aperta').length,
+  risolte:normalizedRows.filter(x=>x.status==='risolta').length
  };
  const filtered=rows.filter(x=>{
   const text=(x.codice_richiesta+' '+x.titolo_sintetico+' '+(x.numero_protocollo||'')+' '+(x.richieste_intervento_sedi||[])).toLowerCase();
