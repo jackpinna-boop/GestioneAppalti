@@ -433,3 +433,5 @@ td{color:#344b59;border-bottom-color:#e6edef}
 
 .notification-item{width:100%;box-sizing:border-box;border:0;text-align:left;font:inherit;color:inherit;background:#fff;cursor:pointer}
 .notification-item:hover{background:#f6f9fc}
+
+.notification-school{display:block;margin-top:2px;font-size:10px;color:#587087}
