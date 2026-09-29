@@ -185,7 +185,7 @@ function AppShell({session}:{session:any}){
  useEffect(()=>{if(!menuReady)return;if(!pageAllowed(page))navigate('dashboard')},[menuReady,page,menuPermissions])
  if(!menuReady)return <div className="loading-screen">Caricamento autorizzazioni…</div>
  if(access.some(x=>['dirigente_scolastico','delegato_scolastico'].includes(x.ruolo))) return <SchoolPortalPage session={session} access={access}/>
- return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><NotificationBell access={access}/><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
+ return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><NotificationBell access={access}/><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav>
  {canMenu('dashboard')&&<Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/>}
  {canMenu('edifici')&&<Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/>}
@@ -233,7 +233,7 @@ function MaintenanceDashboard({refresh,onOpen}:{refresh:number;onOpen:()=>void})
  const today=new Date().toISOString().slice(0,10);const active=systems.filter(x=>x.stato==='attivo').length;const due=systems.filter(x=>x.data_prossima_manutenzione&&x.data_prossima_manutenzione<today).length;const open=jobs.filter(x=>!['chiusa','annullata'].includes(x.stato)).length;const closed=jobs.filter(x=>x.stato==='chiusa').length;
  return <section className="card maintenance-dashboard"><div className="card-head"><div><h2>Riepilogo manutenzioni</h2><p>Quadro sintetico degli impianti e delle attività manutentive.</p></div><Wrench size={20}/></div><div className="request-kpis"><div><span>Impianti attivi</span><strong>{active}</strong></div><div><span>Manutenzioni in scadenza</span><strong>{due}</strong></div><div><span>Attività aperte</span><strong>{open}</strong></div><div><span>Attività chiuse</span><strong>{closed}</strong></div></div><div className="chart-footer"><span>Ultimo aggiornamento automatico all'apertura della Home</span><button className="btn secondary" onClick={onOpen}><Wrench size={15}/> Apri manutenzioni</button></div></section>
 }
-type RequestSortKey='codice'|'protocollo'|'richiesta'|'sedi'|'ambiti'|'tipologia'|'priorita'|'data'|'stato'|'allegati'
+type RequestSortKey='codice'|'scuola'|'protocollo'|'richiesta'|'sedi'|'ambiti'|'tipologia'|'priorita'|'data'|'stato'|'allegati'
 type RequestRow={
  id:string; ente_id:string; numero_progressivo:number; codice_richiesta:string; titolo_sintetico:string;
  descrizione_estesa:string; numero_protocollo:string|null; data_protocollo:string|null;
@@ -248,7 +248,7 @@ const requestTypeClass=(s:string)=>({ordinaria:'blue',straordinaria:'amber',da_v
 function SortableTh({label,active,direction,onClick}:{label:string;active:boolean;direction:'asc'|'desc';onClick:()=>void}){return <th><button type="button" className={'sort-header '+(active?'active':'')} onClick={onClick} title={active?(direction==='asc'?'Ordine crescente — clicca per decrescente':'Ordine decrescente — clicca per crescente'):'Ordina'}>{label}<span className="sort-indicator">{active?(direction==='asc'?'↑':'↓'):'↕'}</span></button></th>}
 
 function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:number;setRefresh:(x:number)=>void}){
- const [rows,setRows]=useState<RequestRow[]>([]); const [buildings,setBuildings]=useState<any[]>([]);
+ const [rows,setRows]=useState<RequestRow[]>([]); const [buildings,setBuildings]=useState<any[]>([]); const [schoolByRequest,setSchoolByRequest]=useState<Record<string,{codice:string|null;denominazione:string|null}>>({});
  const [ambiti,setAmbiti]=useState<any[]>([]); const [q,setQ]=useState(''); const [filter,setFilter]=useState('tutte'); const [buildingFilter,setBuildingFilter]=useState('all'); const [ambitoFilter,setAmbitoFilter]=useState('all'); const [priorityFilter,setPriorityFilter]=useState('all');
  const [show,setShow]=useState(false); const [editing,setEditing]=useState<RequestRow|null>(null); const [detail,setDetail]=useState<RequestRow|null>(null);const [resolving,setResolving]=useState<RequestRow|null>(null);
  const [message,setMessage]=useState(''); const [loading,setLoading]=useState(false); const [advanced,setAdvanced]=useState(false);
@@ -259,14 +259,20 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   setLoading(true);
   const requestQuery=supabase.from('richieste_intervento').select('*,richieste_intervento_sedi(id,edificio_id,edifici(id,codice_edificio,denominazione,indirizzo,comune)),richieste_intervento_ambiti(id,ambito_id,ambiti_richiesta_intervento(id,codice,denominazione)),richiesta_intervento_documenti(id,nome,mime_type,size_bytes,url,tipo,data_documento,versione)');
   if(enteId) requestQuery.eq('ente_id',enteId);
-  const [r,b,a,d]=await Promise.all([
+  const [r,b,a,schoolLinks,schoolRows]=await Promise.all([
    requestQuery.order('data_richiesta',{ascending:false}).order('numero_progressivo',{ascending:false}),
    supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune').order('denominazione'),
    supabase.from('ambiti_richiesta_intervento').select('id,codice,denominazione').eq('attivo',true).order('denominazione'),
-   Promise.resolve({data:null,error:null})
+   supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId||'').not('richiesta_id','is',null).order('created_at',{ascending:false}),
+   supabase.from('scuole').select('id,codice_meccanografico,denominazione').eq('attiva',true).order('denominazione')
   ]);
   if(r.error){console.error(r.error);setMessage('Errore caricamento richieste: '+r.error.message)} else setRows((r.data||[]) as RequestRow[]);
-  setBuildings(b.data||[]); setAmbiti(a.data||[]); setLoading(false);
+  setBuildings(b.data||[]); setAmbiti(a.data||[]);
+  const schoolsById=Object.fromEntries((schoolRows.data||[]).map((s:any)=>[s.id,{codice:s.codice_meccanografico||null,denominazione:s.denominazione||null}]));
+  const nextSchoolByRequest:Record<string,{codice:string|null;denominazione:string|null}>={};
+  for(const link of (schoolLinks.data||[])){if(link.richiesta_id&&!nextSchoolByRequest[link.richiesta_id]&&schoolsById[link.scuola_id])nextSchoolByRequest[link.richiesta_id]=schoolsById[link.scuola_id]}
+  setSchoolByRequest(nextSchoolByRequest);
+  setLoading(false);
  };
  useEffect(()=>{load()},[refresh,access[0]?.ente_id]);
 
@@ -308,6 +314,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  const sorted=[...filtered].sort((a,b)=>{
   const value=(row:RequestRow,key:RequestSortKey):string|number=>{
    if(key==='codice') return row.codice_richiesta||'';
+   if(key==='scuola') return schoolByRequest[row.id]?.codice||schoolByRequest[row.id]?.denominazione||'';
    if(key==='protocollo') return row.numero_protocollo||'';
    if(key==='richiesta') return row.titolo_sintetico||'';
    if(key==='sedi') return (row.richieste_intervento_sedi||[]).map((s:any)=>s.edifici?.denominazione||s.edifici?.codice_edificio||row.edificio_origine||'').join(' ');
@@ -392,9 +399,9 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   <section className="card table-card">
    <div className="table-toolbar"><span className="table-result-count">{sorted.length} richieste visualizzate</span><div className="export-actions"><span className="export-label"><Download size={15}/> Esporta</span><button className="btn secondary" onClick={()=>exportRows('csv')} disabled={!sorted.length}>CSV</button><button className="btn secondary" onClick={()=>exportRows('xls')} disabled={!sorted.length}>XLS</button><button className="btn secondary" onClick={()=>exportRows('ods')} disabled={!sorted.length}>ODS</button></div></div>
    {loading?<Loader/>:sorted.length?<table><thead><tr>
-    {(['codice','protocollo','richiesta','sedi','ambiti','tipologia','priorita','data','stato','allegati'] as RequestSortKey[]).map((key)=><SortableTh key={key} label={{codice:'Codice',protocollo:'Protocollo',richiesta:'Richiesta',sedi:'Istituti / sedi',ambiti:'Ambiti',tipologia:'Tipologia',priorita:'Priorità',data:'Data',stato:'Stato',allegati:'Allegati'}[key]} active={sortKey===key} direction={sortDir} onClick={()=>changeSort(key)}/>)}<th>Azioni</th></tr></thead><tbody>
+    {(['codice','scuola','protocollo','richiesta','sedi','ambiti','tipologia','priorita','data','stato','allegati'] as RequestSortKey[]).map((key)=><SortableTh key={key} label={{codice:'Codice',scuola:'Codice scuola',protocollo:'Protocollo',richiesta:'Richiesta',sedi:'Istituti / sedi',ambiti:'Ambiti',tipologia:'Tipologia',priorita:'Priorità',data:'Data',stato:'Stato',allegati:'Allegati'}[key]} active={sortKey===key} direction={sortDir} onClick={()=>changeSort(key)}/>)}<th>Azioni</th></tr></thead><tbody>
    {sorted.map(x=>{const sedi=x.richieste_intervento_sedi||[];const amb=x.richieste_intervento_ambiti||[];const docs=x.richiesta_intervento_documenti||[];return <tr key={x.id} className="clickable" onClick={()=>setDetail(x)}>
-    <td><b>{x.codice_richiesta}</b></td><td>{x.numero_protocollo?<><strong>{x.numero_protocollo}</strong><span className="table-sub">{date(x.data_protocollo)}</span></>:'—'}</td>
+    <td><b>{x.codice_richiesta}</b></td><td>{schoolByRequest[x.id]?.codice?<><strong>{schoolByRequest[x.id].codice}</strong><span className="table-sub">{schoolByRequest[x.id].denominazione}</span></>:<span className="table-sub">—</span>}</td><td>{x.numero_protocollo?<><strong>{x.numero_protocollo}</strong><span className="table-sub">{date(x.data_protocollo)}</span></>:'—'}</td>
     <td><strong>{x.titolo_sintetico}</strong><span className="table-sub">{x.descrizione_estesa.slice(0,85)}{x.descrizione_estesa.length>85?'…':''}</span></td>
     <td>{sedi.length?<><strong>{sedi[0]?.edifici?.codice_edificio}</strong><span className="table-sub">{sedi[0]?.edifici?.denominazione}{sedi.length>1?' + '+(sedi.length-1)+' sedi':''}</span></>:<span className="table-sub">{x.edificio_origine||'—'}</span>}</td>
     <td><div className="request-badges">{amb.slice(0,3).map((a:any)=><span className="badge blue" key={a.id}>{a.ambiti_richiesta_intervento?.denominazione||'—'}</span>)}{amb.length>3&&<span className="badge gray">+{amb.length-3}</span>}</div></td>
