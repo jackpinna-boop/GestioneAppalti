@@ -230,7 +230,7 @@ export default function SchoolAdminPanel({access}:Props){
      }else if(userMode==='associate'){
        await ensureSchoolRole(uid,userForm.ruolo)
      }else if(editingUser){
-       await invokeAdminUsers({action:'update_profile',user_id:uid,ente_id:enteId,nome:userForm.nome,cognome:userForm.cognome,email:userForm.email,telefono:userForm.telefono,password:userForm.password,attivo:userForm.attivo})
+       await invokeAdminUsers({action:'update',user_id:uid,ente_id:enteId,nome:userForm.nome,cognome:userForm.cognome,email:userForm.email,telefono:userForm.telefono,password:userForm.password,attivo:userForm.attivo})
        const current=schoolUsers.find(x=>x.user_id===uid)
        if(current)await syncSchoolRoleAfterChange(uid,current.ruolo,userForm.ruolo)
      }
