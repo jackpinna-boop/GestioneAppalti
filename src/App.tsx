@@ -213,16 +213,25 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
   return x.risolto?'risolta':'aperta';
  };
  const normalizedRows=rows.map(x=>({row:x,status:requestStatus(x)}));
+ // "Da valutare" è una categoria di tipologia, non lo stato di risoluzione.
+ // Le richieste da valutare sono quindi quelle con tipo_intervento=da_valutare.
+ // Le richieste aperte escludono le da valutare, così i quattro contatori
+ // rappresentano categorie non sovrapposte e la somma coincide con "Tutte".
  const statusCounts={
-  da_valutare:normalizedRows.filter(x=>x.status==='da_valutare').length,
-  aperte:normalizedRows.filter(x=>x.status==='aperta').length,
+  da_valutare:normalizedRows.filter(x=>x.row.tipo_intervento==='da_valutare' && x.status!=='risolta').length,
+  aperte:normalizedRows.filter(x=>x.row.tipo_intervento!=='da_valutare' && x.status==='aperta').length,
   risolte:normalizedRows.filter(x=>x.status==='risolta').length
  };
  const filtered=rows.filter(x=>{
   const text=(x.codice_richiesta+' '+x.titolo_sintetico+' '+(x.numero_protocollo||'')+' '+(x.richieste_intervento_sedi||[])).toLowerCase();
   const matchesQ=text.includes(q.toLowerCase()) || JSON.stringify(x).toLowerCase().includes(q.toLowerCase());
   const status=requestStatus(x);
-  const matches=filter==='tutte'||(filter==='risolte'&&status==='risolta')||(filter==='aperte'&&status==='aperta')||(filter==='da_valutare'&&status==='da_valutare')||(filter==='ordinaria'&&x.tipo_intervento==='ordinaria')||(filter==='straordinaria'&&x.tipo_intervento==='straordinaria');
+  const matches=filter==='tutte'
+   ||(filter==='risolte'&&status==='risolta')
+   ||(filter==='aperte'&&x.tipo_intervento!=='da_valutare'&&status==='aperta')
+   ||(filter==='da_valutare'&&x.tipo_intervento==='da_valutare'&&status!=='risolta')
+   ||(filter==='ordinaria'&&x.tipo_intervento==='ordinaria')
+   ||(filter==='straordinaria'&&x.tipo_intervento==='straordinaria');
   const matchesBuilding=buildingFilter==='all'||(x.richieste_intervento_sedi||[]).some((s:any)=>s.edificio_id===buildingFilter);
   const matchesAmbito=ambitoFilter==='all'||(x.richieste_intervento_ambiti||[]).some((a:any)=>a.ambito_id===ambitoFilter);
   const matchesPriority=priorityFilter==='all'||x.priorita===priorityFilter; return matchesQ&&matches&&matchesBuilding&&matchesAmbito&&matchesPriority;
