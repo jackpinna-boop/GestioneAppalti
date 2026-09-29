@@ -314,6 +314,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  return <PageHead title="Richieste di intervento" subtitle="Segnalazioni provenienti dagli istituti scolastici e loro gestione.">
   <div className="page-actions">
    <div className="search"><Search size={17}/><input placeholder="Cerca codice, protocollo, titolo, edificio…" value={q} onChange={e=>setQ(e.target.value)}/></div>
+   <button className="btn secondary" onClick={()=>setRefresh(refresh+1)} disabled={loading} title="Aggiorna le richieste"><RefreshCw size={16} className={loading?'spin':''}/> Aggiorna</button>
    <button className="btn secondary" onClick={()=>setAdvanced(!advanced)}><SlidersHorizontal size={16}/> Filtri</button>
    {write&&<button className="btn primary" onClick={()=>{setEditing(null);setShow(true)}}><Plus size={17}/> Nuova richiesta</button>}
   </div>
