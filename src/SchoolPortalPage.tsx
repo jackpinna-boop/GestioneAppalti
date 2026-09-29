@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Building2, CheckCircle2, CircleAlert, FileText, History, LogOut, Plus, X, Paperclip, Download } from 'lucide-react'
+import { Building2, CheckCircle2, CircleAlert, FileText, History, LogOut, Plus, X, Paperclip, Download, RefreshCw } from 'lucide-react'
 import { supabase } from './lib/supabase'
 
 type Access={user_id:string;ente_id:string;ruolo:string;ente:string;logo_path?:string|null;ui_palette?:string}
@@ -158,7 +158,7 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
    <section className="school-portal-notice"><CircleAlert size={18}/><span>Le richieste registrate non possono essere eliminate. In caso di errore devono essere <b>annullate</b>, mantenendo traccia dell’operazione.</span></section>
    {message&&<div className="notice info">{message}<button className="icon-btn" onClick={()=>setMessage('')}><X size={15}/></button></div>}
    <div className="school-kpis"><div><span>Richieste aperte</span><strong>{open}</strong></div><div><span>In carico</span><strong>{inProgress}</strong></div><div><span>Risolte</span><strong>{resolved}</strong></div><div><span>Annullate</span><strong>{cancelled}</strong></div></div>
-   <div className="school-portal-actions"><button className="btn primary" onClick={()=>setShowNew(true)}><Plus size={16}/> Segnala intervento</button><span>{schools.length} istituto/i · {buildings.length} edificio/i autorizzati</span></div>
+   <div className="school-portal-actions"><button className="btn secondary" onClick={()=>void load()} disabled={loading} title="Aggiorna le richieste"><RefreshCw size={16}/> Aggiorna</button><button className="btn primary" onClick={()=>setShowNew(true)}><Plus size={16}/> Segnala intervento</button><span>{schools.length} istituto/i · {buildings.length} edificio/i autorizzati</span></div>
    <div className="school-portal-grid">
     <section className="card">
      <div className="card-head"><div><h2>Le mie segnalazioni</h2><p>Visualizzi esclusivamente le richieste del tuo perimetro autorizzato.</p></div><FileText size={20}/></div>
