@@ -28,7 +28,7 @@ const canManage=(a:Access[])=>a.some(x=>['superadmin','admin_ente','rup'].includ
 const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore','siservizi']
 
 function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?:string)=>void}){
- const enteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
+ const enteId=access.find(x=>x.ente_id)?.ente_id||'';
  const userId=access[0]?.user_id||'';
  const storageKey=`gestione-appalti.notifications.seen.${userId}.${enteId}`;
  const [items,setItems]=useState<any[]>([]);
@@ -44,7 +44,24 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
    .order('timestamp',{ascending:false})
    .limit(7);
   if(error){console.error('Errore caricamento notifiche:',error);return}
-  const next=data||[];
+  const audit=data||[];
+  const requestIds=[...new Set(audit.filter((x:any)=>String(x.tabella||'').toLowerCase().includes('richiest')&&x.record_id).map((x:any)=>String(x.record_id)))];
+  let requests:any[]=[];
+  let links:any[]=[];
+  let schools:any[]=[];
+  if(requestIds.length){
+   const [rq,lk,sc]=await Promise.all([
+    supabase.from('richieste_intervento').select('id,codice_richiesta,numero_protocollo,data_richiesta').eq('ente_id',enteId).in('id',requestIds),
+    supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId).in('richiesta_id',requestIds),
+    supabase.from('scuole').select('id,codice_meccanografico,denominazione').eq('attiva',true)
+   ]);
+   requests=rq.data||[]; links=lk.data||[]; schools=sc.data||[];
+  }
+  const reqById=Object.fromEntries(requests.map((r:any)=>[r.id,r]));
+  const schoolById=Object.fromEntries(schools.map((s:any)=>[s.id,s]));
+  const schoolByRequest:Record<string,any>={};
+  for(const link of links){if(link.richiesta_id&&!schoolByRequest[link.richiesta_id]&&schoolById[link.scuola_id])schoolByRequest[link.richiesta_id]=schoolById[link.scuola_id]}
+  const next=audit.map((x:any)=>({...x,request:reqById[String(x.record_id)]||null,school:schoolByRequest[String(x.record_id)]||null}));
   setItems(next);
   const newest=next[0]?.timestamp||'';
   const seen=localStorage.getItem(storageKey)||'';
@@ -52,9 +69,7 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
    if(!seen&&newest)localStorage.setItem(storageKey,newest);
    setHasNew(!!seen&&!!newest&&newest>seen);
    setInitialized(true);
-  }else{
-   setHasNew(!!newest&&newest>seen);
-  }
+  }else setHasNew(!!newest&&newest>seen);
  };
 
  useEffect(()=>{
@@ -72,29 +87,42 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
   }
  };
 
- const openNotification=(x:any)=>{ setOpen(false); setHasNew(false); if(x.record_id&&String(x.tabella||'').toLowerCase().includes('richiest')) onOpen('richieste',x.record_id); };
+ const openNotification=(x:any)=>{
+  setOpen(false);
+  setHasNew(false);
+  const request=x.request;
+  if(request?.id) onOpen('richieste',request.id);
+ };
+
  const notificationText=(x:any)=>{
+  const request=x.request;
+  const school=x.school;
+  if(request){
+   const protocol=request.numero_protocollo?String(request.numero_protocollo):'—';
+   const codice=school?.codice_meccanografico||'—';
+   return `Aggiornamento richiesta · ${codice} · Prot. ${protocol}`;
+  }
   const action=String(x.azione||'').toLowerCase();
-  const table=String(x.tabella||'').toLowerCase();
-  if(table.includes('richieste_intervento')||table.includes('richiesta_intervento')) return 'Aggiornamento richiesta di intervento';
   if(action.includes('insert')||action.includes('crea')||action.includes('create')) return 'Nuovo elemento inserito';
   if(action.includes('update')||action.includes('modif')) return 'Elemento aggiornato';
   if(action.includes('delete')||action.includes('elimin')) return 'Elemento eliminato';
   return 'Aggiornamento del sistema';
  };
+
  return <div className="notification-wrap">
   <button type="button" className="notification-btn" title="Notifiche" aria-label="Notifiche" onClick={openNotifications}>
    <Bell size={19}/>{hasNew&&<span className="notification-dot" aria-label="Nuove notifiche"/>}
   </button>
   {open&&<div className="notification-menu">
    <div className="notification-head"><strong>Notifiche</strong><span>Ultime 7</span></div>
-   {items.length?items.map((x:any)=><button type="button" className="notification-item" key={x.id} onClick={()=>openNotification(x)} title="Apri segnalazione">
+   {items.length?items.map((x:any)=><button type="button" className="notification-item" key={x.id} onClick={()=>openNotification(x)} title={x.request?'Apri la relativa segnalazione':'Dettaglio non disponibile'}>
     <div className="notification-item-icon"><Bell size={14}/></div>
-    <div><strong>{notificationText(x)}</strong><span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></div>
+    <div><strong>{notificationText(x)}</strong>{x.school?.denominazione&&<span className="notification-school">{x.school.denominazione}</span>}<span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></div>
    </button>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
   </div>}
  </div>
 }
+
 
 function useResourcePermissions(access:Access[], resource:string){
  const superadmin=access.some(x=>x.ruolo==='superadmin');
