@@ -116,8 +116,10 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
  const openNotification=(x:any)=>{
   setOpen(false);
   setHasNew(false);
-  const request=x.request;
-  if(request?.id) onOpen('richieste',request.id);
+  const parse=(v:any)=>{if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v)}catch{return null}};
+  const n=parse(x.valore_nuovo); const o=parse(x.valore_precedente);
+  const requestId=x.request?.id||x.record_id||n?.id||o?.id;
+  if(requestId) onOpen('richieste',String(requestId));
  };
 
  const notificationText=(x:any)=>{
