@@ -203,7 +203,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  const filtered=rows.filter(x=>{
   const text=(x.codice_richiesta+' '+x.titolo_sintetico+' '+(x.numero_protocollo||'')+' '+(x.richieste_intervento_sedi||[])).toLowerCase();
   const matchesQ=text.includes(q.toLowerCase()) || JSON.stringify(x).toLowerCase().includes(q.toLowerCase());
-  const matches=filter==='tutte'||(filter==='risolte'&&x.stato_risoluzione==='risolta')||(filter==='aperte'&&x.stato_risoluzione==='aperta')||(filter==='da_valutare'&&x.stato_risoluzione==='da_valutare')||(filter===x.tipo_intervento);
+  const matches=filter==='tutte'||(filter==='risolte'&&x.stato_risoluzione==='risolta')||(filter==='aperte'&&x.stato_risoluzione==='aperta')||(filter==='da_valutare'&&x.stato_risoluzione==='da_valutare')||(filter==='ordinaria'&&x.tipo_intervento==='ordinaria')||(filter==='straordinaria'&&x.tipo_intervento==='straordinaria');
   const matchesBuilding=buildingFilter==='all'||(x.richieste_intervento_sedi||[]).some((s:any)=>s.edificio_id===buildingFilter);
   const matchesAmbito=ambitoFilter==='all'||(x.richieste_intervento_ambiti||[]).some((a:any)=>a.ambito_id===ambitoFilter);
   const matchesPriority=priorityFilter==='all'||x.priorita===priorityFilter; return matchesQ&&matches&&matchesBuilding&&matchesAmbito&&matchesPriority;
