@@ -30,7 +30,7 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
  const [buildingFilter,setBuildingFilter]=useState('all')
  const [newSchoolId,setNewSchoolId]=useState('')
  const [newBuildingIds,setNewBuildingIds]=useState<string[]>([])
- const newBuildings=useMemo(()=>newSchoolId==='all'||!newSchoolId?[]:buildings.filter(b=>schoolBuildingMap[b.id]===newSchoolId),[buildings,schoolBuildingMap,newSchoolId])
+ const newBuildings=useMemo(()=>!newSchoolId?[]:buildings.filter(b=>Array.isArray(schoolBuildingMap[b.id])?schoolBuildingMap[b.id].includes(newSchoolId):schoolBuildingMap[b.id]===newSchoolId),[buildings,schoolBuildingMap,newSchoolId])
 
  const load=async()=>{
    setLoading(true)
@@ -49,7 +49,22 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
    const schoolIds=new Set(links.map((x:any)=>x.scuola_id))
    const buildingIds=new Set((sue.data||[]).filter((x:any)=>linkIds.has(x.scuola_utente_id)).map((x:any)=>x.edificio_id))
    setSchools((se.data||[]).filter((x:any)=>schoolIds.has(x.id)))
-   const sbm:any={};(sed.data||[]).forEach((x:any)=>{sbm[x.edificio_id]=x.scuola_id});setSchoolBuildingMap(sbm)
+   // Associazione edificio/scuola: usa prima le associazioni effettive dell'utente
+   // (scuola_utenti -> scuola_utenti_edifici), così il filtro non dipende
+   // esclusivamente dalla tabella scuole_edifici e funziona anche quando un edificio
+   // è associato a più scuole.
+   const sbm:any={}
+   for(const link of links){
+     for(const ue of (sue.data||[]).filter((x:any)=>x.scuola_utente_id===link.id)){
+       sbm[ue.edificio_id]=sbm[ue.edificio_id]||[]
+       if(!sbm[ue.edificio_id].includes(link.scuola_id)) sbm[ue.edificio_id].push(link.scuola_id)
+     }
+   }
+   for(const x of (sed.data||[])){
+     sbm[x.edificio_id]=sbm[x.edificio_id]||[]
+     if(!sbm[x.edificio_id].includes(x.scuola_id)) sbm[x.edificio_id].push(x.scuola_id)
+   }
+   setSchoolBuildingMap(sbm)
    setBuildings((ed.data||[]).filter((x:any)=>buildingIds.has(x.id)))
    setRows((rq.data||[]) as SchoolRequest[])
    setLogs(lg.data||[])
