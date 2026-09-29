@@ -30,7 +30,7 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
  const [buildingFilter,setBuildingFilter]=useState('all')
  const [newSchoolId,setNewSchoolId]=useState('')
  const [newBuildingIds,setNewBuildingIds]=useState<string[]>([])
- const newBuildings=useMemo(()=>!newSchoolId?[]:buildings.filter(b=>Array.isArray(schoolBuildingMap[b.id])?schoolBuildingMap[b.id].includes(newSchoolId):schoolBuildingMap[b.id]===newSchoolId),[buildings,schoolBuildingMap,newSchoolId])
+ const newBuildings=useMemo(()=>!newSchoolId?[]:buildings.filter(b=>Array.isArray(schoolBuildingMap[b.id])?schoolBuildingMap[b.id].includes(newSchoolId):false),[buildings,schoolBuildingMap,newSchoolId])
 
  const load=async()=>{
    setLoading(true)
@@ -75,7 +75,7 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
  const filtered=useMemo(()=>rows.filter(r=>{
    const sedi=(r.richieste_intervento_sedi||[]).map((x:any)=>x.edificio_id)
    const byBuilding=buildingFilter==='all'||sedi.includes(buildingFilter)
-   const bySchool=schoolFilter==='all'||sedi.some((id:string)=>schoolBuildingMap[id]===schoolFilter)
+   const bySchool=schoolFilter==='all'||sedi.some((id:string)=>Array.isArray(schoolBuildingMap[id])&&schoolBuildingMap[id].includes(schoolFilter))
    return byBuilding&&bySchool
  }),[rows,buildingFilter,schoolFilter,buildings,schoolBuildingMap])
  const open=rows.filter(x=>['aperta','da_valutare'].includes(x.stato_risoluzione)).length
