@@ -435,3 +435,8 @@ td{color:#344b59;border-bottom-color:#e6edef}
 .notification-item:hover{background:#f6f9fc}
 
 .notification-school{display:block;margin-top:2px;font-size:10px;color:#587087}
+
+.notification-item-body{min-width:0;flex:1}
+.notification-open{display:inline-flex;align-items:center;gap:5px;margin-top:7px;padding:4px 8px;border:1px solid #d8e2ec;border-radius:6px;background:#f7fafc;color:#155b85;font-size:10px;font-weight:700;cursor:pointer}
+.notification-open:hover{background:#edf5fa}
+.notification-item-body>span{display:block}
