@@ -14,7 +14,7 @@ const fmtDate=(v:string|null|undefined)=>v?new Intl.DateTimeFormat('it-IT').form
 export default function SchoolPortalPage({session,access}:{session:any;access:Access[]}){
  const userId=session.user.id
  const [schools,setSchools]=useState<School[]>([])
- const [schoolBuildingMap,setSchoolBuildingMap]=useState<Record<string,string>>({})
+ const [schoolBuildingMap,setSchoolBuildingMap]=useState<Record<string,string[]>>({})
  const [buildings,setBuildings]=useState<SchoolBuilding[]>([])
  const [rows,setRows]=useState<SchoolRequest[]>([])
  const [selected,setSelected]=useState<SchoolRequest|null>(null)
