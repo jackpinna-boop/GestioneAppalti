@@ -36,32 +36,65 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
  const [hasNew,setHasNew]=useState(false);
  const [initialized,setInitialized]=useState(false);
 
+ const parseJson=(value:any)=>{
+  if(!value)return null;
+  if(typeof value==='object')return value;
+  try{return JSON.parse(value)}catch{return null}
+ };
+
  const loadNotifications=async()=>{
   if(!enteId)return;
   const {data,error}=await supabase.from('audit_log')
-   .select('id,timestamp,azione,tabella,record_id,intervento_id,valore_nuovo')
+   .select('id,timestamp,azione,tabella,record_id,intervento_id,valore_nuovo,valore_precedente')
    .eq('ente_id',enteId)
    .order('timestamp',{ascending:false})
    .limit(7);
   if(error){console.error('Errore caricamento notifiche:',error);return}
   const audit=data||[];
-  const requestIds=[...new Set(audit.filter((x:any)=>String(x.tabella||'').toLowerCase().includes('richiest')&&x.record_id).map((x:any)=>String(x.record_id)))];
+  // Le righe di audit possono riferirsi alla richiesta tramite record_id oppure
+  // tramite l'id contenuto nel JSON storico della riga.
+  const candidateIds=[...new Set(audit.flatMap((x:any)=>{
+   const n=parseJson(x.valore_nuovo); const o=parseJson(x.valore_precedente);
+   return [x.record_id,n?.id,o?.id].filter(Boolean).map(String);
+  }))];
+
   let requests:any[]=[];
   let links:any[]=[];
   let schools:any[]=[];
-  if(requestIds.length){
-   const [rq,lk,sc]=await Promise.all([
-    supabase.from('richieste_intervento').select('id,codice_richiesta,numero_protocollo,data_richiesta').eq('ente_id',enteId).in('id',requestIds),
-    supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId).in('richiesta_id',requestIds),
-    supabase.from('scuole').select('id,codice_meccanografico,denominazione').eq('attiva',true)
+  if(candidateIds.length){
+   const [rq,lk]=await Promise.all([
+    supabase.from('richieste_intervento').select('id,codice_richiesta,numero_protocollo,data_richiesta,scuola_id').eq('ente_id',enteId).in('id',candidateIds),
+    supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId).in('richiesta_id',candidateIds)
    ]);
-   requests=rq.data||[]; links=lk.data||[]; schools=sc.data||[];
+   requests=rq.data||[]; links=lk.data||[];
   }
-  const reqById=Object.fromEntries(requests.map((r:any)=>[r.id,r]));
-  const schoolById=Object.fromEntries(schools.map((s:any)=>[s.id,s]));
+  const schoolIds=[...new Set([
+   ...links.map((x:any)=>x.scuola_id),
+   ...requests.map((x:any)=>x.scuola_id)
+  ].filter(Boolean).map(String))];
+  if(schoolIds.length){
+   const sc=await supabase.from('scuole').select('id,codice_meccanografico,denominazione').in('id',schoolIds);
+   schools=sc.data||[];
+  }
+
+  const reqById=Object.fromEntries(requests.map((r:any)=>[String(r.id),r]));
+  const schoolById=Object.fromEntries(schools.map((s:any)=>[String(s.id),s]));
   const schoolByRequest:Record<string,any>={};
-  for(const link of links){if(link.richiesta_id&&!schoolByRequest[link.richiesta_id]&&schoolById[link.scuola_id])schoolByRequest[link.richiesta_id]=schoolById[link.scuola_id]}
-  const next=audit.map((x:any)=>({...x,request:reqById[String(x.record_id)]||null,school:schoolByRequest[String(x.record_id)]||null}));
+  for(const link of links){
+   if(link.richiesta_id&&!schoolByRequest[String(link.richiesta_id)]&&schoolById[String(link.scuola_id)])
+    schoolByRequest[String(link.richiesta_id)]=schoolById[String(link.scuola_id)];
+  }
+  for(const request of requests){
+   if(request.scuola_id&&!schoolByRequest[String(request.id)]&&schoolById[String(request.scuola_id)])
+    schoolByRequest[String(request.id)]=schoolById[String(request.scuola_id)];
+  }
+
+  const next=audit.map((x:any)=>{
+   const n=parseJson(x.valore_nuovo); const o=parseJson(x.valore_precedente);
+   const request=reqById[String(x.record_id)]||reqById[String(n?.id)]||reqById[String(o?.id)]||null;
+   const school=schoolByRequest[String(request?.id)]||schoolById[String(n?.scuola_id)]||schoolById[String(o?.scuola_id)]||null;
+   return {...x,request,school};
+  });
   setItems(next);
   const newest=next[0]?.timestamp||'';
   const seen=localStorage.getItem(storageKey)||'';
@@ -71,13 +104,6 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
    setInitialized(true);
   }else setHasNew(!!newest&&newest>seen);
  };
-
- useEffect(()=>{
-  setInitialized(false);
-  void loadNotifications();
-  const timer=window.setInterval(()=>void loadNotifications(),30000);
-  return()=>window.clearInterval(timer);
- },[enteId,userId]);
 
  const openNotifications=()=>{
   setOpen(v=>!v);
