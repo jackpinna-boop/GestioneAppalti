@@ -263,7 +263,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
    requestQuery.order('data_richiesta',{ascending:false}).order('numero_progressivo',{ascending:false}),
    supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune').order('denominazione'),
    supabase.from('ambiti_richiesta_intervento').select('id,codice,denominazione').eq('attivo',true).order('denominazione'),
-   supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId||'').not('richiesta_id','is',null).order('created_at',{ascending:false}),
+   supabase.from('scuola_access_log').select('richiesta_id,scuola_id').eq('ente_id',enteId||'').not('richiesta_id','is',null),
    supabase.from('scuole').select('id,codice_meccanografico,denominazione').eq('attiva',true).order('denominazione')
   ]);
   if(r.error){console.error(r.error);setMessage('Errore caricamento richieste: '+r.error.message)} else setRows((r.data||[]) as RequestRow[]);
