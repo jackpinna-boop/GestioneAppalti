@@ -90,8 +90,8 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
    <div className="notification-head"><strong>Notifiche</strong><span>Ultime 7</span></div>
    {items.length?items.map((x:any)=><button type="button" className="notification-item" key={x.id} onClick={()=>openNotification(x)} title="Apri segnalazione">
     <div className="notification-item-icon"><Bell size={14}/></div>
-    <div><strong>{notificationText(x)}</strong><span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></button>
-   </div>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
+    <div><strong>{notificationText(x)}</strong><span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></div>
+   </button>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
   </div>}
  </div>
 }
