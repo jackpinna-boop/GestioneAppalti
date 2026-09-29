@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X, Upload, Download, RefreshCw, Pencil, Trash2, Printer, Paperclip, Wrench, UserCog, History, Save, RotateCcw, CheckCircle2, Eye, SlidersHorizontal, CalendarDays, ChevronDown } from 'lucide-react'
+import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X, Upload, Download, RefreshCw, Pencil, Trash2, Printer, Paperclip, Wrench, UserCog, History, Save, RotateCcw, CheckCircle2, Eye, SlidersHorizontal, CalendarDays, ChevronDown, Bell } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import * as XLSX from 'xlsx'
@@ -26,6 +26,74 @@ const isSiServizi=(a:Access[])=>a.some(x=>x.ruolo==='siservizi')
 const canWrite=(a:Access[])=>a.length>0
 const canManage=(a:Access[])=>a.some(x=>['superadmin','admin_ente','rup'].includes(x.ruolo))
 const managedRoles=['admin_ente','rup','tecnico','amministrativo','direttore_lavori','auditor','consultatore','manutentore','siservizi']
+
+function NotificationBell({access}:{access:Access[]}){
+ const enteId=access.find(x=>x.ruolo==='superadmin')?.ente_id||access[0]?.ente_id||'';
+ const userId=access[0]?.user_id||'';
+ const storageKey=`gestione-appalti.notifications.seen.${userId}.${enteId}`;
+ const [items,setItems]=useState<any[]>([]);
+ const [open,setOpen]=useState(false);
+ const [hasNew,setHasNew]=useState(false);
+ const [initialized,setInitialized]=useState(false);
+
+ const loadNotifications=async()=>{
+  if(!enteId)return;
+  const {data,error}=await supabase.from('audit_log')
+   .select('id,timestamp,azione,tabella,record_id,intervento_id,valore_nuovo')
+   .eq('ente_id',enteId)
+   .order('timestamp',{ascending:false})
+   .limit(7);
+  if(error){console.error('Errore caricamento notifiche:',error);return}
+  const next=data||[];
+  setItems(next);
+  const newest=next[0]?.timestamp||'';
+  const seen=localStorage.getItem(storageKey)||'';
+  if(!initialized){
+   if(!seen&&newest)localStorage.setItem(storageKey,newest);
+   setHasNew(!!seen&&!!newest&&newest>seen);
+   setInitialized(true);
+  }else{
+   setHasNew(!!newest&&newest>seen);
+  }
+ };
+
+ useEffect(()=>{
+  setInitialized(false);
+  void loadNotifications();
+  const timer=window.setInterval(()=>void loadNotifications(),30000);
+  return()=>window.clearInterval(timer);
+ },[enteId,userId]);
+
+ const openNotifications=()=>{
+  setOpen(v=>!v);
+  if(items[0]?.timestamp){
+   localStorage.setItem(storageKey,items[0].timestamp);
+   setHasNew(false);
+  }
+ };
+
+ const notificationText=(x:any)=>{
+  const action=String(x.azione||'').toLowerCase();
+  const table=String(x.tabella||'').toLowerCase();
+  if(table.includes('richieste_intervento')||table.includes('richiesta_intervento')) return 'Aggiornamento richiesta di intervento';
+  if(action.includes('insert')||action.includes('crea')||action.includes('create')) return 'Nuovo elemento inserito';
+  if(action.includes('update')||action.includes('modif')) return 'Elemento aggiornato';
+  if(action.includes('delete')||action.includes('elimin')) return 'Elemento eliminato';
+  return 'Aggiornamento del sistema';
+ };
+ return <div className="notification-wrap">
+  <button type="button" className="notification-btn" title="Notifiche" aria-label="Notifiche" onClick={openNotifications}>
+   <Bell size={19}/>{hasNew&&<span className="notification-dot" aria-label="Nuove notifiche"/>}
+  </button>
+  {open&&<div className="notification-menu">
+   <div className="notification-head"><strong>Notifiche</strong><span>Ultime 7</span></div>
+   {items.length?items.map((x:any)=><div className="notification-item" key={x.id}>
+    <div className="notification-item-icon"><Bell size={14}/></div>
+    <div><strong>{notificationText(x)}</strong><span>{new Date(x.timestamp).toLocaleString('it-IT')}</span></div>
+   </div>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
+  </div>}
+ </div>
+}
 
 function useResourcePermissions(access:Access[], resource:string){
  const superadmin=access.some(x=>x.ruolo==='superadmin');
@@ -117,7 +185,7 @@ function AppShell({session}:{session:any}){
  useEffect(()=>{if(!menuReady)return;if(!pageAllowed(page))navigate('dashboard')},[menuReady,page,menuPermissions])
  if(!menuReady)return <div className="loading-screen">Caricamento autorizzazioni…</div>
  if(access.some(x=>['dirigente_scolastico','delegato_scolastico'].includes(x.ruolo))) return <SchoolPortalPage session={session} access={access}/>
- return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
+ return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><NotificationBell access={access}/><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav>
  {canMenu('dashboard')&&<Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/>}
  {canMenu('edifici')&&<Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/>}
