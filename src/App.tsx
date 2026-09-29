@@ -189,8 +189,10 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
 
  const load=async()=>{
   setLoading(true);
+  const requestQuery=supabase.from('richieste_intervento').select('*,richieste_intervento_sedi(id,edificio_id,edifici(id,codice_edificio,denominazione,indirizzo,comune)),richieste_intervento_ambiti(id,ambito_id,ambiti_richiesta_intervento(id,codice,denominazione)),richiesta_intervento_documenti(id,nome,mime_type,size_bytes,url,tipo,data_documento,versione)');
+  if(enteId) requestQuery.eq('ente_id',enteId);
   const [r,b,a,d]=await Promise.all([
-   supabase.from('richieste_intervento').select('*,richieste_intervento_sedi(id,edificio_id,edifici(id,codice_edificio,denominazione,indirizzo,comune)),richieste_intervento_ambiti(id,ambito_id,ambiti_richiesta_intervento(id,codice,denominazione)),richiesta_intervento_documenti(id,nome,mime_type,size_bytes,url,tipo,data_documento,versione)').order('data_richiesta',{ascending:false}).order('numero_progressivo',{ascending:false}),
+   requestQuery.order('data_richiesta',{ascending:false}).order('numero_progressivo',{ascending:false}),
    supabase.from('edifici').select('id,codice_edificio,denominazione,indirizzo,comune').order('denominazione'),
    supabase.from('ambiti_richiesta_intervento').select('id,codice,denominazione').eq('attivo',true).order('denominazione'),
    Promise.resolve({data:null,error:null})
@@ -200,7 +202,16 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
  };
  useEffect(()=>{load()},[refresh,access[0]?.ente_id]);
 
- const requestStatus=(x:RequestRow):'aperta'|'risolta'|'da_valutare'=>x.stato_risoluzione|| (x.risolto?'risolta':'aperta');
+ const requestStatus=(x:RequestRow):'aperta'|'risolta'|'da_valutare'=>{
+  const raw=String(x.stato_risoluzione??'').trim().toLowerCase().replace(/\\s+/g,'_');
+  if(raw==='risolta'||raw==='aperta'||raw==='da_valutare') return raw;
+  return x.risolto?'risolta':'aperta';
+ };
+ const statusCounts={
+  da_valutare:rows.filter(x=>requestStatus(x)==='da_valutare').length,
+  aperte:rows.filter(x=>requestStatus(x)==='aperta').length,
+  risolte:rows.filter(x=>requestStatus(x)==='risolta').length
+ };
  const filtered=rows.filter(x=>{
   const text=(x.codice_richiesta+' '+x.titolo_sintetico+' '+(x.numero_protocollo||'')+' '+(x.richieste_intervento_sedi||[])).toLowerCase();
   const matchesQ=text.includes(q.toLowerCase()) || JSON.stringify(x).toLowerCase().includes(q.toLowerCase());
@@ -292,7 +303,7 @@ function RequestsPage({access,refresh,setRefresh}:{access:Access[];refresh:numbe
    {write&&<button className="btn primary" onClick={()=>{setEditing(null);setShow(true)}}><Plus size={17}/> Nuova richiesta</button>}
   </div>
   {advanced&&<div className="request-filters card"><label>Stato<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="tutte">Tutte</option><option value="da_valutare">Da valutare</option><option value="ordinaria">Ordinarie</option><option value="straordinaria">Straordinarie</option><option value="aperte">Aperte</option><option value="risolte">Risolte</option></select></label><label>Edificio / sede<select value={buildingFilter} onChange={e=>setBuildingFilter(e.target.value)}><option value="all">Tutti gli edifici</option>{buildings.map((b:any)=><option key={b.id} value={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}</select></label><label>Ambito di intervento<select value={ambitoFilter} onChange={e=>setAmbitoFilter(e.target.value)}><option value="all">Tutti gli ambiti</option>{ambiti.map((a:any)=><option key={a.id} value={a.id}>{a.denominazione}</option>)}</select></label><label>Priorità<select value={priorityFilter} onChange={e=>setPriorityFilter(e.target.value)}><option value="all">Tutte le priorità</option><option value="programmabile">Programmabile</option><option value="non_urgente">Non urgente</option><option value="media">Medio</option><option value="urgente">Urgente</option></select></label><button type="button" className="btn secondary filter-reset" onClick={()=>{setFilter('tutte');setBuildingFilter('all');setAmbitoFilter('all');setPriorityFilter('all');setQ('')}}><RotateCcw size={15}/> Azzera filtri</button></div>}
-  <div className="request-tabs"><button className={filter==='tutte'?'active':''} onClick={()=>setFilter('tutte')}>Tutte <b>{rows.length}</b></button><button className={filter==='da_valutare'?'active':''} onClick={()=>setFilter('da_valutare')}>Da valutare <b>{rows.filter(x=>requestStatus(x)==='da_valutare').length}</b></button><button className={filter==='aperte'?'active':''} onClick={()=>setFilter('aperte')}>Aperte <b>{rows.filter(x=>requestStatus(x)==='aperta').length}</b></button><button className={filter==='risolte'?'active':''} onClick={()=>setFilter('risolte')}>Risolte <b>{rows.filter(x=>requestStatus(x)==='risolta').length}</b></button></div>
+  <div className="request-tabs"><button className={filter==='tutte'?'active':''} onClick={()=>setFilter('tutte')}>Tutte <b>{rows.length}</b></button><button className={filter==='da_valutare'?'active':''} onClick={()=>setFilter('da_valutare')}>Da valutare <b>{statusCounts.da_valutare}</b></button><button className={filter==='aperte'?'active':''} onClick={()=>setFilter('aperte')}>Aperte <b>{statusCounts.aperte}</b></button><button className={filter==='risolte'?'active':''} onClick={()=>setFilter('risolte')}>Risolte <b>{statusCounts.risolte}</b></button></div>
   {message&&<div className="notice success">{message}</div>}
   <section className="card table-card">
    <div className="table-toolbar"><span className="table-result-count">{sorted.length} richieste visualizzate</span><div className="export-actions"><span className="export-label"><Download size={15}/> Esporta</span><button className="btn secondary" onClick={()=>exportRows('csv')} disabled={!sorted.length}>CSV</button><button className="btn secondary" onClick={()=>exportRows('xls')} disabled={!sorted.length}>XLS</button><button className="btn secondary" onClick={()=>exportRows('ods')} disabled={!sorted.length}>ODS</button></div></div>
