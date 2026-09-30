@@ -42,12 +42,16 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
   // presenti nell'ente: in questo modo restano disponibili anche quando
   // l'audit log non contiene un collegamento leggibile alla richiesta.
   const {data,error}=await supabase.from('richieste_intervento')
-   .select('id,codice_richiesta,numero_protocollo,data_protocollo,data_richiesta,titolo_sintetico,scuola_id')
+   .select('*')
    .eq('ente_id',enteId)
    .order('data_richiesta',{ascending:false})
    .order('numero_progressivo',{ascending:false})
    .limit(7);
-  if(error){console.error('Errore caricamento notifiche:',error);setItems([]);return}
+  if(error){
+   console.error('Errore caricamento notifiche:',error);
+   setItems([]);
+   return;
+  }
 
   const requests=data||[];
   const ids=requests.map((r:any)=>r.id).filter(Boolean);
@@ -118,7 +122,7 @@ function NotificationBell({access,onOpen}:{access:Access[];onOpen:(page:Page,id?
     <div className="notification-item-body">
      <strong>{notificationText(x)}</strong>
      <span className="notification-school">{x.school?.denominazione||'Scuola non associata'}</span>
-     <span>Data richiesta: {x.data_richiesta?date(x.data_richiesta):'—'} · Protocollo: {x.data_protocollo?date(x.data_protocollo):'—'}</span>
+     <span>Data richiesta: {x.data_richiesta?date(x.data_richiesta):'—'} · Protocollo: {x.numero_protocollo||'—'}{x.data_protocollo?' · Data protocollo: '+date(x.data_protocollo):''}</span>
      <button type="button" className="notification-open" onClick={()=>openNotification(x)}><Eye size={13}/> Apri segnalazione</button>
     </div>
    </div>):<div className="notification-empty">Nessuna segnalazione disponibile.</div>}
