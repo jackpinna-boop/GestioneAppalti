@@ -2,4 +2,6 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(64,51): error TS2339: Property 'numero_progressivo' does not exist on type '{ id: any; codice_richiesta: any; numero_protocollo: any; data_richiesta: any; scuola_id: any; }'.
+src/App.tsx(439,162): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/App.tsx(439,169): error TS2339: Property 'scuola' does not exist on type '{ codice: string; protocollo: string; richiesta: string; sedi: string; ambiti: string; tipologia: string; priorita: string; data: string; stato: string; allegati: string; }'.
