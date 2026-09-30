@@ -25,7 +25,7 @@ Non inserire nel repository:
 
 Le variabili di configurazione devono essere fornite tramite ambiente o secret/variable store del sistema di deploy.
 
-La chiave Supabase publishable/anon può essere presente nel frontend e non deve essere trattata come una credenziale amministrativa. Le chiavi server-side e le service-role keys devono invece rimanere esclusivamente lato server.
+Nel repository non devono essere presenti chiavi Supabase reali di alcun tipo, incluse publishable, anon, secret o service-role. I valori devono essere forniti esclusivamente tramite variabili d'ambiente o secret/variable store del sistema di deploy. Le chiavi server-side non devono mai essere incluse nel codice client.
 
 ## Stato del progetto
 
