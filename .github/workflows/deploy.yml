@@ -25,18 +25,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$VITE_SUPABASE_URL" == sb_* && "$VITE_SUPABASE_PUBLISHABLE_KEY" == https://* ]]; then
+          url="$VITE_SUPABASE_URL"
+          key="$VITE_SUPABASE_PUBLISHABLE_KEY"
+          if [[ "$url" == sb_* && "$key" == https://* ]]; then
             echo "Detected swapped Supabase variable values; correcting job environment."
+            tmp="$url"
+            url="$key"
+            key="$tmp"
             {
-              echo "VITE_SUPABASE_URL=$VITE_SUPABASE_PUBLISHABLE_KEY"
-              echo "VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_URL"
+              echo "VITE_SUPABASE_URL=$url"
+              echo "VITE_SUPABASE_PUBLISHABLE_KEY=$key"
             } >> "$GITHUB_ENV"
           fi
-          if [[ "$VITE_SUPABASE_URL" != https://*.supabase.co && "$VITE_SUPABASE_URL" != https://*.supabase.in ]]; then
+          if [[ "$url" != https://*.supabase.co && "$url" != https://*.supabase.in ]]; then
             echo "ERROR: VITE_SUPABASE_URL is not a valid Supabase project URL."
             exit 1
           fi
-          if [[ "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* && "$VITE_SUPABASE_PUBLISHABLE_KEY" != eyJ* ]]; then
+          if [[ "$key" != sb_publishable_* && "$key" != eyJ* ]]; then
             echo "ERROR: VITE_SUPABASE_PUBLISHABLE_KEY does not look like a publishable/anon key."
             exit 1
           fi
