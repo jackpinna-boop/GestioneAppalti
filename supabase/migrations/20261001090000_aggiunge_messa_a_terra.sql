@@ -47,3 +47,13 @@ ON CONFLICT (ente_id,codice) DO UPDATE SET
   gestione_documenti=true,
   gestione_alert=true,
   updated_at=now();
+
+
+-- Esempi demo: un impianto di messa a terra per ciascun edificio demo.
+INSERT INTO public.impianti_manutentivi
+(id,ente_id,edificio_id,tipo,codice,denominazione,ubicazione,marca_modello,matricola,anno_installazione,stato,data_ultima_manutenzione,data_prossima_manutenzione,periodicita_mesi,ditta_manutentrice,referente,numero_rapporto,conformita,note,data_installazione,data_verifica,data_collaudo,data_ultimo_controllo_periodico,data_prossimo_controllo_periodico)
+VALUES
+('00000000-0000-4000-8000-000000001437','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000101','messa_a_terra','IMP-DEMO-037','Impianto di messa a terra - Edificio 1','Locale tecnico / area dispersori','Sistema di terra Demo','MT-DEMO-001',2022,'attivo','2026-06-15','2026-12-15',12,'MANUTENZIONI DEMO S.R.L.','Referente Demo','RAP-DEMO-037',true,'DATO DEMO','2022-06-15','2025-10-01','2025-11-01','2025-10-01','2026-10-04'),
+('00000000-0000-4000-8000-000000001438','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000102','messa_a_terra','IMP-DEMO-038','Impianto di messa a terra - Edificio 2','Locale tecnico / area dispersori','Sistema di terra Demo','MT-DEMO-002',2022,'attivo','2026-06-15','2026-12-15',12,'MANUTENZIONI DEMO S.R.L.','Referente Demo','RAP-DEMO-038',true,'DATO DEMO','2022-06-15','2025-10-01','2025-11-01','2025-10-01','2026-10-07'),
+('00000000-0000-4000-8000-000000001439','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000103','messa_a_terra','IMP-DEMO-039','Impianto di messa a terra - Edificio 3','Locale tecnico / area dispersori','Sistema di terra Demo','MT-DEMO-003',2022,'attivo','2026-06-15','2026-12-15',12,'MANUTENZIONI DEMO S.R.L.','Referente Demo','RAP-DEMO-039',true,'DATO DEMO','2022-06-15','2025-10-01','2025-11-01','2025-10-01','2026-10-27')
+ON CONFLICT (id) DO NOTHING;
