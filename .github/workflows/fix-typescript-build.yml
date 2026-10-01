@@ -1,0 +1,37 @@
+name: Fix TypeScript build
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor == 'github-actions[bot]' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove hidden school sort key from request table
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("src/App.tsx")
+          s = p.read_text()
+          s2 = s.replace("type RequestSortKey='codice'|'scuola'|", "type RequestSortKey='codice'|")
+          s2 = s2.replace("   if(key==='scuola') return schoolByRequest[row.id]?.codice||schoolByRequest[row.id]?.denominazione||'';\n", "")
+          if s2 == s:
+              print("No source change required.")
+          else:
+              p.write_text(s2)
+          PY
+      - name: Commit source fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit."
+          else
+            git add src/App.tsx
+            git commit -m "Fix TypeScript error after hiding school code column"
+            git push
+          fi
