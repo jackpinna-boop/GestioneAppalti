@@ -21,6 +21,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Normalize Supabase variables
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$VITE_SUPABASE_URL" == sb_* && "$VITE_SUPABASE_PUBLISHABLE_KEY" == https://* ]]; then
+            echo "Detected swapped Supabase variable values; correcting job environment."
+            {
+              echo "VITE_SUPABASE_URL=$VITE_SUPABASE_PUBLISHABLE_KEY"
+              echo "VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_URL"
+            } >> "$GITHUB_ENV"
+          fi
+          if [[ "$VITE_SUPABASE_URL" != https://*.supabase.co && "$VITE_SUPABASE_URL" != https://*.supabase.in ]]; then
+            echo "ERROR: VITE_SUPABASE_URL is not a valid Supabase project URL."
+            exit 1
+          fi
+          if [[ "$VITE_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* && "$VITE_SUPABASE_PUBLISHABLE_KEY" != eyJ* ]]; then
+            echo "ERROR: VITE_SUPABASE_PUBLISHABLE_KEY does not look like a publishable/anon key."
+            exit 1
+          fi
       - run: npm install
       - run: npm run build
       - name: Verify Supabase Auth API key
@@ -29,6 +48,11 @@ jobs:
           SUPABASE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           set -euo pipefail
+          if [[ "$SUPABASE_URL" == sb_* && "$SUPABASE_KEY" == https://* ]]; then
+            tmp="$SUPABASE_URL"
+            SUPABASE_URL="$SUPABASE_KEY"
+            SUPABASE_KEY="$tmp"
+          fi
           code="$(curl -sS -o /tmp/supabase-auth-response.txt -w "%{http_code}" \
             -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
             -H "apikey: $SUPABASE_KEY" \
