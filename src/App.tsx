@@ -269,7 +269,7 @@ function MaintenanceDashboard({refresh,onOpen}:{refresh:number;onOpen:()=>void})
  const today=new Date().toISOString().slice(0,10);const active=systems.filter(x=>x.stato==='attivo').length;const due=systems.filter(x=>x.data_prossima_manutenzione&&x.data_prossima_manutenzione<today).length;const open=jobs.filter(x=>!['chiusa','annullata'].includes(x.stato)).length;const closed=jobs.filter(x=>x.stato==='chiusa').length;
  return <section className="card maintenance-dashboard"><div className="card-head"><div><h2>Riepilogo manutenzioni</h2><p>Quadro sintetico degli impianti e delle attività manutentive.</p></div><Wrench size={20}/></div><div className="request-kpis"><div><span>Impianti attivi</span><strong>{active}</strong></div><div><span>Manutenzioni in scadenza</span><strong>{due}</strong></div><div><span>Attività aperte</span><strong>{open}</strong></div><div><span>Attività chiuse</span><strong>{closed}</strong></div></div><div className="chart-footer"><span>Ultimo aggiornamento automatico all'apertura della Home</span><button className="btn secondary" onClick={onOpen}><Wrench size={15}/> Apri manutenzioni</button></div></section>
 }
-type RequestSortKey='codice'|'scuola'|'protocollo'|'richiesta'|'sedi'|'ambiti'|'tipologia'|'priorita'|'data'|'stato'|'allegati'
+type RequestSortKey='codice'|'protocollo'|'richiesta'|'sedi'|'ambiti'|'tipologia'|'priorita'|'data'|'stato'|'allegati'
 type RequestRow={
  id:string; ente_id:string; numero_progressivo:number; codice_richiesta:string; titolo_sintetico:string;
  descrizione_estesa:string; numero_protocollo:string|null; data_protocollo:string|null;
@@ -351,7 +351,6 @@ function RequestsPage({access,refresh,setRefresh,initialId}:{access:Access[];ref
  const sorted=[...filtered].sort((a,b)=>{
   const value=(row:RequestRow,key:RequestSortKey):string|number=>{
    if(key==='codice') return row.codice_richiesta||'';
-   if(key==='scuola') return schoolByRequest[row.id]?.codice||schoolByRequest[row.id]?.denominazione||'';
    if(key==='protocollo') return row.numero_protocollo||'';
    if(key==='richiesta') return row.titolo_sintetico||'';
    if(key==='sedi') return (row.richieste_intervento_sedi||[]).map((s:any)=>s.edifici?.denominazione||s.edifici?.codice_edificio||row.edificio_origine||'').join(' ');
