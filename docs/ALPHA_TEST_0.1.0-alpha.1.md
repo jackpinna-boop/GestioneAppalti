@@ -88,3 +88,22 @@ La baseline può passare alla fase successiva quando:
 6. ogni anomalia residua è registrata con priorità e riproducibilità.
 
 Le verifiche contrassegnate come automatiche sono state eseguite; le caselle operative richiedono test funzionali con utenze e navigazione dell'applicazione.
+
+
+## Verifica tecnica preliminare — 1 ottobre 2026
+
+### Esiti
+- Build CI: **PASS**
+- Build diagnostic: **PASS**
+- Verifica chiave Supabase Auth nel deploy: **PASS**
+- RLS sulle principali tabelle applicative: **attiva**
+- Policy RLS rilevate sulle principali tabelle: **28**
+- Record orfani nelle relazioni controllate: **0**
+- Impianti privi di codice: **0**
+- Impianti privi di tipologia: **0**
+- Tipologie impianto attive: **13**
+- Impianti demo: **36**
+- Impianti messa a terra: **3**
+
+### Limite della verifica corrente
+La verifica automatizzata non sostituisce il collaudo interattivo del browser. Non è stata certificata in questa sessione la corretta esecuzione manuale di click, modali, navigazione, rendering e comportamento responsive sulla pagina pubblicata. Questi test restano nel piano Alpha come prove funzionali da eseguire sull'interfaccia.
