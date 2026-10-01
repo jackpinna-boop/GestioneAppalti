@@ -2,6 +2,13 @@
 > gestione-appalti@0.1.0 build
 > tsc -b && vite build
 
-src/App.tsx(439,162): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
-  Type 'undefined' is not assignable to type 'string'.
-src/App.tsx(439,169): error TS2339: Property 'scuola' does not exist on type '{ codice: string; protocollo: string; richiesta: string; sedi: string; ambiti: string; tipologia: string; priorita: string; data: string; stato: string; allegati: string; }'.
+src/App.tsx(569,191): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(570,158): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(571,165): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(571,749): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(572,815): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(584,944): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(584,1940): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(585,220): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(585,1106): error TS2304: Cannot find name 'filePerm'.
+src/App.tsx(585,1269): error TS2304: Cannot find name 'filePerm'.
