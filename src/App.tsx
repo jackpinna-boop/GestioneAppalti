@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { BarChart3, Building2, ChevronRight, CircleAlert, ClipboardList, FileText, FolderOpen, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, WalletCards, X, Upload, Download, RefreshCw, Pencil, Trash2, Printer, Paperclip, Wrench, UserCog, History, Save, RotateCcw, CheckCircle2, Eye, SlidersHorizontal, CalendarDays, ChevronDown, Bell } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
-import * as XLSX from 'xlsx'
 import AuthScreen from './AuthScreen'
 import MfaGate from './MfaGate'
 import PrivacyNotice from './PrivacyNotice'
-import ImportImpiantiPage from './ImportImpiantiPage'
-import ImportInterventiPage from './ImportInterventiPage'
-import SchoolPortalPage from './SchoolPortalPage'
-import SchoolAdminPanel from './SchoolAdminPanel'
+// Pagine pesanti caricate su richiesta (code-splitting)
+const ImportImpiantiPage=lazy(()=>import('./ImportImpiantiPage'))
+const ImportInterventiPage=lazy(()=>import('./ImportInterventiPage'))
+const SchoolPortalPage=lazy(()=>import('./SchoolPortalPage'))
+const SchoolAdminPanel=lazy(()=>import('./SchoolAdminPanel'))
 
 type Page='dashboard'|'edifici'|'richieste'|'interventi'|'intervento'|'fascicolo'|'report'|'amministrazione'|'import-impianti'|'import-interventi'|'manutenzioni'|'manutenzioni-scadenze'
 type Access={user_id:string;ente_id:string;ruolo:string;ente:string;logo_path?:string|null;ui_palette?:string}
@@ -238,7 +238,7 @@ function AppShell({session}:{session:any}){
  {canMenu('amministrazione')&&<Nav icon={<Settings/>} label="Amministrazione" active={page==='amministrazione'} onClick={()=>navigate('amministrazione')}/>}
  {canMenu('import_impianti')&&<><Nav icon={<Upload/>} label="Importazione impianti" active={page==='import-impianti'} onClick={()=>navigate('import-impianti')}/><Nav icon={<Upload/>} label="Importazione interventi" active={page==='import-interventi'} onClick={()=>navigate('import-interventi')}/></>}
  </nav><div className="sidebar-footer"><ShieldCheck size={16}/><span>{ente}</span></div></aside>
- <main className="main">{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='richieste'&&<RequestsPage access={access} refresh={refresh} setRefresh={setRefresh} initialId={selectedId}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='intervento'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<BuildingFile id={selectedId} access={access} onBack={()=>navigate('fascicolo')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<BuildingFascicoliPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='report'&&<ReportPage refresh={refresh}/>} {page==='manutenzioni-scadenze'&&<MaintenanceAlertsPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh} initialBuildingId={selectedId}/>} {page==='amministrazione'&&<><AdminPage access={access}/>{access.some(x=>['superadmin','admin_ente'].includes(x.ruolo))&&<SchoolAdminPanel access={access}/>}</>} {page==='import-impianti'&&<ImportImpiantiPage access={access}/>} {page==='import-interventi'&&<ImportInterventiPage access={access}/>} </main></div></div>
+ <main className="main" id="contenuto-principale"><Suspense fallback={<Loader/>}>{page==='dashboard'&&<DashboardPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='edifici'&&<BuildingsPage access={access} refresh={refresh} setRefresh={setRefresh}/>} {page==='richieste'&&<RequestsPage access={access} refresh={refresh} setRefresh={setRefresh} initialId={selectedId}/>} {page==='interventi'&&<InterventionsPage access={access} onOpen={navigate} refresh={refresh} setRefresh={setRefresh}/>} {page==='intervento'&&selectedId&&<InterventionFile id={selectedId} access={access} onBack={()=>navigate('interventi')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&selectedId&&<BuildingFile id={selectedId} access={access} onBack={()=>navigate('fascicolo')} refresh={refresh} setRefresh={setRefresh}/>} {page==='fascicolo'&&!selectedId&&<BuildingFascicoliPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='report'&&<ReportPage refresh={refresh}/>} {page==='manutenzioni-scadenze'&&<MaintenanceAlertsPage access={access} onOpen={navigate} refresh={refresh}/>} {page==='manutenzioni'&&<MaintenancePage access={access} refresh={refresh} setRefresh={setRefresh} initialBuildingId={selectedId}/>} {page==='amministrazione'&&<><AdminPage access={access}/>{access.some(x=>['superadmin','admin_ente'].includes(x.ruolo))&&<SchoolAdminPanel access={access}/>}</>} {page==='import-impianti'&&<ImportImpiantiPage access={access}/>} {page==='import-interventi'&&<ImportInterventiPage access={access}/>} </Suspense></main></div></div>
 }
 
 function Nav({icon,label,active,onClick}:{icon:any;label:string;active:boolean;onClick:()=>void}){return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{active&&<ChevronRight size={15}/>}</button>}
@@ -371,7 +371,7 @@ function RequestsPage({access,refresh,setRefresh,initialId}:{access:Access[];ref
   return sortDir==='asc'?cmp:-cmp;
  });
  const changeSort=(key:RequestSortKey)=>{if(sortKey===key)setSortDir(x=>x==='asc'?'desc':'asc');else{setSortKey(key);setSortDir('asc')}};
- const exportRows=(format:'csv'|'xls'|'ods')=>{
+ const exportRows=async(format:'csv'|'xls'|'ods')=>{
   const data=sorted.map(x=>({
    'Codice':x.codice_richiesta,'Protocollo':x.numero_protocollo||'','Data protocollo':x.data_protocollo||'',
    'Richiesta':x.titolo_sintetico,'Descrizione':x.descrizione_estesa,
@@ -382,6 +382,7 @@ function RequestsPage({access,refresh,setRefresh,initialId}:{access:Access[];ref
    'Note risoluzione':x.note_risoluzione||''
   }));
   const stamp=new Date().toISOString().slice(0,10);
+  const XLSX=await import('xlsx');
   const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Richieste');
   if(format==='csv') XLSX.writeFile(wb,'richieste_intervento_'+stamp+'.csv',{bookType:'csv'});
   else if(format==='xls') XLSX.writeFile(wb,'richieste_intervento_'+stamp+'.xls',{bookType:'biff8'});

@@ -1,5 +1,4 @@
 import React, { useMemo, useRef, useState } from 'react'
-import * as XLSX from 'xlsx'
 import { CheckCircle2, CircleAlert, Download, FileUp, RefreshCw, Save, Search, Trash2, Upload, X } from 'lucide-react'
 import { supabase } from './lib/supabase'
 
@@ -74,6 +73,7 @@ export default function ImportImpiantiPage({access}:{access:Access[]}){
    setLoading(true);setMessage('');setSaved(false)
    try{
      const buf=await file.arrayBuffer()
+     const XLSX=await import('xlsx')
      const wb=XLSX.read(buf,{type:'array',cellDates:true})
      const ws=wb.Sheets[wb.SheetNames[0]]
      const matrix=XLSX.utils.sheet_to_json<any[]>(ws,{header:1,defval:''})
