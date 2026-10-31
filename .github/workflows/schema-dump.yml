@@ -1,0 +1,42 @@
+name: Esporta schema database
+
+# Esporta lo schema (senza dati) del database Supabase in supabase/schema/
+# e lo committa sul branch da cui viene avviato.
+# Richiede il secret di repository SUPABASE_DB_URL con la stringa di
+# connessione "Session pooler" del progetto (Supabase > Connect).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Dump schema-only
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL" || { echo "Secret SUPABASE_DB_URL mancante"; exit 1; }
+          mkdir -p supabase/schema
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f supabase/schema/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --schema storage -f supabase/schema/storage.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f supabase/schema/roles.sql
+          # Controllo di sicurezza: nessun dato deve finire nel repository.
+          if grep -nE '^(COPY|INSERT INTO) ' supabase/schema/*.sql; then
+            echo "Il dump contiene dati: interrotto."; exit 1
+          fi
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/schema
+          if git diff --cached --quiet; then echo "Schema invariato"; exit 0; fi
+          git commit -m "Aggiorna esportazione schema database"
+          git push

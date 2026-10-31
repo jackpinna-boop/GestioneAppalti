@@ -4,6 +4,8 @@ import { supabase } from './lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import * as XLSX from 'xlsx'
 import AuthScreen from './AuthScreen'
+import MfaGate from './MfaGate'
+import PrivacyNotice from './PrivacyNotice'
 import ImportImpiantiPage from './ImportImpiantiPage'
 import ImportInterventiPage from './ImportInterventiPage'
 import SchoolPortalPage from './SchoolPortalPage'
@@ -179,6 +181,8 @@ async function logoutAndClearSession(){
 
 export default function App(){
  const [session,setSession]=useState<any>(null);const [ready,setReady]=useState(false)
+ const [isPrivacy,setIsPrivacy]=useState(()=>location.hash==='#/privacy')
+ useEffect(()=>{const f=()=>setIsPrivacy(location.hash==='#/privacy');window.addEventListener('hashchange',f);return()=>window.removeEventListener('hashchange',f)},[])
  useEffect(()=>{
   let timer:number|undefined
   const expireIfNeeded=async(s:any)=>{
@@ -203,9 +207,10 @@ export default function App(){
   })
   return()=>{window.clearTimeout(timer);data.subscription.unsubscribe()}
  },[])
+ if(isPrivacy)return <PrivacyNotice/>
  if(!ready)return <div className="loading-screen">Caricamento…</div>
  if(!session)return <AuthScreen/>
- return <AppShell session={session}/>
+ return <MfaGate session={session} onLogout={async()=>{await logoutAndClearSession();setSession(null)}}><AppShell session={session}/></MfaGate>
 }
 
 
@@ -221,7 +226,7 @@ function AppShell({session}:{session:any}){
  useEffect(()=>{if(!menuReady)return;if(!pageAllowed(page))navigate('dashboard')},[menuReady,page,menuPermissions])
  if(!menuReady)return <div className="loading-screen">Caricamento autorizzazioni…</div>
  if(access.some(x=>['dirigente_scolastico','delegato_scolastico'].includes(x.ruolo))) return <SchoolPortalPage session={session} access={access}/>
- return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><NotificationBell access={access} onOpen={navigate}/><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><button className="icon-btn" title="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18}/></button></div></header>
+ return <div className={'app-shell theme-'+palette+(isSiServizi(access)?' role-siservizi':'')}><header className="topbar"><button className="mobile-menu" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="top-brand">{logoUrl?<img className="entity-logo-header" src={logoUrl} alt={'Logo '+ente}/>:<div className="brand-mark small"><Building2 size={20}/></div>}<span className="entity-name-header">{ente}</span><span className="brand-title-separator">|</span><span>Gestione Patrimonio, Interventi e Manutenzioni</span>{isSiServizi(access)&&<span className="role-context">Gestionale Società in House</span>}</div><div className="top-user"><NotificationBell access={access} onOpen={navigate}/><div className="avatar">{userName.slice(0,1).toUpperCase()}</div><div><strong>{userName}</strong><small>{role}</small></div><a className="icon-btn" href="#/privacy" title="Informativa privacy" aria-label="Informativa privacy"><ShieldCheck size={18} aria-hidden="true"/></a><button className="icon-btn" title="Esci" aria-label="Esci" onClick={()=>void logoutAndClearSession()}><LogOut size={18} aria-hidden="true"/></button></div></header>
  <div className="layout"><aside className={'sidebar '+(mobile?'open':'')}><nav>
  {canMenu('dashboard')&&<Nav icon={<Home/>} label="Dashboard" active={page==='dashboard'} onClick={()=>navigate('dashboard')}/>}
  {canMenu('edifici')&&<Nav icon={<Building2/>} label="Edifici" active={page==='edifici'} onClick={()=>navigate('edifici')}/>}
@@ -854,14 +859,6 @@ function AdminPage({access}:{access:Access[]}){
  useEffect(()=>{void load();void loadPermissions();void loadAudit()},[currentEnteId,manage]);
  useEffect(()=>{if(selectedPermUser&&manage)void loadUserPermissionOverrides(selectedPermUser)},[selectedPermUser,currentEnteId,manage]);
 
- const deleteAuditLog=async()=>{
-   if(!superadmin||!currentEnteId)return;
-   if(!confirm('Eliminare definitivamente tutte le operazioni registrate nel Registro modifiche dell’ente corrente? L’operazione non è reversibile.'))return;
-   const {error}=await supabase.from('audit_log').delete().eq('ente_id',currentEnteId);
-   if(error){alert('Eliminazione registro non riuscita: '+error.message);return}
-   setAuditRows([]);
-   alert('Registro modifiche eliminato correttamente.');
- };
  async function assign(e:any){
    e.preventDefault();
    if(!form.user_id||!form.ente_id||!form.ruolo){alert('Compila Utente, Ente e Ruolo.');return}
@@ -997,7 +994,7 @@ function AdminPage({access}:{access:Access[]}){
    <section className="card admin-oauth"><div className="card-head"><div><h2>Microsoft / Azure</h2><p>Provider OAuth configurabile in Supabase Auth.</p></div><ShieldCheck size={20}/></div><code>https://cuaxulqyrhosqbfaympv.supabase.co/auth/v1/callback</code></section></>}
    </section>
    <section id="admin-audit" className="admin-section-group"><div className="admin-section-header accordion-trigger" role="button" tabIndex={0} aria-expanded={!!openAdminSections.audit} onClick={()=>toggleAdminSection('audit')} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleAdminSection('audit')}}}><div><span className="eyebrow">5 · Controllo</span><h2>Registro modifiche</h2><p>Tracciamento delle ultime operazioni effettuate sul sistema.</p></div><div className="accordion-icon"><History size={22}/><ChevronDown size={18} className={openAdminSections.audit?'is-open':''}/></div></div>{openAdminSections.audit&&<div className="card">
-    <div className="card-head"><div><h2>Ultime 100 operazioni</h2><p>Modifiche registrate sull'intervento e sui relativi dati.</p></div><div className="row-actions">{superadmin&&<button className="btn danger" onClick={()=>void deleteAuditLog()}><Trash2 size={15}/> Cancella registro</button>}<History size={20}/></div></div>
+    <div className="card-head"><div><h2>Ultime 100 operazioni</h2><p>Modifiche registrate sull'intervento e sui relativi dati. Il registro è in sola aggiunta e non può essere modificato o cancellato.</p></div><History size={20}/></div>
     {auditRows.length?<table><thead><tr><th>Data</th><th>Azione</th><th>Tabella</th><th>Record</th><th>Utente</th></tr></thead><tbody>{auditRows.map(x=><tr key={x.id}><td>{new Date(x.timestamp).toLocaleString('it-IT')}</td><td><span className="badge blue">{x.azione}</span></td><td>{x.tabella}</td><td>{x.record_id||'—'}</td><td>{users.find(u=>u.id===x.user_id)?.email||x.user_id||'Sistema'}</td></tr>)}</tbody></table>:<Empty title="Nessuna modifica registrata" text="Le modifiche future verranno tracciate automaticamente."/>}
    </div>}</section>
  </PageHead>
