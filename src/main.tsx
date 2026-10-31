@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import ErrorBoundary from './ErrorBoundary'
+import Notifications from './Notifications'
 import './styles.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -10,6 +11,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Suspense fallback={<div className="loading-screen" role="status">Caricamento…</div>}>
         <App />
       </Suspense>
+      <Notifications />
     </ErrorBoundary>
   </React.StrictMode>
 )

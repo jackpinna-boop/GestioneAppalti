@@ -10,7 +10,7 @@ type School={id:string;denominazione:string;codice_meccanografico:string|null}
 type SchoolRequest={id:string;codice_richiesta:string|null;titolo_sintetico:string;descrizione_estesa:string;data_richiesta:string;stato_risoluzione:string;priorita:string|null;created_by:string;richieste_intervento_sedi:any[]}
 type SchoolAttachment={id:string;nome_file:string;mime_type:string;dimensione_bytes:number;storage_path:string;created_at:string;url?:string}
 
-const fmtDate=(v:string|null|undefined)=>v?new Intl.DateTimeFormat('it-IT').format(new Date(v+'T00:00:00')):'—'
+const fmtDate=(v:string|null|undefined)=>{if(!v)return '—';const s=String(v);const d=new Date(/^\d{4}-\d{2}-\d{2}$/.test(s)?s+'T00:00:00':s);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('it-IT').format(d)}
 
 export default function SchoolPortalPage({session,access}:{session:any;access:Access[]}){
  const userId=session.user.id
