@@ -4,6 +4,9 @@ import App from './App'
 import ErrorBoundary from './ErrorBoundary'
 import Notifications from './Notifications'
 import './styles.css'
+import { installPageTitle } from './lib/pageTitle'
+
+installPageTitle()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
