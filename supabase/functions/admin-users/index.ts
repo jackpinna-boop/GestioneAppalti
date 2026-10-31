@@ -315,6 +315,37 @@ async function deleteUserAction(actor: Actor, body: any) {
   return { ok: true }
 }
 
+/**
+ * Sostituisce il solo ruolo gestionale dell'utente nell'ente.
+ * I ruoli scolastici (dirigente_scolastico, delegato_scolastico) sono gestiti
+ * dall'azione school_associate e non vengono mai rimossi da qui.
+ * Il nuovo ruolo è inserito prima di eliminare i precedenti, così un errore
+ * non lascia l'utente senza ruolo.
+ */
+async function replaceManagementRole(userId: string, enteId: string, ruolo: string) {
+  const { data: current, error: ce } = await admin
+    .from("user_roles").select("ruolo").eq("user_id", userId).eq("ente_id", enteId)
+  if (ce) fail(500, ce.message)
+  const currentRoles = (current || []).map((r) => String(r.ruolo))
+
+  // Un ruolo scolastico già posseduto non comporta modifiche (controllo
+  // preventivo in updateUserAction per i ruoli scolastici non posseduti).
+  if (schoolRoles.includes(ruolo)) return
+
+  const { error: re } = await admin.from("user_roles").upsert(
+    { user_id: userId, ente_id: enteId, ruolo },
+    { onConflict: "user_id,ente_id,ruolo" },
+  )
+  if (re) fail(400, "Ruolo non aggiornato: " + re.message)
+
+  const toRemove = currentRoles.filter((r) => r !== ruolo && !schoolRoles.includes(r))
+  if (toRemove.length) {
+    const { error: de } = await admin.from("user_roles").delete()
+      .eq("user_id", userId).eq("ente_id", enteId).in("ruolo", toRemove)
+    if (de) fail(400, "Ruolo precedente non rimosso: " + de.message)
+  }
+}
+
 async function updateUserAction(actor: Actor, body: any) {
   const userId = String(body.user_id || "")
   if (!userId || userId === actor.actorId) {
@@ -334,6 +365,12 @@ async function updateUserAction(actor: Actor, body: any) {
   if (password && password.length < 8) fail(400, "La password deve avere almeno 8 caratteri.")
   if (ruoloRichiesto && !allRoles.includes(ruoloRichiesto)) fail(400, "Ruolo non valido.")
   if (ruoloRichiesto === "superadmin" && !actor.isSuperadmin) fail(403, "Non autorizzato ad assegnare superadmin.")
+  if (targetEnteId && schoolRoles.includes(ruoloRichiesto)) {
+    const { data: owned, error: oe } = await admin.from("user_roles").select("ruolo")
+      .eq("user_id", userId).eq("ente_id", targetEnteId).eq("ruolo", ruoloRichiesto).limit(1)
+    if (oe) fail(500, oe.message)
+    if (!owned?.length) fail(400, "I ruoli scolastici si assegnano dall'associazione utente/istituto.")
+  }
 
   const attrs: Record<string, unknown> = {
     user_metadata: { nome, cognome },
@@ -348,14 +385,7 @@ async function updateUserAction(actor: Actor, body: any) {
     .update({ nome, cognome, email: email || null, telefono, attivo }).eq("id", userId)
   if (pe) fail(500, "Profilo non aggiornato: " + pe.message)
 
-  if (targetEnteId && ruoloRichiesto) {
-    const { error: delRoleError } = await admin.from("user_roles").delete()
-      .eq("user_id", userId).eq("ente_id", targetEnteId)
-    if (delRoleError) fail(400, "Ruolo precedente non rimosso: " + delRoleError.message)
-    const { error: re } = await admin.from("user_roles")
-      .insert({ user_id: userId, ente_id: targetEnteId, ruolo: ruoloRichiesto })
-    if (re) fail(400, "Ruolo non aggiornato: " + re.message)
-  }
+  if (targetEnteId && ruoloRichiesto) await replaceManagementRole(userId, targetEnteId, ruoloRichiesto)
   return { user: await findUser(actor, userId) }
 }
 
