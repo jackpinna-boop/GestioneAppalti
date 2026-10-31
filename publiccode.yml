@@ -1,0 +1,85 @@
+# publiccode.yml — metadati per il Catalogo del software a riuso (Developers Italia)
+# Specifica: https://yml.publiccode.tools  — validatore: https://publiccode-editor.developers.italia.it
+# I campi segnati DA COMPLETARE vanno compilati prima della pubblicazione sul catalogo.
+publiccodeYmlVersion: "0.4"
+
+name: Gestione Appalti
+url: "https://github.com/jackpinna-boop/GestioneAppalti"
+landingURL: "https://jackpinna-boop.github.io/GestioneAppalti/"
+softwareVersion: "0.1.0-alpha.2"
+releaseDate: "2026-10-31"
+platforms:
+  - web
+
+categories:
+  - facility-management
+  - procurement
+  - project-management
+  - document-management
+
+developmentStatus: development
+softwareType: standalone/web
+
+description:
+  it:
+    localisedName: Gestione Patrimonio, Interventi e Manutenzioni
+    genericName: Gestionale patrimonio edilizio e appalti
+    shortDescription: >-
+      Gestione di edifici, impianti, manutenzioni, interventi di lavori e
+      servizi e richieste degli istituti scolastici.
+    longDescription: >-
+      Applicazione web per enti locali che gestiscono un patrimonio edilizio,
+      in particolare scolastico. Consente di censire edifici e impianti con
+      schede tecniche per tipologia, programmare e registrare le manutenzioni
+      con le relative scadenze e verifiche periodiche, seguire il ciclo di vita
+      degli interventi di lavori e servizi (programmazione, progettazione,
+      quadro economico, procedura di affidamento, contratto, SAL, pagamenti,
+      collaudo) con fascicolo documentale e registro delle modifiche. Include
+      un portale dedicato ai dirigenti scolastici e ai loro delegati per
+      l'invio e il monitoraggio delle richieste di intervento sugli edifici
+      assegnati, con allegati. Gli accessi sono basati su ruoli e perimetro
+      per ente, istituto ed edificio, applicati direttamente sul database
+      tramite Row Level Security, con autenticazione a due fattori.
+    features:
+      - Anagrafica edifici e dati catastali
+      - Impianti con schede tecniche per tipologia e scadenze di verifica
+      - Manutenzioni programmate e straordinarie
+      - Fascicolo dell'intervento dalla programmazione al collaudo
+      - Portale Scuola per le richieste di intervento
+      - Import da fogli di calcolo
+      - Ruoli, permessi per risorsa e registro modifiche in sola aggiunta
+      - Autenticazione a due fattori (TOTP)
+
+legal:
+  license: EUPL-1.2
+  mainCopyrightOwner: "DA COMPLETARE"
+  repoOwner: "DA COMPLETARE"
+
+maintenance:
+  type: internal
+  contacts:
+    - name: "DA COMPLETARE"
+
+localisation:
+  localisationReady: false
+  availableLanguages:
+    - it
+
+dependsOn:
+  proprietary:
+    - name: Supabase (servizio gestito)
+      optional: false
+
+it:
+  countryExtensionVersion: "1.0"
+  conforme:
+    lineeGuidaDesign: false
+    modelloInteroperabilita: false
+    misureMinimeSicurezza: false
+    gdpr: false
+  piattaforme:
+    spid: false
+    cie: false
+    anpr: false
+    pagopa: false
+    io: false
