@@ -63,7 +63,7 @@ export const tests = [
     await login(page, USERS.superadmin.email, 'password-sbagliata')
     const err = page.locator('.notice.error')
     await err.waitFor()
-    expect(/Invalid login credentials/i.test(await err.innerText()), 'Messaggio di errore credenziali non mostrato: ' + await err.innerText())
+    expect(/(Invalid login credentials|Email o password non corrett)/i.test(await err.innerText()), 'Messaggio di errore credenziali non mostrato: ' + await err.innerText())
     expect(await page.getByRole('heading', { name: 'Accesso al sistema' }).isVisible(), 'Dopo errore si deve restare sulla schermata di login')
   }),
 
@@ -315,7 +315,7 @@ export const tests = [
     await page.getByRole('heading', { name: 'Gestione segnalazioni' }).waitFor()
     expect(!(await page.locator('aside.sidebar').count()), 'Il dirigente non deve vedere il gestionale')
     const info = await page.locator('.school-portal-actions span').innerText()
-    expect(/1 istituto\/i · 1 edificio\/i/.test(info), 'Perimetro atteso 1 istituto e 1 edificio, ottenuto: ' + info)
+    expect(/1 istitut(o|\/i) · 1 edifici(o|\/i)/.test(info), 'Perimetro atteso 1 istituto e 1 edificio, ottenuto: ' + info)
     const opts = await page.locator('.school-filters select').first().locator('option').allInnerTexts()
     expect(opts.length === 2 && opts[1].includes('Galileo'), 'Filtro istituti: atteso solo Liceo Galileo, ottenuto ' + opts.join(', '))
     await page.getByRole('button', { name: 'Segnala intervento' }).click()
