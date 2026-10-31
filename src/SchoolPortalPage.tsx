@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Building2, CheckCircle2, CircleAlert, FileText, History, LogOut, Plus, X, Paperclip, Download, RefreshCw } from 'lucide-react'
 import { supabase } from './lib/supabase'
+import Modal from './Modal'
 
 type Access={user_id:string;ente_id:string;ruolo:string;ente:string;logo_path?:string|null;ui_palette?:string}
 
@@ -9,7 +10,7 @@ type School={id:string;denominazione:string;codice_meccanografico:string|null}
 type SchoolRequest={id:string;codice_richiesta:string|null;titolo_sintetico:string;descrizione_estesa:string;data_richiesta:string;stato_risoluzione:string;priorita:string|null;created_by:string;richieste_intervento_sedi:any[]}
 type SchoolAttachment={id:string;nome_file:string;mime_type:string;dimensione_bytes:number;storage_path:string;created_at:string;url?:string}
 
-const fmtDate=(v:string|null|undefined)=>v?new Intl.DateTimeFormat('it-IT').format(new Date(v+'T00:00:00')):'—'
+const fmtDate=(v:string|null|undefined)=>{if(!v)return '—';const s=String(v);const d=new Date(/^\d{4}-\d{2}-\d{2}$/.test(s)?s+'T00:00:00':s);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('it-IT').format(d)}
 
 export default function SchoolPortalPage({session,access}:{session:any;access:Access[]}){
  const userId=session.user.id
@@ -153,12 +154,12 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
  return <div className="school-portal">
    <header className="school-portal-head">
     <div><div className="school-portal-kicker">PORTALE SCUOLA</div><h1>Gestione segnalazioni</h1><p>{access[0]?.ente||'Ente'} · {roleLabel}</p></div>
-    <button className="icon-btn" title="Esci" onClick={()=>void supabase.auth.signOut()}><LogOut size={18}/></button>
+    <button className="icon-btn" title="Esci" onClick={()=>void supabase.auth.signOut()} aria-label="Esci"><LogOut size={18}/></button>
    </header>
    <section className="school-portal-notice"><CircleAlert size={18}/><span>Le richieste registrate non possono essere eliminate. In caso di errore devono essere <b>annullate</b>, mantenendo traccia dell’operazione.</span></section>
-   {message&&<div className="notice info">{message}<button className="icon-btn" onClick={()=>setMessage('')}><X size={15}/></button></div>}
+   {message&&<div className="notice info">{message}<button className="icon-btn" onClick={()=>setMessage('')} aria-label="Chiudi"><X size={15}/></button></div>}
    <div className="school-kpis"><div><span>Richieste aperte</span><strong>{open}</strong></div><div><span>In carico</span><strong>{inProgress}</strong></div><div><span>Risolte</span><strong>{resolved}</strong></div><div><span>Annullate</span><strong>{cancelled}</strong></div></div>
-   <div className="school-portal-actions"><button className="btn secondary" onClick={()=>void load()} disabled={loading} title="Aggiorna le richieste"><RefreshCw size={16}/> Aggiorna</button><button className="btn primary" onClick={()=>setShowNew(true)}><Plus size={16}/> Segnala intervento</button><span>{schools.length} istituto/i · {buildings.length} edificio/i autorizzati</span></div>
+   <div className="school-portal-actions"><button className="btn secondary" onClick={()=>void load()} disabled={loading} title="Aggiorna le richieste"><RefreshCw size={16}/> Aggiorna</button><button className="btn primary" onClick={()=>setShowNew(true)}><Plus size={16}/> Segnala intervento</button><span>{schools.length===1?'1 istituto':schools.length+' istituti'} · {buildings.length===1?'1 edificio autorizzato':buildings.length+' edifici autorizzati'}</span></div>
    <div className="school-portal-grid">
     <section className="card">
      <div className="card-head"><div><h2>Le mie segnalazioni</h2><p>Visualizzi esclusivamente le richieste del tuo perimetro autorizzato.</p></div><FileText size={20}/></div>
@@ -175,4 +176,3 @@ export default function SchoolPortalPage({session,access}:{session:any;access:Ac
 
 function EmptyLog(){return <div className="empty"><History size={25}/><strong>Nessuna attività</strong><span>Le operazioni effettuate compariranno qui.</span></div>}
 function Info({label,value}:{label:string;value:any}){return <div className="info-row"><span>{label}</span><strong>{value||'—'}</strong></div>}
-function Modal({title,close,children}:{title:string;close:()=>void;children:any}){return <div className="modal-backdrop"><div className="modal"><div className="modal-head"><h2>{title}</h2><button className="icon-btn" onClick={close}><X/></button></div>{children}</div></div>}
