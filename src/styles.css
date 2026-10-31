@@ -472,3 +472,15 @@ html body .input-icon input:focus-visible,html body .search input:focus-visible{
 .toast-close{background:none;border:0;color:inherit;padding:2px;border-radius:6px;line-height:0}
 @media print{.toast-area,.skip-link{display:none}}
 .notice.info{background:#eef5fb;border:1px solid #bcd3e8;color:#163f66}
+/* Responsive: barra superiore senza scorrimento orizzontale */
+.topbar{gap:12px;min-width:0}
+.top-brand{min-width:0;flex:1 1 auto;overflow:hidden}
+.top-brand>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.top-user{flex:0 0 auto}
+@media(max-width:1100px){.top-brand>span:not(.entity-name-header):not(.role-context),.brand-title-separator{display:none}}
+@media(max-width:900px){.topbar{padding:0 12px}.top-user>div:nth-of-type(2){display:none}.role-context{display:none}}
+@media(max-width:600px){.top-user{gap:4px}.top-user .avatar{display:none}.top-brand .brand-mark.small,.top-brand .entity-logo-header{display:none}.top-brand{margin-left:4px}}
+/* Portale scuola: filtri leggibili anche su smartphone */
+.school-filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.school-filters label{display:grid;gap:6px;font-size:13px;font-weight:700;color:#334155;min-width:min(240px,100%);flex:1 1 200px}
+.school-filters select{border:1px solid #d8dee7;border-radius:8px;padding:9px 10px;background:#fff;font:inherit;font-weight:400;max-width:100%}
