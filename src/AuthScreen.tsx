@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Building2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
 import { supabase } from './lib/supabase'
 
@@ -13,9 +13,10 @@ function authMessage(msg: string): string {
   return m || 'Accesso non riuscito.'
 }
 
-export default function AuthScreen() {
-  const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [loading,setLoading]=useState(false);const [message,setMessage]=useState('');const [error,setError]=useState('')
+export default function AuthScreen({ initialError = '' }: { initialError?: string }) {
+  const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [loading,setLoading]=useState(false);const [message,setMessage]=useState('');const [error,setError]=useState(initialError)
   const redirectTo=window.location.origin+import.meta.env.BASE_URL
+  useEffect(()=>{if(initialError)setError(initialError)},[initialError])
   async function submit(e:FormEvent){
   e.preventDefault();setLoading(true);setError('');setMessage('');
   try{
