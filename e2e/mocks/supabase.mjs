@@ -2,7 +2,7 @@
 // Tutte le richieste verso https://x.supabase.co/** sono intercettate con page.route:
 // il container di test non raggiunge Supabase e i test non devono dipendere da dati reali.
 
-import { ENTE_ID, USERS, profiles, tables } from './fixtures.mjs'
+import { ENTE_ID, USERS, profiles, tables, scuole, edifici, scuola_utenti } from './fixtures.mjs'
 
 export const SUPABASE_URL = 'https://x.supabase.co'
 export const STORAGE_KEY = 'sb-x-auth-token'
@@ -97,7 +97,7 @@ function project(rows, select) {
  */
 export async function installSupabaseMock(page, sc) {
   const user = sc.user
-  const log = { calls: [], writes: [], unknown: [] }
+  const log = { calls: [], writes: [], unknown: [], functions: [] }
   let mfaState = sc.mfa || 'aal2' // 'aal2' | 'enroll' | 'challenge'
   let factors = mfaState === 'challenge' ? [VERIFIED_FACTOR] : []
   const data = tables(sc)
@@ -112,6 +112,49 @@ export async function installSupabaseMock(page, sc) {
   }
 
   const json = (route, status, body, headers = {}) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', ...headers }, body: body === undefined ? '' : JSON.stringify(body) })
+
+  // ---------- Edge Function admin-users (stato in memoria per il singolo test) ----------
+  // Replica le regole principali della funzione reale: le azioni sui delegati sono
+  // riservate al dirigente scolastico e limitate agli edifici a lui assegnati.
+  const isHead = (sc.roles || []).includes('dirigente_scolastico')
+  const headSchool = scuole[0]
+  const headBuildings = [edifici[0]]
+  const delegates = scuola_utenti.filter((x) => x.ruolo === 'delegato_scolastico').map((x) => {
+    const u = Object.values(USERS).find((v) => v.id === x.user_id)
+    return { scuola_utente_id: x.id, scuola_id: x.scuola_id, user_id: x.user_id, email: u.email, nome: u.nome, cognome: u.cognome, telefono: '', stato: 'attivo', attivo: true, data_inizio: x.data_inizio, data_fine: x.data_fine, edifici: [{ id: edifici[0].id, denominazione: edifici[0].denominazione }], altri_edifici: 0, gestibile: true, mfa_attiva: true, mfa_azzerabile: true }
+  })
+  const forbidden = { status: 403, body: { error: 'Operazione riservata al dirigente scolastico attivo dell\'istituto.' } }
+  function adminUsersFunction(body) {
+    const a = body.action || 'list'
+    if (['list', 'create', 'update', 'delete', 'school_associate'].includes(a)) {
+      if (a === 'list') return { status: 200, body: { users: profiles.map((p) => ({ ...p, mfa_attiva: p.id !== USERS.consultatore.id, roles: [{ ente_id: ENTE_ID, ruolo: Object.entries(USERS).find(([, u]) => u.id === p.id)?.[0] || 'consultatore' }] })) } }
+      return { status: 200, body: { ok: true } }
+    }
+    if (a === 'mfa_reset' && !body.scuola_id) {
+      if (body.user_id === user.id) return { status: 400, body: { error: 'Non è possibile azzerare la propria verifica in due passaggi da questa sezione.' } }
+      return { status: 200, body: { ok: true, fattori_rimossi: 1, sessioni_revocate: false } }
+    }
+    if (!isHead || (a !== 'school_delegates_list' && body.scuola_id !== headSchool.id)) return forbidden
+    const find = () => delegates.find((d) => d.user_id === body.user_id)
+    switch (a) {
+      case 'school_delegates_list':
+        return { status: 200, body: { schools: [{ id: headSchool.id, denominazione: headSchool.denominazione, codice_meccanografico: headSchool.codice_meccanografico, edifici: headBuildings.map((b) => ({ id: b.id, denominazione: b.denominazione, comune: b.comune })) }], delegates } }
+      case 'school_delegate_save': {
+        const ids = body.edificio_ids || []
+        if (!ids.length || ids.some((id) => !headBuildings.some((b) => b.id === id))) return { status: 403, body: { error: 'Puoi assegnare solo edifici dell\'istituto che sono assegnati a te.' } }
+        const ed = ids.map((id) => ({ id, denominazione: headBuildings.find((b) => b.id === id).denominazione }))
+        const d = body.user_id ? find() : null
+        if (d) { Object.assign(d, { edifici: ed, data_fine: body.data_fine || null, stato: d.stato === 'revocato' ? 'attivo' : d.stato, attivo: d.stato === 'revocato' ? true : d.attivo }); return { status: 200, body: { ok: true, user_id: d.user_id, utenza_creata: false, password_temporanea: null } } }
+        const id = '00000000-0000-4000-8000-00000000a0' + String(10 + delegates.length)
+        delegates.push({ scuola_utente_id: id, scuola_id: headSchool.id, user_id: id, email: body.email, nome: body.nome, cognome: body.cognome, telefono: body.telefono || '', stato: 'attivo', attivo: true, data_inizio: '2026-11-02', data_fine: body.data_fine || null, edifici: ed, altri_edifici: 0, gestibile: true, mfa_attiva: false, mfa_azzerabile: true })
+        return { status: 200, body: { ok: true, user_id: id, utenza_creata: true, password_temporanea: 'Tmp4-Demo-Pass-w0rd' } }
+      }
+      case 'school_delegate_status': { const d = find(); if (!d) return forbidden; d.attivo = !!body.attivo; d.stato = d.attivo ? 'attivo' : 'sospeso'; return { status: 200, body: { ok: true } } }
+      case 'school_delegate_revoke': { const d = find(); if (!d) return forbidden; Object.assign(d, { attivo: false, stato: 'revocato', edifici: [] }); return { status: 200, body: { ok: true, ruolo_rimosso: true } } }
+      case 'mfa_reset': { const d = find(); if (!d) return forbidden; d.mfa_attiva = false; return { status: 200, body: { ok: true, fattori_rimossi: 1, sessioni_revocate: false } } }
+      default: return { status: 400, body: { error: 'Azione non supportata.' } }
+    }
+  }
 
   await page.route(`${SUPABASE_URL}/**`, async (route) => {
     const req = route.request()
@@ -194,9 +237,10 @@ export async function installSupabaseMock(page, sc) {
     // ---------- EDGE FUNCTIONS ----------
     if (path === '/functions/v1/admin-users') {
       const body = JSON.parse(req.postData() || '{}')
-      done(200)
-      if (body.action === 'list') return json(route, 200, { users: profiles.map((p) => ({ ...p, roles: [{ ente_id: ENTE_ID, ruolo: Object.entries(USERS).find(([, u]) => u.id === p.id)?.[0] || 'consultatore' }] })) })
-      return json(route, 200, { ok: true })
+      log.functions.push(body)
+      const res = adminUsersFunction(body)
+      done(res.status)
+      return json(route, res.status, res.body)
     }
 
     // ---------- STORAGE ----------

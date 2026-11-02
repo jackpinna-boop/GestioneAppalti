@@ -13,6 +13,7 @@ export const USERS = {
   manutentore: { id: '00000000-0000-4000-8000-00000000a005', email: 'manutentore@ditta-demo.invalid', nome: 'Mario', cognome: 'Manutentore' },
   dirigente_scolastico: { id: '00000000-0000-4000-8000-00000000a006', email: 'dirigente@scuola-demo.invalid', nome: 'Daniela', cognome: 'Dirigente' },
   senza_ruolo: { id: '00000000-0000-4000-8000-00000000a007', email: 'nessuno@ente-demo.invalid', nome: 'Nino', cognome: 'Senzaruolo' },
+  delegato_scolastico: { id: '00000000-0000-4000-8000-00000000a008', email: 'delegato@scuola-demo.invalid', nome: 'Davide', cognome: 'Delegato' },
 }
 
 export const enti = [{ id: ENTE_ID, denominazione: 'Provincia Demo di Esempio', codice_ipa: 'p_demo', codice_fiscale: '00000000000', tipo_ente: 'Provincia', pec: 'protocollo@pec.ente-demo.invalid', email: 'info@ente-demo.invalid', telefono: '0000 000000', attivo: true, logo_path: null, ui_palette: 'blue', created_at: ts, updated_at: ts }]
@@ -90,9 +91,11 @@ export const scuole_edifici = [
 ]
 export const scuola_utenti = [
   { id: '00000000-0000-4000-8000-000000170001', scuola_id: S(1), user_id: USERS.dirigente_scolastico.id, ruolo: 'dirigente_scolastico', attivo: true, data_inizio: '2026-09-01', data_fine: null, created_at: ts, updated_at: ts },
+  { id: '00000000-0000-4000-8000-000000170002', scuola_id: S(1), user_id: USERS.delegato_scolastico.id, ruolo: 'delegato_scolastico', attivo: true, data_inizio: '2026-09-15', data_fine: '2027-06-30', created_at: ts, updated_at: ts },
 ]
 export const scuola_utenti_edifici = [
   { id: '00000000-0000-4000-8000-000000180001', scuola_utente_id: scuola_utenti[0].id, edificio_id: E(1), attivo: true, data_inizio: '2026-09-01', data_fine: null, created_at: ts },
+  { id: '00000000-0000-4000-8000-000000180002', scuola_utente_id: scuola_utenti[1].id, edificio_id: E(1), attivo: true, data_inizio: '2026-09-15', data_fine: '2027-06-30', created_at: ts },
 ]
 export const scuola_access_log = [
   { id: 1, user_id: USERS.dirigente_scolastico.id, ente_id: ENTE_ID, scuola_id: S(1), edificio_id: E(1), richiesta_id: R(1), azione: 'VISUALIZZAZIONE_RICHIESTA', metadata: { origine: 'PORTALE_SCUOLA' }, timestamp: '2026-10-20T09:30:00+00:00' },

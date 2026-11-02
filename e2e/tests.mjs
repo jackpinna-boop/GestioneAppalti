@@ -381,4 +381,81 @@ export const tests = [
     await settle(page)
     expect(log.writes.some((w) => String(w.path).includes('school_cancel_request')), 'RPC school_cancel_request non invocata')
   }),
+
+  t('E5 dirigente scolastico: sezione Delegati, aggiunta con password temporanea mostrata una volta', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.dirigente_scolastico, roles: ['dirigente_scolastico'] })
+    await open(page, base)
+    const section = page.locator('section.school-delegates')
+    await section.getByRole('heading', { name: 'Delegati' }).waitFor()
+    await section.getByText('Delegato Davide').waitFor()
+    expect((await section.innerText()).includes('30/06/2027'), 'Data di fine della delega non mostrata')
+    await section.getByRole('button', { name: 'Aggiungi delegato' }).click()
+    const dlg = page.getByRole('dialog', { name: 'Aggiungi delegato' })
+    await dlg.waitFor()
+    // l'unico istituto e l'unico edificio del dirigente sono preselezionati; nessun edificio fuori perimetro
+    const labels = await dlg.locator('fieldset label').allInnerTexts()
+    expect(labels.length === 1 && labels[0].includes('Galileo'), 'Edifici proposti: ' + labels.join(' | '))
+    await dlg.getByLabel('E-mail').fill('nuovo.delegato@scuola-demo.invalid')
+    await dlg.getByLabel('Nome', { exact: true }).fill('Nadia')
+    await dlg.getByLabel('Cognome').fill('Nuova')
+    await dlg.getByLabel('Fine delega (facoltativa)').fill('2027-08-31')
+    await dlg.getByRole('button', { name: 'Aggiungi delegato' }).click()
+    const pwd = page.getByRole('dialog', { name: 'Password temporanea' })
+    await pwd.waitFor()
+    expect((await pwd.innerText()).includes('Tmp4-Demo-Pass-w0rd'), 'Password temporanea non mostrata')
+    const call = log.functions.find((b) => b.action === 'school_delegate_save')
+    expect(call && call.scuola_id === '00000000-0000-4000-8000-000000150001' && JSON.stringify(call.edificio_ids) === JSON.stringify(['00000000-0000-4000-8000-0000000b0001']) && call.data_fine === '2027-08-31', 'Chiamata school_delegate_save inattesa: ' + JSON.stringify(call))
+    await pwd.getByRole('button', { name: 'Ho preso nota' }).click()
+    await section.getByText('Nuova Nadia').waitFor()
+    expect(!(await page.getByText('Tmp4-Demo-Pass-w0rd').count()), 'La password temporanea non deve restare visibile')
+  }),
+
+  t('E6 dirigente scolastico: sospensione, revoca e azzeramento della verifica in due passaggi di un delegato', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.dirigente_scolastico, roles: ['dirigente_scolastico'] })
+    await open(page, base)
+    const section = page.locator('section.school-delegates')
+    await section.getByText('Delegato Davide').waitFor()
+    await section.getByRole('button', { name: 'Azzera la verifica in due passaggi di Delegato Davide' }).click()
+    const mfa = page.getByRole('dialog', { name: 'Azzera verifica in due passaggi' })
+    expect((await mfa.innerText()).includes('registrare di nuovo'), 'La conferma deve spiegare la nuova registrazione al prossimo accesso')
+    await mfa.getByRole('button', { name: 'Azzera verifica' }).click()
+    await mfa.waitFor({ state: 'detached' })
+    const reset = log.functions.find((b) => b.action === 'mfa_reset')
+    expect(reset && reset.user_id === USERS.delegato_scolastico.id && reset.scuola_id, 'mfa_reset non invocata correttamente: ' + JSON.stringify(reset))
+    await section.getByRole('button', { name: 'Sospendi la delega di Delegato Davide' }).click()
+    await section.getByText('Sospesa').waitFor()
+    expect(log.functions.some((b) => b.action === 'school_delegate_status' && b.attivo === false), 'Sospensione non inviata')
+    await section.getByRole('button', { name: 'Revoca la delega di Delegato Davide' }).click()
+    await page.getByRole('dialog', { name: 'Revoca delega' }).getByRole('button', { name: 'Revoca delega' }).click()
+    await section.getByText('Mostra le deleghe revocate (1)').waitFor()
+    expect(log.functions.some((b) => b.action === 'school_delegate_revoke' && b.user_id === USERS.delegato_scolastico.id), 'Revoca non inviata')
+  }),
+
+  t('E7 delegato scolastico: nessuna sezione Delegati', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.delegato_scolastico, roles: ['delegato_scolastico'] })
+    await open(page, base)
+    await page.getByRole('heading', { name: 'Gestione segnalazioni' }).waitFor()
+    await settle(page)
+    expect(!(await page.getByRole('heading', { name: 'Delegati' }).count()), 'Il delegato non deve vedere la sezione Delegati')
+    expect(!log.functions.some((b) => String(b.action).startsWith('school_delegate')), 'Il portale del delegato non deve invocare le azioni sui delegati')
+  }),
+
+  t('B8 amministrazione: azzeramento della verifica in due passaggi di un utente', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.admin_ente, roles: ['admin_ente'] })
+    await open(page, base, 'amministrazione')
+    await page.locator('#admin-accessi .admin-section-header').click()
+    const row = page.locator('#admin-utenti tr', { hasText: USERS.tecnico.email })
+    await row.waitFor()
+    expect((await row.innerText()).includes('Verifica in due passaggi: attiva'), 'Stato della verifica in due passaggi non mostrato')
+    expect((await page.locator('#admin-utenti tr').filter({ has: page.getByRole('cell', { name: USERS.admin_ente.email, exact: true }) }).count()) === 1, 'Riga dell\'utente corrente non trovata')
+    expect(!(await page.locator('#admin-utenti tr').filter({ has: page.getByRole('cell', { name: USERS.admin_ente.email, exact: true }) }).getByRole('button', { name: /Azzera verifica/ }).count()), 'Non deve essere possibile azzerare il proprio fattore')
+    await row.getByRole('button', { name: 'Azzera verifica in due passaggi di ' + USERS.tecnico.email }).click()
+    const dlg = page.getByRole('dialog', { name: 'Azzera verifica in due passaggi' })
+    expect((await dlg.innerText()).includes('prossimo accesso'), 'La conferma deve spiegare cosa succede')
+    await dlg.getByRole('button', { name: 'Azzera verifica' }).click()
+    await dlg.waitFor({ state: 'detached' })
+    const call = log.functions.find((b) => b.action === 'mfa_reset')
+    expect(call && call.user_id === USERS.tecnico.id && !call.scuola_id, 'mfa_reset non invocata correttamente: ' + JSON.stringify(call))
+    await page.getByText(/Verifica in due passaggi azzerata/).waitFor()
+  }),
 ]

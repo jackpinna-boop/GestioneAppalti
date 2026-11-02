@@ -484,3 +484,14 @@ html body .input-icon input:focus-visible,html body .search input:focus-visible{
 .school-filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
 .school-filters label{display:grid;gap:6px;font-size:13px;font-weight:700;color:#334155;min-width:min(240px,100%);flex:1 1 200px}
 .school-filters select{border:1px solid #d8dee7;border-radius:8px;padding:9px 10px;background:#fff;font:inherit;font-weight:400;max-width:100%}
+/* Portale Scuola: sezione Delegati */
+.btn.danger{background:#fff;color:#a12a2a;border-color:#e3b4b4}
+.btn.danger:hover{background:#fff0f0}
+.btn.small{padding:6px 10px;font-size:12px}
+.checkbox-label,.form-grid label.checkbox-label{display:flex;align-items:center;gap:8px;font-weight:600}
+.school-delegates{margin-top:18px}
+.school-delegates .card-head{gap:12px;flex-wrap:wrap}
+.school-delegates-toggle{margin-top:12px;font-size:13px}
+.school-delegate-buildings{border:1px solid #d8dee7;border-radius:10px;padding:10px 12px;display:grid;gap:8px;margin:0}
+.school-delegate-buildings legend{font-size:13px;font-weight:700;color:#334155;padding:0 4px}
+.school-delegate-summary b,.school-delegate-summary span{display:block}
