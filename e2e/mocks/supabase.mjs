@@ -222,7 +222,14 @@ export async function installSupabaseMock(page, sc) {
       else if (table === 'profiles') rows = profiles.map((p) => (p.id === user.id && sc.inactive ? { ...p, attivo: false } : p))
       else if (table in data) rows = data[table]
       else { rows = []; if (!log.unknown.includes(table)) log.unknown.push(table) }
-      const result = project(applyFilters(rows, url.searchParams), url.searchParams.get('select'))
+      // Risorse incorporate (uno-a-molti) usate dall'interfaccia: tabella figlia -> colonna di collegamento.
+      const EMBEDS = { scuole: { scuole_edifici: 'scuola_id' } }
+      const sel = url.searchParams.get('select') || ''
+      let filtered = applyFilters(rows, url.searchParams)
+      for (const [child, fk] of Object.entries(EMBEDS[table] || {})) {
+        if (sel.includes(child + '(') && data[child]) filtered = filtered.map((r) => ({ ...r, [child]: data[child].filter((c) => c[fk] === r.id) }))
+      }
+      const result = project(filtered, sel)
       const range = result.length ? `0-${result.length - 1}/${result.length}` : '*/0'
       const single = (req.headers()['accept'] || '').includes('vnd.pgrst.object')
       if (single) {

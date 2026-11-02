@@ -223,6 +223,32 @@ export const tests = [
     await settle(page)
   }),
 
+  t('B10 tecnico: nel dettaglio richiesta vede gli allegati inviati dalla scuola', async ({ page, base, expect }) => {
+    await installSupabaseMock(page, { user: USERS.tecnico, roles: ['tecnico'] })
+    await open(page, base, 'richieste')
+    await page.getByText('Infiltrazione dal solaio aula 12').first().click()
+    await page.locator('.modal').waitFor()
+    await page.locator('.modal button', { hasText: 'Documenti' }).first().click()
+    await page.getByRole('heading', { name: 'Allegati inviati dalla scuola' }).waitFor()
+    expect(await page.getByText('foto-infiltrazione.jpg').isVisible(), 'Allegato della scuola non visibile')
+  }),
+
+  t('A10 recupero password: schermata per la nuova password dopo il link', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.tecnico, roles: ['tecnico'] })
+    await page.goto(base + '#type=recovery')
+    await page.getByRole('heading', { name: 'Imposta una nuova password' }).waitFor()
+    await page.getByLabel('Nuova password').fill('NuovaPassword-2026')
+    await page.getByLabel('Conferma password').fill('Diversa-2026')
+    await page.getByRole('button', { name: 'Salva la nuova password' }).click()
+    await page.getByText('Le due password non coincidono.').waitFor()
+    await page.getByLabel('Conferma password').fill('NuovaPassword-2026')
+    await page.getByRole('button', { name: 'Salva la nuova password' }).click()
+    await page.getByText('Password aggiornata correttamente.').waitFor()
+    expect(log.calls.some((c) => c.path === '/auth/v1/user' && c.method === 'PUT'), 'Nessuna chiamata di aggiornamento password')
+    await page.getByRole('button', { name: 'Continua' }).click()
+    await page.locator('aside.sidebar').waitFor()
+  }),
+
   t('B6 superadmin: amministrazione apre tutte le sezioni', async ({ page, base, expect }) => {
     await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'] })
     await open(page, base, 'amministrazione')
@@ -231,6 +257,18 @@ export const tests = [
     for (const b of toggles) { await b.click().catch(() => {}); await settle(page) }
     const text = await page.locator('main.main').innerText()
     expect(text.length > 200, 'Pagina amministrazione vuota')
+  }),
+
+  t('B9 Scuole e delegati: elenco istituti con gli edifici non ancora associati', async ({ page, base, expect }) => {
+    await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'] })
+    await open(page, base, 'amministrazione')
+    await mainHeading(page)
+    const select = page.locator('label', { hasText: 'Istituto disponibile nella sezione Edifici' }).locator('select')
+    if (!(await select.count())) { const t = page.locator('main.main button', { hasText: /Scuole e delegati|Portale Scuola/ }).first(); if (await t.count()) { await t.click(); await settle(page) } }
+    await select.waitFor()
+    const opts = (await select.locator('option').allInnerTexts()).slice(1)
+    expect(opts.some((o) => o.includes('Olivetti')), 'L\'edificio non associato (Olivetti) deve essere proposto, opzioni: ' + opts.join(' | '))
+    expect(!opts.some((o) => o.includes('Volta')), 'Un edificio già associato a un istituto non deve essere proposto: ' + opts.join(' | '))
   }),
 
   t('G1 navigazione: refresh, avanti/indietro e URL diretti', async ({ page, base, expect }) => {

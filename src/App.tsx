@@ -9,6 +9,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js'
 import AuthScreen from './AuthScreen'
 import MfaGate from './MfaGate'
 import PrivacyNotice from './PrivacyNotice'
+import PasswordRecovery from './PasswordRecovery'
 // Pagine pesanti caricate su richiesta (code-splitting)
 const ImportImpiantiPage=lazy(()=>import('./ImportImpiantiPage'))
 const ImportInterventiPage=lazy(()=>import('./ImportInterventiPage'))
@@ -185,6 +186,7 @@ async function logoutAndClearSession(){
 export default function App(){
  const [session,setSession]=useState<any>(null);const [ready,setReady]=useState(false)
  const [deniedMessage,setDeniedMessage]=useState('')
+ const [recovery,setRecovery]=useState(()=>/type=recovery/.test(location.hash+location.search))
  const eligibleUser=useRef<string|null>(null)
  const [isPrivacy,setIsPrivacy]=useState(()=>location.hash==='#/privacy')
  useEffect(()=>{const f=()=>setIsPrivacy(location.hash==='#/privacy');window.addEventListener('hashchange',f);return()=>window.removeEventListener('hashchange',f)},[])
@@ -219,7 +221,8 @@ export default function App(){
    if(error){console.error('Verifica utente Auth fallita:',error);void expireIfNeeded(null);return}
    void supabase.auth.getSession().then(({data:sessionData})=>{void expireIfNeeded(data.user&&sessionData.session?sessionData.session:null)})
   })
-  const {data}=supabase.auth.onAuthStateChange((_e,s)=>{
+  const {data}=supabase.auth.onAuthStateChange((event,s)=>{
+   if(event==='PASSWORD_RECOVERY')setRecovery(true)
    if(s){localStorage.setItem(SESSION_STARTED_AT_KEY,localStorage.getItem(SESSION_STARTED_AT_KEY)||String(Date.now()))}
    void expireIfNeeded(s)
   })
@@ -228,7 +231,7 @@ export default function App(){
  if(isPrivacy)return <PrivacyNotice/>
  if(!ready)return <div className="loading-screen">Caricamento…</div>
  if(!session)return <AuthScreen initialError={deniedMessage}/>
- return <MfaGate session={session} onLogout={async()=>{await logoutAndClearSession();setSession(null)}}><AppShell session={session}/></MfaGate>
+ return <MfaGate session={session} onLogout={async()=>{await logoutAndClearSession();setSession(null)}}>{recovery?<PasswordRecovery onDone={()=>setRecovery(false)} onCancel={async()=>{setRecovery(false);await logoutAndClearSession();setSession(null)}}/>:<AppShell session={session}/>}</MfaGate>
 }
 
 
@@ -416,6 +419,7 @@ function RequestsPage({access,refresh,setRefresh,initialId}:{access:Access[];ref
  const save=async(e:any)=>{
   e.preventDefault(); if(!enteId)return;
   const f=new FormData(e.currentTarget); const selectedBuildings=JSON.parse(String(f.get('edifici_ids')||'[]')); const selectedAmbiti=JSON.parse(String(f.get('ambiti_ids')||'[]')); const attachmentFiles=Array.from(f.getAll('attachments')).filter((x):x is File=>x instanceof File&&x.size>0);
+  const tooBig=attachmentFiles.find(x=>x.size>20*1024*1024);if(tooBig){setMessage(`Allegato troppo grande: "${tooBig.name}". Il limite è 20 MB per file.`);return}
   const risolto=f.get('risolto')==='on';
   const payload={
    ente_id:enteId,titolo_sintetico:String(f.get('titolo')||'').trim(),descrizione_estesa:String(f.get('descrizione')||'').trim(),
@@ -506,6 +510,10 @@ function RequestForm({row,buildings,ambiti,manutentore=false,onCancel,onSubmit}:
 function RequestDetail({row,access,onClose,onChanged,onEdit}:{row:RequestRow;access:Access[];onClose:()=>void;onChanged:()=>void;onEdit:()=>void}){
  const [tab,setTab]=useState('richiesta');const [uploading,setUploading]=useState(false);const [docError,setDocError]=useState('');const requestPerm=useResourcePermissions(access,'richieste');const canEditRequest=requestPerm.can_update&&!isManutentore(access);const canManageDocs=requestPerm.can_documents;const [preview,setPreview]=useState<{doc:any;url:string}|null>(null);
  const sedi=row.richieste_intervento_sedi||[];const amb=row.richieste_intervento_ambiti||[];const docs=row.richiesta_intervento_documenti||[];
+ // Allegati caricati dalle scuole dal Portale Scuola (tabella e bucket dedicati, sola lettura per il personale).
+ const [schoolFiles,setSchoolFiles]=useState<any[]>([]);
+ useEffect(()=>{let cancelled=false;void supabase.from('richieste_intervento_allegati').select('id,nome_file,mime_type,dimensione_bytes,storage_path,created_at').eq('richiesta_id',row.id).order('created_at').then(({data,error})=>{if(cancelled)return;if(error){console.warn('Allegati della scuola non disponibili:',error.message);setSchoolFiles([]);return}setSchoolFiles(data||[])});return()=>{cancelled=true}},[row.id]);
+ const openSchoolFile=async(a:any)=>{const x=await supabase.storage.from('richieste-intervento').createSignedUrl(a.storage_path,3600);if(x.error){setDocError('Impossibile aprire l’allegato: '+x.error.message);return}setPreview({doc:{nome:a.nome_file,mime_type:a.mime_type},url:x.data.signedUrl})};
  const upload=async(e:any)=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;setUploading(true);setDocError('');
   const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path='richieste/'+row.id+'/'+crypto.randomUUID()+'-'+safe;
   const up=await supabase.storage.from('documenti').upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});
@@ -524,8 +532,9 @@ function RequestDetail({row,access,onClose,onChanged,onEdit}:{row:RequestRow;acc
   {tab==='richiesta'&&<div className="request-detail-content"><div className="info-row"><span>Data richiesta</span><strong>{date(row.data_richiesta)}</strong></div><h3>Descrizione</h3><p>{row.descrizione_estesa}</p>{row.note_immobile&&<><h3>Note immobile</h3><p>{row.note_immobile}</p></>}</div>}
   {tab==='sedi'&&<div className="detail-list">{sedi.length?sedi.map((s:any)=><div className="detail-list-item" key={s.id}><b>{s.edifici?.codice_edificio}</b><strong>{s.edifici?.denominazione}</strong><span>{[s.edifici?.indirizzo,s.edifici?.comune].filter(Boolean).join(', ')}</span></div>):<Empty title="Nessuna sede associata" text="La richiesta può essere associata a una o più sedi."/>}</div>}
   {tab==='ambiti'&&<div className="request-detail-ambiti">{amb.length?amb.map((a:any)=><span className="badge blue" key={a.id}>{a.ambiti_richiesta_intervento?.denominazione}</span>):<Empty title="Nessun ambito" text="Non sono stati classificati ambiti."/>}</div>}
-  {tab==='documenti'&&<div><div className="upload-doc-row">{canManageDocs&&<label className="btn primary"><Upload size={15}/> {uploading?'Caricamento…':'Carica documento'}<input type="file" hidden onChange={upload} disabled={uploading}/></label>}<span className="muted">PDF, immagini e documentazione di supporto</span></div>{docs.length?<div className="detail-list">{docs.map((d:any)=><div className="detail-list-item doc-row" key={d.id}><div><b>{d.nome}</b><span>{d.mime_type||'file'} · {d.size_bytes?Math.round(d.size_bytes/1024)+' KB':''} · {date(d.data_documento)}</span></div><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>openDoc(d)} aria-label="Apri"><Eye size={16}/></button>{canManageDocs&&<button className="icon-btn dark-icon" title="Elimina" onClick={()=>deleteDoc(d)} aria-label={'Elimina '+(d.nome||'documento')}><Trash2 size={16}/></button>}</div></div>)}</div>:<Empty title="Nessun documento" text="Carica la richiesta dell'istituto e la documentazione di supporto."/>}</div>}
-  {preview&&<div className="modal-backdrop" style={{zIndex:1000}}><div className="modal" ref={previewRef} role="dialog" aria-modal="true" aria-label={'Anteprima documento '+(preview.doc?.nome||'')} tabIndex={-1} style={{width:'min(1100px,94vw)',height:'min(88vh,900px)',display:'flex',flexDirection:'column'}}><div className="modal-head"><div><h2>{preview.doc.nome}</h2><span className="muted">{preview.doc.mime_type||'Documento'}</span></div><button className="icon-btn dark-icon" onClick={()=>setPreview(null)} aria-label="Chiudi"><X/></button></div><div style={{flex:1,minHeight:0,background:'#f5f7fa',padding:12}}>{String(preview.doc.mime_type||'').startsWith('image/')?<img src={preview.url} alt={preview.doc.nome} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<iframe src={preview.url} title={preview.doc.nome} style={{width:'100%',height:'100%',border:0,background:'#fff'}}/>}</div><div className="form-actions"><a className="btn secondary" href={preview.url} target="_blank" rel="noreferrer">Apri in nuova scheda</a><button className="btn primary" onClick={()=>setPreview(null)}>Chiudi</button></div></div></div>}\n  {tab==='risoluzione'&&<div className="request-resolution-detail">{row.risolto?<><div className="resolution-ok"><CheckCircle2 size={22}/><div><strong>Richiesta risolta</strong><span>{date(row.data_risoluzione)}</span></div></div><h3>Note di risoluzione</h3><p>{row.note_risoluzione||'Nessuna nota.'}</p></>:<div className="notice warning"><CircleAlert size={17}/> La richiesta non risulta ancora risolta.</div>}</div>}
+  {tab==='documenti'&&<div><div className="upload-doc-row">{canManageDocs&&<label className="btn primary"><Upload size={15}/> {uploading?'Caricamento…':'Carica documento'}<input type="file" hidden onChange={upload} disabled={uploading}/></label>}<span className="muted">PDF, immagini e documentazione di supporto</span></div>{docs.length?<div className="detail-list">{docs.map((d:any)=><div className="detail-list-item doc-row" key={d.id}><div><b>{d.nome}</b><span>{d.mime_type||'file'} · {d.size_bytes?Math.round(d.size_bytes/1024)+' KB':''} · {date(d.data_documento)}</span></div><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>openDoc(d)} aria-label="Apri"><Eye size={16}/></button>{canManageDocs&&<button className="icon-btn dark-icon" title="Elimina" onClick={()=>deleteDoc(d)} aria-label={'Elimina '+(d.nome||'documento')}><Trash2 size={16}/></button>}</div></div>)}</div>:<Empty title="Nessun documento" text="Carica la richiesta dell'istituto e la documentazione di supporto."/>}{schoolFiles.length>0&&<><h3>Allegati inviati dalla scuola</h3><div className="detail-list">{schoolFiles.map((a:any)=><div className="detail-list-item doc-row" key={a.id}><div><b>{a.nome_file}</b><span>{a.mime_type||'file'} · {a.dimensione_bytes?Math.round(a.dimensione_bytes/1024)+' KB':''} · {date(a.created_at)}</span></div><div className="row-actions"><button className="icon-btn dark-icon" title="Apri" onClick={()=>void openSchoolFile(a)} aria-label={'Apri '+(a.nome_file||'allegato')}><Eye size={16}/></button></div></div>)}</div></>}</div>}
+  {preview&&<div className="modal-backdrop" style={{zIndex:1000}}><div className="modal" ref={previewRef} role="dialog" aria-modal="true" aria-label={'Anteprima documento '+(preview.doc?.nome||'')} tabIndex={-1} style={{width:'min(1100px,94vw)',height:'min(88vh,900px)',display:'flex',flexDirection:'column'}}><div className="modal-head"><div><h2>{preview.doc.nome}</h2><span className="muted">{preview.doc.mime_type||'Documento'}</span></div><button className="icon-btn dark-icon" onClick={()=>setPreview(null)} aria-label="Chiudi"><X/></button></div><div style={{flex:1,minHeight:0,background:'#f5f7fa',padding:12}}>{String(preview.doc.mime_type||'').startsWith('image/')?<img src={preview.url} alt={preview.doc.nome} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<iframe src={preview.url} title={preview.doc.nome} style={{width:'100%',height:'100%',border:0,background:'#fff'}}/>}</div><div className="form-actions"><a className="btn secondary" href={preview.url} target="_blank" rel="noreferrer">Apri in nuova scheda</a><button className="btn primary" onClick={()=>setPreview(null)}>Chiudi</button></div></div></div>}
+  {tab==='risoluzione'&&<div className="request-resolution-detail">{row.risolto?<><div className="resolution-ok"><CheckCircle2 size={22}/><div><strong>Richiesta risolta</strong><span>{date(row.data_risoluzione)}</span></div></div><h3>Note di risoluzione</h3><p>{row.note_risoluzione||'Nessuna nota.'}</p></>:<div className="notice warning"><CircleAlert size={17}/> La richiesta non risulta ancora risolta.</div>}</div>}
   <div className="form-actions"><button className="btn secondary" onClick={onClose}>Chiudi</button>{canEditRequest&&<button className="btn primary" onClick={onEdit}><Pencil size={15}/> Modifica</button>}</div>
  </div></div>
 }
