@@ -125,8 +125,7 @@ export const tests = [
   }),
 
   t('A9 l\'esenzione in user_metadata (modificabile dall\'utente) non vale', async ({ page, base, expect }) => {
-    await installSupabaseMock(page, { user: { ...USERS.tecnico }, roles: ['tecnico'], mfa: 'enroll' })
-    await page.addInitScript(() => {})
+    await installSupabaseMock(page, { user: { ...USERS.tecnico, user_metadata: { mfa_exempt: true } }, roles: ['tecnico'], mfa: 'enroll' })
     await open(page, base)
     await page.getByRole('heading', { name: 'Attiva la verifica in due passaggi' }).waitFor()
   }),
