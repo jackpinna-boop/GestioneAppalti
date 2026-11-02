@@ -10,10 +10,34 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
+      ambiti_richiesta_intervento: {
+        Row: {
+          attivo: boolean
+          codice: string
+          created_at: string
+          denominazione: string
+          id: string
+        }
+        Insert: {
+          attivo?: boolean
+          codice: string
+          created_at?: string
+          denominazione: string
+          id?: string
+        }
+        Update: {
+          attivo?: boolean
+          codice?: string
+          created_at?: string
+          denominazione?: string
+          id?: string
+        }
+        Relationships: []
+      }
       atti: {
         Row: {
           anno: number | null
@@ -111,6 +135,59 @@ export type Database = {
           },
         ]
       }
+      attributi_tipologia_impianto: {
+        Row: {
+          attivo: boolean
+          codice: string
+          created_at: string
+          denominazione: string
+          id: string
+          obbligatorio: boolean
+          opzioni: Json | null
+          ordine: number
+          tipo: string
+          tipologia_id: string
+          unita: string | null
+          updated_at: string
+        }
+        Insert: {
+          attivo?: boolean
+          codice: string
+          created_at?: string
+          denominazione: string
+          id?: string
+          obbligatorio?: boolean
+          opzioni?: Json | null
+          ordine?: number
+          tipo?: string
+          tipologia_id: string
+          unita?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attivo?: boolean
+          codice?: string
+          created_at?: string
+          denominazione?: string
+          id?: string
+          obbligatorio?: boolean
+          opzioni?: Json | null
+          ordine?: number
+          tipo?: string
+          tipologia_id?: string
+          unita?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attributi_tipologia_impianto_tipologia_id_fkey"
+            columns: ["tipologia_id"]
+            isOneToOne: false
+            referencedRelation: "tipologie_impianto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           azione: string
@@ -157,6 +234,27 @@ export type Database = {
             columns: ["ente_id"]
             isOneToOne: false
             referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_avanzamento"
+            referencedColumns: ["intervento_id"]
+          },
+          {
+            foreignKeyName: "audit_log_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_ritardi"
+            referencedColumns: ["intervento_id"]
+          },
+          {
+            foreignKeyName: "audit_log_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "interventi"
             referencedColumns: ["id"]
           },
         ]
@@ -320,6 +418,47 @@ export type Database = {
           },
         ]
       }
+      dashboard_config: {
+        Row: {
+          created_at: string
+          dashboard_key: string
+          ente_id: string
+          id: string
+          ordine: number
+          titolo: string
+          updated_at: string
+          visibile: boolean
+        }
+        Insert: {
+          created_at?: string
+          dashboard_key: string
+          ente_id: string
+          id?: string
+          ordine?: number
+          titolo: string
+          updated_at?: string
+          visibile?: boolean
+        }
+        Update: {
+          created_at?: string
+          dashboard_key?: string
+          ente_id?: string
+          id?: string
+          ordine?: number
+          titolo?: string
+          updated_at?: string
+          visibile?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_config_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dati_catastali: {
         Row: {
           categoria: string | null
@@ -374,48 +513,66 @@ export type Database = {
         Row: {
           atto_id: string | null
           created_at: string
+          created_by: string | null
           data_documento: string | null
           firmato_digitalmente: boolean | null
           formato: string | null
           hash_file: string | null
           id: string
           intervento_id: string | null
+          mime_type: string | null
           nome: string
           note: string | null
           progetto_id: string | null
+          record_id: string | null
+          sezione: string
+          size_bytes: number | null
           tipo: Database["public"]["Enums"]["documento_tipo"]
+          updated_at: string
           url: string | null
           versione: number | null
         }
         Insert: {
           atto_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_documento?: string | null
           firmato_digitalmente?: boolean | null
           formato?: string | null
           hash_file?: string | null
           id?: string
           intervento_id?: string | null
+          mime_type?: string | null
           nome: string
           note?: string | null
           progetto_id?: string | null
+          record_id?: string | null
+          sezione?: string
+          size_bytes?: number | null
           tipo: Database["public"]["Enums"]["documento_tipo"]
+          updated_at?: string
           url?: string | null
           versione?: number | null
         }
         Update: {
           atto_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_documento?: string | null
           firmato_digitalmente?: boolean | null
           formato?: string | null
           hash_file?: string | null
           id?: string
           intervento_id?: string | null
+          mime_type?: string | null
           nome?: string
           note?: string | null
           progetto_id?: string | null
+          record_id?: string | null
+          sezione?: string
+          size_bytes?: number | null
           tipo?: Database["public"]["Enums"]["documento_tipo"]
+          updated_at?: string
           url?: string | null
           versione?: number | null
         }
@@ -425,6 +582,13 @@ export type Database = {
             columns: ["atto_id"]
             isOneToOne: false
             referencedRelation: "atti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documenti_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -457,11 +621,135 @@ export type Database = {
           },
         ]
       }
+      documenti_immobile: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_documento: string | null
+          data_emissione: string | null
+          data_prossima_verifica: string | null
+          data_scadenza: string | null
+          ditta: string | null
+          edificio_id: string
+          emittente: string | null
+          ente_id: string
+          id: string
+          impianto_id: string | null
+          mime_type: string | null
+          nome_file: string
+          note: string | null
+          numero: string | null
+          periodicita_mesi: number | null
+          protocollo: string | null
+          size_bytes: number | null
+          stato: string
+          storage_path: string
+          tecnico: string | null
+          tipologia_id: string
+          titolo: string
+          updated_at: string
+          versione: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          data_emissione?: string | null
+          data_prossima_verifica?: string | null
+          data_scadenza?: string | null
+          ditta?: string | null
+          edificio_id: string
+          emittente?: string | null
+          ente_id: string
+          id?: string
+          impianto_id?: string | null
+          mime_type?: string | null
+          nome_file: string
+          note?: string | null
+          numero?: string | null
+          periodicita_mesi?: number | null
+          protocollo?: string | null
+          size_bytes?: number | null
+          stato?: string
+          storage_path: string
+          tecnico?: string | null
+          tipologia_id: string
+          titolo: string
+          updated_at?: string
+          versione?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          data_emissione?: string | null
+          data_prossima_verifica?: string | null
+          data_scadenza?: string | null
+          ditta?: string | null
+          edificio_id?: string
+          emittente?: string | null
+          ente_id?: string
+          id?: string
+          impianto_id?: string | null
+          mime_type?: string | null
+          nome_file?: string
+          note?: string | null
+          numero?: string | null
+          periodicita_mesi?: number | null
+          protocollo?: string | null
+          size_bytes?: number | null
+          stato?: string
+          storage_path?: string
+          tecnico?: string | null
+          tipologia_id?: string
+          titolo?: string
+          updated_at?: string
+          versione?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documenti_immobile_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documenti_immobile_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documenti_immobile_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documenti_immobile_impianto_id_fkey"
+            columns: ["impianto_id"]
+            isOneToOne: false
+            referencedRelation: "impianti_manutentivi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documenti_immobile_tipologia_id_fkey"
+            columns: ["tipologia_id"]
+            isOneToOne: false
+            referencedRelation: "tipologie_documenti_immobile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       edifici: {
         Row: {
           anno_adeguamento: number | null
           anno_costruzione: number | null
           cap: string | null
+          centro_di_costo: string | null
           civico: string | null
           codice_edificio: string
           comune: string | null
@@ -484,6 +772,7 @@ export type Database = {
           anno_adeguamento?: number | null
           anno_costruzione?: number | null
           cap?: string | null
+          centro_di_costo?: string | null
           civico?: string | null
           codice_edificio: string
           comune?: string | null
@@ -506,6 +795,7 @@ export type Database = {
           anno_adeguamento?: number | null
           anno_costruzione?: number | null
           cap?: string | null
+          centro_di_costo?: string | null
           civico?: string | null
           codice_edificio?: string
           comune?: string | null
@@ -527,6 +817,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "edifici_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      edifici_permessi: {
+        Row: {
+          all_buildings: boolean
+          can_delete: boolean
+          can_update: boolean
+          created_at: string
+          edificio_id: string | null
+          ente_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          all_buildings?: boolean
+          can_delete?: boolean
+          can_update?: boolean
+          created_at?: string
+          edificio_id?: string | null
+          ente_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          all_buildings?: boolean
+          can_delete?: boolean
+          can_update?: boolean
+          created_at?: string
+          edificio_id?: string | null
+          ente_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edifici_permessi_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edifici_permessi_ente_id_fkey"
             columns: ["ente_id"]
             isOneToOne: false
             referencedRelation: "enti"
@@ -571,12 +909,13 @@ export type Database = {
           codice_ipa?: string | null
           created_at?: string
           denominazione?: string
-          logo_path?: string | null
           email?: string | null
           id?: string
+          logo_path?: string | null
           pec?: string | null
           telefono?: string | null
           tipo_ente?: string | null
+          ui_palette?: string
           updated_at?: string
         }
         Relationships: []
@@ -749,6 +1088,321 @@ export type Database = {
         }
         Relationships: []
       }
+      impianti_manutentivi: {
+        Row: {
+          anno_installazione: number | null
+          codice: string | null
+          conformita: boolean
+          created_at: string
+          created_by: string | null
+          data_collaudo: string | null
+          data_installazione: string | null
+          data_prossima_manutenzione: string | null
+          data_prossimo_controllo_periodico: string | null
+          data_ultima_manutenzione: string | null
+          data_ultimo_controllo_periodico: string | null
+          data_verifica: string | null
+          denominazione: string
+          ditta_manutentrice: string | null
+          edificio_id: string
+          ente_id: string
+          id: string
+          marca_modello: string | null
+          matricola: string | null
+          note: string | null
+          numero_rapporto: string | null
+          periodicita_mesi: number | null
+          referente: string | null
+          stato: string
+          tipo: string
+          ubicazione: string | null
+          updated_at: string
+        }
+        Insert: {
+          anno_installazione?: number | null
+          codice?: string | null
+          conformita?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_collaudo?: string | null
+          data_installazione?: string | null
+          data_prossima_manutenzione?: string | null
+          data_prossimo_controllo_periodico?: string | null
+          data_ultima_manutenzione?: string | null
+          data_ultimo_controllo_periodico?: string | null
+          data_verifica?: string | null
+          denominazione: string
+          ditta_manutentrice?: string | null
+          edificio_id: string
+          ente_id: string
+          id?: string
+          marca_modello?: string | null
+          matricola?: string | null
+          note?: string | null
+          numero_rapporto?: string | null
+          periodicita_mesi?: number | null
+          referente?: string | null
+          stato?: string
+          tipo: string
+          ubicazione?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anno_installazione?: number | null
+          codice?: string | null
+          conformita?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_collaudo?: string | null
+          data_installazione?: string | null
+          data_prossima_manutenzione?: string | null
+          data_prossimo_controllo_periodico?: string | null
+          data_ultima_manutenzione?: string | null
+          data_ultimo_controllo_periodico?: string | null
+          data_verifica?: string | null
+          denominazione?: string
+          ditta_manutentrice?: string | null
+          edificio_id?: string
+          ente_id?: string
+          id?: string
+          marca_modello?: string | null
+          matricola?: string | null
+          note?: string | null
+          numero_rapporto?: string | null
+          periodicita_mesi?: number | null
+          referente?: string | null
+          stato?: string
+          tipo?: string
+          ubicazione?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impianti_manutentivi_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impianti_manutentivi_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impianti_manutentivi_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impianti_termici_matricole: {
+        Row: {
+          created_at: string
+          id: string
+          impianto_id: string
+          matricola_inail: string
+          note: string | null
+          potenza_kw: number | null
+          tipo_matricola: string
+          updated_at: string
+          vigente: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          impianto_id: string
+          matricola_inail: string
+          note?: string | null
+          potenza_kw?: number | null
+          tipo_matricola?: string
+          updated_at?: string
+          vigente?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          impianto_id?: string
+          matricola_inail?: string
+          note?: string | null
+          potenza_kw?: number | null
+          tipo_matricola?: string
+          updated_at?: string
+          vigente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impianti_termici_matricole_impianto_id_fkey"
+            columns: ["impianto_id"]
+            isOneToOne: false
+            referencedRelation: "impianti_manutentivi"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_batch_impianti: {
+        Row: {
+          anomalie: number
+          created_at: string
+          created_by: string | null
+          ente_id: string
+          esclusi: number
+          id: string
+          impianti_rilevati: number
+          importabili: number
+          nome_file: string
+          righe_csv: number
+          stato: string
+          tipo_import: string
+          updated_at: string
+        }
+        Insert: {
+          anomalie?: number
+          created_at?: string
+          created_by?: string | null
+          ente_id: string
+          esclusi?: number
+          id?: string
+          impianti_rilevati?: number
+          importabili?: number
+          nome_file: string
+          righe_csv?: number
+          stato?: string
+          tipo_import?: string
+          updated_at?: string
+        }
+        Update: {
+          anomalie?: number
+          created_at?: string
+          created_by?: string | null
+          ente_id?: string
+          esclusi?: number
+          id?: string
+          impianti_rilevati?: number
+          importabili?: number
+          nome_file?: string
+          righe_csv?: number
+          stato?: string
+          tipo_import?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_batch_impianti_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_batch_impianti_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_righe_impianti: {
+        Row: {
+          avvisi: Json
+          batch_id: string
+          codice_scuola: string | null
+          controllo_efficienza: string | null
+          created_at: string
+          denominazione_csv: string | null
+          edificio_confidenza: number
+          edificio_id: string | null
+          edificio_match_stato: string
+          errori: Json
+          id: string
+          indirizzo_csv: string | null
+          link_pratica: string | null
+          matricola: string | null
+          matricola_inail: string | null
+          matricola_inail_vigente: string | null
+          potenza_kw: number | null
+          prossima_verifica: string | null
+          raw_data: Json
+          riga_csv: number
+          selezionato: boolean
+          sopra_116kw: boolean | null
+          stato_suggerito: string
+          ultima_verifica: string | null
+        }
+        Insert: {
+          avvisi?: Json
+          batch_id: string
+          codice_scuola?: string | null
+          controllo_efficienza?: string | null
+          created_at?: string
+          denominazione_csv?: string | null
+          edificio_confidenza?: number
+          edificio_id?: string | null
+          edificio_match_stato?: string
+          errori?: Json
+          id?: string
+          indirizzo_csv?: string | null
+          link_pratica?: string | null
+          matricola?: string | null
+          matricola_inail?: string | null
+          matricola_inail_vigente?: string | null
+          potenza_kw?: number | null
+          prossima_verifica?: string | null
+          raw_data?: Json
+          riga_csv: number
+          selezionato?: boolean
+          sopra_116kw?: boolean | null
+          stato_suggerito?: string
+          ultima_verifica?: string | null
+        }
+        Update: {
+          avvisi?: Json
+          batch_id?: string
+          codice_scuola?: string | null
+          controllo_efficienza?: string | null
+          created_at?: string
+          denominazione_csv?: string | null
+          edificio_confidenza?: number
+          edificio_id?: string | null
+          edificio_match_stato?: string
+          errori?: Json
+          id?: string
+          indirizzo_csv?: string | null
+          link_pratica?: string | null
+          matricola?: string | null
+          matricola_inail?: string | null
+          matricola_inail_vigente?: string | null
+          potenza_kw?: number | null
+          prossima_verifica?: string | null
+          raw_data?: Json
+          riga_csv?: number
+          selezionato?: boolean
+          sopra_116kw?: boolean | null
+          stato_suggerito?: string
+          ultima_verifica?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_righe_impianti_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batch_impianti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_righe_impianti_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incarichi_intervento: {
         Row: {
           atto_id: string | null
@@ -825,15 +1479,19 @@ export type Database = {
           created_at: string
           cup: string | null
           data_inserimento: string
+          data_risoluzione: string | null
           descrizione: string | null
-          edificio_id: string
+          edificio_id: string | null
           ente_id: string
           id: string
           importo_contrattuale: number
           importo_finanziato: number
           importo_programmato: number
+          natura: Database["public"]["Enums"]["intervento_natura"]
           note: string | null
+          note_risoluzione: string | null
           priorita: number | null
+          risolto: boolean
           rup_id: string | null
           stato: Database["public"]["Enums"]["intervento_status"]
           tipologia_intervento_id: string | null
@@ -846,15 +1504,19 @@ export type Database = {
           created_at?: string
           cup?: string | null
           data_inserimento?: string
+          data_risoluzione?: string | null
           descrizione?: string | null
-          edificio_id: string
+          edificio_id?: string | null
           ente_id: string
           id?: string
           importo_contrattuale?: number
           importo_finanziato?: number
           importo_programmato?: number
+          natura?: Database["public"]["Enums"]["intervento_natura"]
           note?: string | null
+          note_risoluzione?: string | null
           priorita?: number | null
+          risolto?: boolean
           rup_id?: string | null
           stato?: Database["public"]["Enums"]["intervento_status"]
           tipologia_intervento_id?: string | null
@@ -867,15 +1529,19 @@ export type Database = {
           created_at?: string
           cup?: string | null
           data_inserimento?: string
+          data_risoluzione?: string | null
           descrizione?: string | null
-          edificio_id?: string
+          edificio_id?: string | null
           ente_id?: string
           id?: string
           importo_contrattuale?: number
           importo_finanziato?: number
           importo_programmato?: number
+          natura?: Database["public"]["Enums"]["intervento_natura"]
           note?: string | null
+          note_risoluzione?: string | null
           priorita?: number | null
+          risolto?: boolean
           rup_id?: string | null
           stato?: Database["public"]["Enums"]["intervento_status"]
           tipologia_intervento_id?: string | null
@@ -909,6 +1575,329 @@ export type Database = {
             columns: ["tipologia_intervento_id"]
             isOneToOne: false
             referencedRelation: "tipologie_intervento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interventi_edifici: {
+        Row: {
+          created_at: string
+          edificio_id: string
+          ente_id: string
+          id: string
+          intervento_id: string
+        }
+        Insert: {
+          created_at?: string
+          edificio_id: string
+          ente_id: string
+          id?: string
+          intervento_id: string
+        }
+        Update: {
+          created_at?: string
+          edificio_id?: string
+          ente_id?: string
+          id?: string
+          intervento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interventi_edifici_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_avanzamento"
+            referencedColumns: ["intervento_id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_ritardi"
+            referencedColumns: ["intervento_id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "interventi"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interventi_edifici_quote: {
+        Row: {
+          created_at: string
+          criterio_attribuzione: string
+          edificio_id: string
+          ente_id: string
+          id: string
+          importo_attribuito: number | null
+          intervento_id: string
+          note: string | null
+          percentuale: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criterio_attribuzione?: string
+          edificio_id: string
+          ente_id: string
+          id?: string
+          importo_attribuito?: number | null
+          intervento_id: string
+          note?: string | null
+          percentuale?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criterio_attribuzione?: string
+          edificio_id?: string
+          ente_id?: string
+          id?: string
+          importo_attribuito?: number | null
+          intervento_id?: string
+          note?: string | null
+          percentuale?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interventi_edifici_quote_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_quote_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_quote_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_avanzamento"
+            referencedColumns: ["intervento_id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_quote_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_ritardi"
+            referencedColumns: ["intervento_id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_quote_intervento_id_fkey"
+            columns: ["intervento_id"]
+            isOneToOne: false
+            referencedRelation: "interventi"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manutenzione_documenti: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_documento: string | null
+          edificio_id: string
+          ente_id: string
+          id: string
+          impianto_id: string | null
+          manutenzione_id: string | null
+          mime_type: string | null
+          nome: string
+          note: string | null
+          size_bytes: number | null
+          tipo: string | null
+          updated_at: string
+          url: string
+          versione: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          edificio_id: string
+          ente_id: string
+          id?: string
+          impianto_id?: string | null
+          manutenzione_id?: string | null
+          mime_type?: string | null
+          nome: string
+          note?: string | null
+          size_bytes?: number | null
+          tipo?: string | null
+          updated_at?: string
+          url: string
+          versione?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          edificio_id?: string
+          ente_id?: string
+          id?: string
+          impianto_id?: string | null
+          manutenzione_id?: string | null
+          mime_type?: string | null
+          nome?: string
+          note?: string | null
+          size_bytes?: number | null
+          tipo?: string | null
+          updated_at?: string
+          url?: string
+          versione?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manutenzione_documenti_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzione_documenti_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzione_documenti_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzione_documenti_impianto_id_fkey"
+            columns: ["impianto_id"]
+            isOneToOne: false
+            referencedRelation: "impianti_manutentivi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzione_documenti_manutenzione_id_fkey"
+            columns: ["manutenzione_id"]
+            isOneToOne: false
+            referencedRelation: "manutenzioni"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manutenzioni: {
+        Row: {
+          costo_consuntivo: number
+          costo_previsto: number
+          created_at: string
+          created_by: string | null
+          data_esecuzione: string | null
+          data_programmata: string | null
+          data_richiesta: string
+          descrizione: string
+          edificio_id: string
+          ente_id: string
+          esito: string | null
+          id: string
+          impianto_id: string | null
+          note: string | null
+          numero_rapporto: string | null
+          operatore: string | null
+          stato: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          costo_consuntivo?: number
+          costo_previsto?: number
+          created_at?: string
+          created_by?: string | null
+          data_esecuzione?: string | null
+          data_programmata?: string | null
+          data_richiesta?: string
+          descrizione: string
+          edificio_id: string
+          ente_id: string
+          esito?: string | null
+          id?: string
+          impianto_id?: string | null
+          note?: string | null
+          numero_rapporto?: string | null
+          operatore?: string | null
+          stato?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          costo_consuntivo?: number
+          costo_previsto?: number
+          created_at?: string
+          created_by?: string | null
+          data_esecuzione?: string | null
+          data_programmata?: string | null
+          data_richiesta?: string
+          descrizione?: string
+          edificio_id?: string
+          ente_id?: string
+          esito?: string | null
+          id?: string
+          impianto_id?: string | null
+          note?: string | null
+          numero_rapporto?: string | null
+          operatore?: string | null
+          stato?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manutenzioni_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzioni_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzioni_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzioni_impianto_id_fkey"
+            columns: ["impianto_id"]
+            isOneToOne: false
+            referencedRelation: "impianti_manutentivi"
             referencedColumns: ["id"]
           },
         ]
@@ -996,6 +1985,169 @@ export type Database = {
             columns: ["sal_id"]
             isOneToOne: false
             referencedRelation: "sal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permessi_ruoli: {
+        Row: {
+          can_admin: boolean
+          can_create: boolean
+          can_delete: boolean
+          can_documents: boolean
+          can_update: boolean
+          can_view: boolean
+          created_at: string
+          ente_id: string
+          id: string
+          risorsa: string
+          ruolo: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          can_admin?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_documents?: boolean
+          can_update?: boolean
+          can_view?: boolean
+          created_at?: string
+          ente_id: string
+          id?: string
+          risorsa: string
+          ruolo: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          can_admin?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_documents?: boolean
+          can_update?: boolean
+          can_view?: boolean
+          created_at?: string
+          ente_id?: string
+          id?: string
+          risorsa?: string
+          ruolo?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permessi_ruoli_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permessi_utenti: {
+        Row: {
+          can_admin: boolean
+          can_create: boolean
+          can_delete: boolean
+          can_documents: boolean
+          can_update: boolean
+          can_view: boolean
+          created_at: string
+          ente_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_admin?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_documents?: boolean
+          can_update?: boolean
+          can_view?: boolean
+          created_at?: string
+          ente_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_admin?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_documents?: boolean
+          can_update?: boolean
+          can_view?: boolean
+          created_at?: string
+          ente_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permessi_utenti_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permessi_utenti_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permessi_utenti_risorse: {
+        Row: {
+          can_admin: boolean
+          can_create: boolean
+          can_delete: boolean
+          can_documents: boolean
+          can_update: boolean
+          can_view: boolean
+          created_at: string
+          ente_id: string
+          id: string
+          risorsa: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_admin?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_documents?: boolean
+          can_update?: boolean
+          can_view?: boolean
+          created_at?: string
+          ente_id: string
+          id?: string
+          risorsa: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_admin?: boolean
+          can_create?: boolean
+          can_delete?: boolean
+          can_documents?: boolean
+          can_update?: boolean
+          can_view?: boolean
+          created_at?: string
+          ente_id?: string
+          id?: string
+          risorsa?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permessi_utenti_risorse_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
             referencedColumns: ["id"]
           },
         ]
@@ -1419,6 +2571,323 @@ export type Database = {
           },
         ]
       }
+      richiesta_intervento_documenti: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_documento: string | null
+          ente_id: string
+          hash_file: string | null
+          id: string
+          mime_type: string | null
+          nome: string
+          note: string | null
+          richiesta_id: string
+          size_bytes: number | null
+          tipo: string | null
+          updated_at: string
+          url: string
+          versione: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          ente_id: string
+          hash_file?: string | null
+          id?: string
+          mime_type?: string | null
+          nome: string
+          note?: string | null
+          richiesta_id: string
+          size_bytes?: number | null
+          tipo?: string | null
+          updated_at?: string
+          url: string
+          versione?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          ente_id?: string
+          hash_file?: string | null
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          note?: string | null
+          richiesta_id?: string
+          size_bytes?: number | null
+          tipo?: string | null
+          updated_at?: string
+          url?: string
+          versione?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "richiesta_intervento_documenti_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "richiesta_intervento_documenti_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "richiesta_intervento_documenti_richiesta_ente_fkey"
+            columns: ["richiesta_id", "ente_id"]
+            isOneToOne: false
+            referencedRelation: "richieste_intervento"
+            referencedColumns: ["id", "ente_id"]
+          },
+        ]
+      }
+      richieste_import_chunks: {
+        Row: {
+          id: number
+          payload: string
+        }
+        Insert: {
+          id: number
+          payload: string
+        }
+        Update: {
+          id?: number
+          payload?: string
+        }
+        Relationships: []
+      }
+      richieste_intervento: {
+        Row: {
+          allegati_presenti: boolean
+          codice_identificativo_locale: string | null
+          codice_richiesta: string | null
+          created_at: string
+          created_by: string | null
+          data_protocollo: string | null
+          data_richiesta: string
+          data_risoluzione: string | null
+          descrizione_estesa: string
+          edificio_origine: string | null
+          ente_id: string
+          id: string
+          note_immobile: string | null
+          note_risoluzione: string | null
+          numero_progressivo: number
+          numero_protocollo: string | null
+          origine_sistema: string
+          priorita: string | null
+          risolto: boolean
+          stato_risoluzione: string
+          tipo_intervento: string
+          titolo_sintetico: string
+          updated_at: string
+        }
+        Insert: {
+          allegati_presenti?: boolean
+          codice_identificativo_locale?: string | null
+          codice_richiesta?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_protocollo?: string | null
+          data_richiesta?: string
+          data_risoluzione?: string | null
+          descrizione_estesa: string
+          edificio_origine?: string | null
+          ente_id: string
+          id?: string
+          note_immobile?: string | null
+          note_risoluzione?: string | null
+          numero_progressivo?: never
+          numero_protocollo?: string | null
+          origine_sistema?: string
+          priorita?: string | null
+          risolto?: boolean
+          stato_risoluzione?: string
+          tipo_intervento?: string
+          titolo_sintetico: string
+          updated_at?: string
+        }
+        Update: {
+          allegati_presenti?: boolean
+          codice_identificativo_locale?: string | null
+          codice_richiesta?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_protocollo?: string | null
+          data_richiesta?: string
+          data_risoluzione?: string | null
+          descrizione_estesa?: string
+          edificio_origine?: string | null
+          ente_id?: string
+          id?: string
+          note_immobile?: string | null
+          note_risoluzione?: string | null
+          numero_progressivo?: never
+          numero_protocollo?: string | null
+          origine_sistema?: string
+          priorita?: string | null
+          risolto?: boolean
+          stato_risoluzione?: string
+          tipo_intervento?: string
+          titolo_sintetico?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "richieste_intervento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "richieste_intervento_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      richieste_intervento_allegati: {
+        Row: {
+          created_at: string
+          created_by: string
+          dimensione_bytes: number
+          id: string
+          mime_type: string
+          nome_file: string
+          richiesta_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          dimensione_bytes: number
+          id?: string
+          mime_type: string
+          nome_file: string
+          richiesta_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          dimensione_bytes?: number
+          id?: string
+          mime_type?: string
+          nome_file?: string
+          richiesta_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "richieste_intervento_allegati_richiesta_id_fkey"
+            columns: ["richiesta_id"]
+            isOneToOne: false
+            referencedRelation: "richieste_intervento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      richieste_intervento_ambiti: {
+        Row: {
+          ambito_id: string
+          created_at: string
+          ente_id: string
+          id: string
+          richiesta_id: string
+        }
+        Insert: {
+          ambito_id: string
+          created_at?: string
+          ente_id: string
+          id?: string
+          richiesta_id: string
+        }
+        Update: {
+          ambito_id?: string
+          created_at?: string
+          ente_id?: string
+          id?: string
+          richiesta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "richieste_intervento_ambiti_ambito_id_fkey"
+            columns: ["ambito_id"]
+            isOneToOne: false
+            referencedRelation: "ambiti_richiesta_intervento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "richieste_intervento_ambiti_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "richieste_intervento_ambiti_richiesta_ente_fkey"
+            columns: ["richiesta_id", "ente_id"]
+            isOneToOne: false
+            referencedRelation: "richieste_intervento"
+            referencedColumns: ["id", "ente_id"]
+          },
+        ]
+      }
+      richieste_intervento_sedi: {
+        Row: {
+          created_at: string
+          edificio_id: string
+          ente_id: string
+          id: string
+          richiesta_id: string
+        }
+        Insert: {
+          created_at?: string
+          edificio_id: string
+          ente_id: string
+          id?: string
+          richiesta_id: string
+        }
+        Update: {
+          created_at?: string
+          edificio_id?: string
+          ente_id?: string
+          id?: string
+          richiesta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "richieste_intervento_sedi_edificio_ente_fkey"
+            columns: ["edificio_id", "ente_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id", "ente_id"]
+          },
+          {
+            foreignKeyName: "richieste_intervento_sedi_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "richieste_intervento_sedi_richiesta_ente_fkey"
+            columns: ["richiesta_id", "ente_id"]
+            isOneToOne: false
+            referencedRelation: "richieste_intervento"
+            referencedColumns: ["id", "ente_id"]
+          },
+        ]
+      }
       sal: {
         Row: {
           atto_id: string | null
@@ -1476,6 +2945,335 @@ export type Database = {
           },
         ]
       }
+      scuola_access_log: {
+        Row: {
+          azione: string
+          edificio_id: string | null
+          ente_id: string
+          id: number
+          metadata: Json
+          richiesta_id: string | null
+          scuola_id: string | null
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          azione: string
+          edificio_id?: string | null
+          ente_id: string
+          id?: never
+          metadata?: Json
+          richiesta_id?: string | null
+          scuola_id?: string | null
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          azione?: string
+          edificio_id?: string | null
+          ente_id?: string
+          id?: never
+          metadata?: Json
+          richiesta_id?: string | null
+          scuola_id?: string | null
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scuola_access_log_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scuola_access_log_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scuola_access_log_richiesta_id_fkey"
+            columns: ["richiesta_id"]
+            isOneToOne: false
+            referencedRelation: "richieste_intervento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scuola_access_log_scuola_id_fkey"
+            columns: ["scuola_id"]
+            isOneToOne: false
+            referencedRelation: "scuole"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scuola_utenti: {
+        Row: {
+          attivo: boolean
+          created_at: string
+          data_fine: string | null
+          data_inizio: string
+          id: string
+          ruolo: Database["public"]["Enums"]["app_role"]
+          scuola_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attivo?: boolean
+          created_at?: string
+          data_fine?: string | null
+          data_inizio?: string
+          id?: string
+          ruolo: Database["public"]["Enums"]["app_role"]
+          scuola_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attivo?: boolean
+          created_at?: string
+          data_fine?: string | null
+          data_inizio?: string
+          id?: string
+          ruolo?: Database["public"]["Enums"]["app_role"]
+          scuola_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scuola_utenti_scuola_id_fkey"
+            columns: ["scuola_id"]
+            isOneToOne: false
+            referencedRelation: "scuole"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scuola_utenti_edifici: {
+        Row: {
+          attivo: boolean
+          created_at: string
+          data_fine: string | null
+          data_inizio: string
+          edificio_id: string
+          id: string
+          scuola_utente_id: string
+        }
+        Insert: {
+          attivo?: boolean
+          created_at?: string
+          data_fine?: string | null
+          data_inizio?: string
+          edificio_id: string
+          id?: string
+          scuola_utente_id: string
+        }
+        Update: {
+          attivo?: boolean
+          created_at?: string
+          data_fine?: string | null
+          data_inizio?: string
+          edificio_id?: string
+          id?: string
+          scuola_utente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scuola_utenti_edifici_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scuola_utenti_edifici_scuola_utente_id_fkey"
+            columns: ["scuola_utente_id"]
+            isOneToOne: false
+            referencedRelation: "scuola_utenti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scuole: {
+        Row: {
+          attiva: boolean
+          codice_meccanografico: string | null
+          created_at: string
+          denominazione: string
+          dirigente_user_id: string | null
+          ente_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          attiva?: boolean
+          codice_meccanografico?: string | null
+          created_at?: string
+          denominazione: string
+          dirigente_user_id?: string | null
+          ente_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          attiva?: boolean
+          codice_meccanografico?: string | null
+          created_at?: string
+          denominazione?: string
+          dirigente_user_id?: string | null
+          ente_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scuole_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scuole_edifici: {
+        Row: {
+          attivo: boolean
+          created_at: string
+          edificio_id: string
+          id: string
+          scuola_id: string
+        }
+        Insert: {
+          attivo?: boolean
+          created_at?: string
+          edificio_id: string
+          id?: string
+          scuola_id: string
+        }
+        Update: {
+          attivo?: boolean
+          created_at?: string
+          edificio_id?: string
+          id?: string
+          scuola_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scuole_edifici_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "edifici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scuole_edifici_scuola_id_fkey"
+            columns: ["scuola_id"]
+            isOneToOne: false
+            referencedRelation: "scuole"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tipologie_documenti_immobile: {
+        Row: {
+          attivo: boolean
+          categoria: string
+          codice: string
+          created_at: string
+          denominazione: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          attivo?: boolean
+          categoria: string
+          codice: string
+          created_at?: string
+          denominazione: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          attivo?: boolean
+          categoria?: string
+          codice?: string
+          created_at?: string
+          denominazione?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tipologie_impianto: {
+        Row: {
+          attivo: boolean
+          categoria: string
+          codice: string
+          colore: string | null
+          created_at: string
+          denominazione: string
+          descrizione: string | null
+          ente_id: string
+          gestione_alert: boolean
+          gestione_documenti: boolean
+          gestione_manutenzione: boolean
+          gestione_scadenze: boolean
+          icona: string | null
+          id: string
+          ordinamento: number
+          updated_at: string
+        }
+        Insert: {
+          attivo?: boolean
+          categoria?: string
+          codice: string
+          colore?: string | null
+          created_at?: string
+          denominazione: string
+          descrizione?: string | null
+          ente_id: string
+          gestione_alert?: boolean
+          gestione_documenti?: boolean
+          gestione_manutenzione?: boolean
+          gestione_scadenze?: boolean
+          icona?: string | null
+          id?: string
+          ordinamento?: number
+          updated_at?: string
+        }
+        Update: {
+          attivo?: boolean
+          categoria?: string
+          codice?: string
+          colore?: string | null
+          created_at?: string
+          denominazione?: string
+          descrizione?: string | null
+          ente_id?: string
+          gestione_alert?: boolean
+          gestione_documenti?: boolean
+          gestione_manutenzione?: boolean
+          gestione_scadenze?: boolean
+          icona?: string | null
+          id?: string
+          ordinamento?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipologie_impianto_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tipologie_intervento: {
         Row: {
           attivo: boolean
@@ -1526,6 +3324,48 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      valori_attributi_impianto: {
+        Row: {
+          attributo_id: string
+          created_at: string
+          id: string
+          impianto_id: string
+          updated_at: string
+          valore: string | null
+        }
+        Insert: {
+          attributo_id: string
+          created_at?: string
+          id?: string
+          impianto_id: string
+          updated_at?: string
+          valore?: string | null
+        }
+        Update: {
+          attributo_id?: string
+          created_at?: string
+          id?: string
+          impianto_id?: string
+          updated_at?: string
+          valore?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valori_attributi_impianto_attributo_id_fkey"
+            columns: ["attributo_id"]
+            isOneToOne: false
+            referencedRelation: "attributi_tipologia_impianto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valori_attributi_impianto_impianto_id_fkey"
+            columns: ["impianto_id"]
+            isOneToOne: false
+            referencedRelation: "impianti_manutentivi"
             referencedColumns: ["id"]
           },
         ]
@@ -1756,6 +3596,17 @@ export type Database = {
     }
     Functions: {
       can_access_ente: { Args: { p_ente_id: string }; Returns: boolean }
+      can_manage_edificio: {
+        Args: { p_action?: string; p_edificio_id: string }
+        Returns: boolean
+      }
+      can_manage_user_role: {
+        Args: {
+          p_ente_id: string
+          p_ruolo: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           p_ente?: string
@@ -1763,7 +3614,56 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_impianti_termici_batch: {
+        Args: { p_batch_id: string }
+        Returns: number
+      }
+      import_intervento_sharepoint: {
+        Args: { p_data: Json; p_ente_id: string }
+        Returns: Json
+      }
+      is_school_portal_user: { Args: { p_user_id?: string }; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
+      school_cancel_request: {
+        Args: { p_motivazione: string; p_request_id: string }
+        Returns: boolean
+      }
+      school_create_request: {
+        Args: {
+          p_descrizione: string
+          p_edificio_id: string
+          p_ente_id: string
+          p_note_immobile?: string
+          p_priorita?: string
+          p_tipo_intervento?: string
+          p_titolo: string
+        }
+        Returns: string
+      }
+      school_create_request_multi: {
+        Args: {
+          p_descrizione: string
+          p_edificio_ids: string[]
+          p_ente_id: string
+          p_note_immobile?: string
+          p_priorita?: string
+          p_tipo_intervento?: string
+          p_titolo: string
+        }
+        Returns: string
+      }
+      school_mark_request_attachments: {
+        Args: { p_request_id: string }
+        Returns: undefined
+      }
+      school_user_has_building: {
+        Args: { p_building_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      school_user_has_request: {
+        Args: { p_request_id: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
@@ -1777,6 +3677,8 @@ export type Database = {
         | "consultatore"
         | "manutentore"
         | "siservizi"
+        | "dirigente_scolastico"
+        | "delegato_scolastico"
       atto_tipo:
         | "determina"
         | "delibera"
@@ -1815,6 +3717,7 @@ export type Database = {
         | "collaudo"
         | "cre"
         | "chiusura"
+      intervento_natura: "LAVORO" | "SERVIZIO"
       intervento_status:
         | "programmato"
         | "progettazione"
@@ -1827,7 +3730,12 @@ export type Database = {
         | "chiuso"
         | "sospeso"
         | "annullato"
-      progetto_livello: "pfte" | "esecutivo"
+      progetto_livello:
+        | "in_programmazione"
+        | "programmato"
+        | "dip"
+        | "pfte"
+        | "esecutivo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1966,6 +3874,8 @@ export const Constants = {
         "consultatore",
         "manutentore",
         "siservizi",
+        "dirigente_scolastico",
+        "delegato_scolastico",
       ],
       atto_tipo: [
         "determina",
@@ -2008,6 +3918,7 @@ export const Constants = {
         "cre",
         "chiusura",
       ],
+      intervento_natura: ["LAVORO", "SERVIZIO"],
       intervento_status: [
         "programmato",
         "progettazione",
@@ -2021,47 +3932,13 @@ export const Constants = {
         "sospeso",
         "annullato",
       ],
-      progetto_livello: ["in_programmazione", "programmato", "dip", "pfte", "esecutivo"],
+      progetto_livello: [
+        "in_programmazione",
+        "programmato",
+        "dip",
+        "pfte",
+        "esecutivo",
+      ],
     },
   },
 } as const
-
-
-/** Fascicolo immobile - estensione applicativa */
-export interface TipologiaDocumentoImmobile {
-  id: string
-  codice: string
-  denominazione: string
-  categoria: string
-  attivo: boolean
-  created_at: string
-  updated_at: string
-}
-export interface DocumentoImmobile {
-  id: string
-  ente_id: string
-  edificio_id: string
-  tipologia_id: string
-  impianto_id: string | null
-  titolo: string
-  numero: string | null
-  protocollo: string | null
-  data_documento: string | null
-  data_emissione: string | null
-  data_scadenza: string | null
-  periodicita_mesi: number | null
-  data_prossima_verifica: string | null
-  emittente: string | null
-  tecnico: string | null
-  ditta: string | null
-  stato: 'valido' | 'in_scadenza' | 'scaduto' | 'da_verificare' | 'archiviato'
-  nome_file: string
-  storage_path: string
-  mime_type: string | null
-  size_bytes: number | null
-  versione: string | null
-  note: string | null
-  created_by: string | null
-  created_at: string
-  updated_at: string
-}
