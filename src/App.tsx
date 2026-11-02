@@ -10,6 +10,7 @@ import AuthScreen from './AuthScreen'
 import MfaGate from './MfaGate'
 import PrivacyNotice from './PrivacyNotice'
 import PasswordRecovery from './PasswordRecovery'
+import BuildingPermissionsPanel from './BuildingPermissionsPanel'
 // Pagine pesanti caricate su richiesta (code-splitting)
 const ImportImpiantiPage=lazy(()=>import('./ImportImpiantiPage'))
 const ImportInterventiPage=lazy(()=>import('./ImportInterventiPage'))
@@ -778,7 +779,7 @@ function AdminPage({access}:{access:Access[]}){
  const [entities,setEntities]=useState<any[]>([]);
  const [buildings,setBuildings]=useState<any[]>([]);
  const [form,setForm]=useState({user_id:'',ente_id:'',ruolo:'tecnico'});
- const [buildingPerm,setBuildingPerm]=useState({user_id:'',edificio_id:'',all_buildings:false,can_update:true,can_delete:true});
+
  const [entity,setEntity]=useState({id:'',denominazione:'',codice_ipa:'',codice_fiscale:'',tipo_ente:'',pec:'',email:'',telefono:'',attivo:true,logo_path:null as string|null,ui_palette:'blue'});
  const [savingEntity,setSavingEntity]=useState(false);
  const [logoFile,setLogoFile]=useState<File|null>(null);const [removeLogo,setRemoveLogo]=useState(false);const [logoPreview,setLogoPreview]=useState('');
@@ -973,22 +974,6 @@ function AdminPage({access}:{access:Access[]}){
  async function savePermissions(e:any){e.preventDefault();if(!selectedPermUser)return;const {error}=await supabase.from('permessi_utenti').upsert({ente_id:currentEnteId,user_id:selectedPermUser,...permForm},{onConflict:'ente_id,user_id'});if(error){alert('Errore salvataggio privilegi: '+error.message);return}alert('Privilegi utente salvati.');await loadPermissions()}
  const resetPermissions=async()=>{if(!selectedPermUser)return;if(!confirm('Ripristinare i privilegi predefiniti per questo utente?'))return;const {error}=await supabase.from('permessi_utenti').delete().eq('ente_id',currentEnteId).eq('user_id',selectedPermUser);if(error){alert('Errore ripristino privilegi: '+error.message);return}setPermForm({can_view:true,can_create:true,can_update:true,can_delete:true,can_documents:true});await loadPermissions()};
  const selectPermissionUser=(uid:string)=>{setSelectedPermUser(uid);void loadUserPermissionOverrides(uid)};
- async function saveBuildingPermission(e:any){
-   e.preventDefault();
-   if(!buildingPerm.user_id||(!buildingPerm.all_buildings&&!buildingPerm.edificio_id)){alert('Seleziona un edificio oppure Tutti gli edifici.');return}
-   const payload={ente_id:currentEnteId,user_id:buildingPerm.user_id,edificio_id:buildingPerm.all_buildings?null:buildingPerm.edificio_id,all_buildings:buildingPerm.all_buildings,can_update:buildingPerm.can_update,can_delete:buildingPerm.can_delete};
-   if(buildingPerm.all_buildings){
-     const {error:delError}=await supabase.from('edifici_permessi').delete().eq('ente_id',currentEnteId).eq('user_id',buildingPerm.user_id);
-     if(delError){alert('Errore aggiornamento permessi: '+delError.message);return}
-     const {error}=await supabase.from('edifici_permessi').insert(payload);
-     if(error){alert('Errore assegnazione permessi a tutti gli edifici: '+error.message);return}
-   }else{
-     const {error}=await supabase.from('edifici_permessi').upsert(payload,{onConflict:'edificio_id,user_id'});
-     if(error){alert('Errore assegnazione permessi edificio: '+error.message);return}
-   }
-   alert(buildingPerm.all_buildings?'Permessi salvati per tutti gli edifici.':'Permessi edificio salvati.');
-   setBuildingPerm({user_id:'',edificio_id:'',all_buildings:false,can_update:true,can_delete:true});
- }
  const setField=(name:string,value:any)=>setEntity((p:any)=>({...p,[name]:value}));
  const roleText=(u:any)=>u.roles?.length?u.roles.map((r:any)=>r.ruolo+' — '+(r.ente||'')).join(' | '):'Nessun ruolo';
  return <PageHead title="Amministrazione" subtitle="Configurazione del sistema, classificazione delle richieste, gestione degli accessi e tracciamento delle attività.">
@@ -999,7 +984,7 @@ function AdminPage({access}:{access:Access[]}){
    <section id="admin-accessi" className="admin-section-group"><div className="admin-section-header accordion-trigger" role="button" tabIndex={0} aria-expanded={!!openAdminSections.accessi} onClick={()=>toggleAdminSection('accessi')} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleAdminSection('accessi')}}}><div><span className="eyebrow">4 · Gestione accessi</span><h2>Anagrafica ente, utenti, ruoli e permessi</h2><p>Gestisci l'anagrafica dell'ente e le autorizzazioni degli utenti applicativi.</p></div><div className="accordion-icon"><ShieldCheck size={22}/><ChevronDown size={18} className={openAdminSections.accessi?'is-open':''}/></div></div>{openAdminSections.accessi&&<><div className="admin-subnav">
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-ente')?.scrollIntoView({behavior:'smooth',block:'start'})}><Building2 size={16}/> Anagrafica ente</button>
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-utenti')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserCog size={16}/> Utenti</button><button className="admin-subnav-item" onClick={()=>document.getElementById('admin-ruoli')?.scrollIntoView({behavior:'smooth',block:'start'})}><ShieldCheck size={16}/> Ruoli</button>
-    <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi')?.scrollIntoView({behavior:'smooth',block:'start'})}><Settings size={16}/> Permessi</button><button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi-utenti')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserCog size={16}/> Privilegi utente</button>
+    <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi')?.scrollIntoView({behavior:'smooth',block:'start'})}><Settings size={16}/> Permessi</button><button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi-utenti')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserCog size={16}/> Privilegi utente</button><button className="admin-subnav-item" onClick={()=>document.getElementById('admin-permessi-edifici')?.scrollIntoView({behavior:'smooth',block:'start'})}><Building2 size={16}/> Permessi per edificio</button>
     <button className="admin-subnav-item" onClick={()=>document.getElementById('admin-audit')?.scrollIntoView({behavior:'smooth',block:'start'})}><History size={16}/> Registro modifiche</button>
    </div>
    <div className="content-grid">
@@ -1027,6 +1012,7 @@ function AdminPage({access}:{access:Access[]}){
    {manage&&<section className="card"><div className="card-head"><div><h2>Visibilità del menu per ruolo</h2><p>Determina quali sezioni dell'applicazione sono visibili a ciascun ruolo. Il permesso Visualizza governa anche l'accesso diretto alla relativa pagina.</p></div><Menu size={20}/></div><div className="table-wrap"><table><thead><tr><th>Ruolo</th><th>Voce menu</th><th>Visibile</th></tr></thead><tbody>{managedRoles.map(role=>menuPermissionResources.map(([resource,label])=>{const p=rolePermRows.find(x=>x.ruolo===role&&x.risorsa===resource)||{ruolo:role,risorsa:resource,can_view:false};const saveMenuPermission=async(value:boolean)=>{const payload={ente_id:currentEnteId,ruolo:role,risorsa:resource,can_view:value};const {data,error}=await supabase.from('permessi_ruoli').upsert(payload,{onConflict:'ente_id,ruolo,risorsa'}).select().single();if(error){alert('Salvataggio visibilità menu non riuscito: '+error.message);return}setRolePermRows(prev=>{const found=prev.some(x=>x.ruolo===role&&x.risorsa===resource);return found?prev.map(x=>x.ruolo===role&&x.risorsa===resource?{...x,...data}:x):[...prev,data]})};return <tr key={'menu-'+role+'-'+resource}><td><b>{role}</b></td><td>{label}</td><td><input type="checkbox" checked={!!p.can_view} disabled={role==='superadmin'} onChange={e=>void saveMenuPermission(e.target.checked)}/></td></tr>}))}</tbody></table></div><div className="notice info">La configurazione è per ruolo e per ente. Le voci nascoste non sono accessibili neppure tramite URL diretto.</div></section>}
    <section className="card admin-oauth"><div className="card-head"><div><h2>Microsoft / Azure</h2><p>Provider OAuth configurabile in Supabase Auth.</p></div><ShieldCheck size={20}/></div><code>https://cuaxulqyrhosqbfaympv.supabase.co/auth/v1/callback</code></section></>}
    </section>
+   {manage&&currentEnteId&&<BuildingPermissionsPanel enteId={currentEnteId} users={users} buildings={buildings}/>}
    <section id="admin-audit" className="admin-section-group"><div className="admin-section-header accordion-trigger" role="button" tabIndex={0} aria-expanded={!!openAdminSections.audit} onClick={()=>toggleAdminSection('audit')} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleAdminSection('audit')}}}><div><span className="eyebrow">5 · Controllo</span><h2>Registro modifiche</h2><p>Tracciamento delle ultime operazioni effettuate sul sistema.</p></div><div className="accordion-icon"><History size={22}/><ChevronDown size={18} className={openAdminSections.audit?'is-open':''}/></div></div>{openAdminSections.audit&&<div className="card">
     <div className="card-head"><div><h2>Ultime 100 operazioni</h2><p>Modifiche registrate sull'intervento e sui relativi dati. Il registro è in sola aggiunta e non può essere modificato o cancellato.</p></div><History size={20}/></div>
     {auditRows.length?<table><thead><tr><th>Data</th><th>Azione</th><th>Tabella</th><th>Record</th><th>Utente</th></tr></thead><tbody>{auditRows.map(x=><tr key={x.id}><td>{new Date(x.timestamp).toLocaleString('it-IT')}</td><td><span className="badge blue">{x.azione}</span></td><td>{x.tabella}</td><td>{x.record_id||'—'}</td><td>{users.find(u=>u.id===x.user_id)?.email||x.user_id||'Sistema'}</td></tr>)}</tbody></table>:<Empty title="Nessuna modifica registrata" text="Le modifiche future verranno tracciate automaticamente."/>}
