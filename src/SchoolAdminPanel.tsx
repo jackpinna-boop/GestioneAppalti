@@ -48,7 +48,7 @@ export default function SchoolAdminPanel({access}:Props){
  const load=async()=>{
    if(!enteId)return
    const [s,b]=await Promise.all([
-     supabase.from('scuole').select('*').eq('ente_id',enteId).order('denominazione'),
+     supabase.from('scuole').select('*,scuole_edifici(edificio_id,attivo)').eq('ente_id',enteId).order('denominazione'),
      supabase.from('edifici').select('id,denominazione,codice_edificio,tipologia_scolastica,ente_id').eq('ente_id',enteId).order('denominazione')
    ])
    if(s.error){setMessage(s.error.message);return}
@@ -76,7 +76,10 @@ export default function SchoolAdminPanel({access}:Props){
  useEffect(()=>{void load()},[enteId])
  useEffect(()=>{if(selected)void loadSelected(selected.id);else{setSchoolBuildings([]);setSchoolUsers([]);setAssignments([])}},[selected?.id])
 
- const instituteBuildings=useMemo(()=>buildings.filter(b=>b.tipologia_scolastica==='SCU'),[buildings])
+ // Edifici dell'ente non ancora collegati a un istituto attivo. La tipologia scolastica è un testo libero
+ // nel catalogo Edifici, quindi non si filtra su un codice specifico.
+ const buildingSchool=useMemo(()=>new Map<string,string>(schools.flatMap((s:any)=>(s.scuole_edifici||[]).filter((x:any)=>x.attivo).map((x:any)=>[x.edificio_id,s.id] as [string,string]))),[schools])
+ const instituteBuildings=useMemo(()=>buildings.filter(b=>!buildingSchool.has(b.id)||buildingSchool.get(b.id)===selected?.id),[buildings,buildingSchool,selected?.id])
  const activeSchoolBuildings=useMemo(()=>schoolBuildings.filter(x=>x.attivo),[schoolBuildings])
  const schoolBuildingIds=useMemo(()=>new Set(activeSchoolBuildings.map(x=>x.edificio_id)),[activeSchoolBuildings])
  const availableBuildings=useMemo(()=>buildings.filter(b=>schoolBuildingIds.has(b.id)),[buildings,schoolBuildingIds])
@@ -271,6 +274,7 @@ export default function SchoolAdminPanel({access}:Props){
         <option value="">Seleziona un istituto…</option>
         {instituteBuildings.map(b=><option key={b.id} value={b.id}>{b.codice_edificio} — {b.denominazione}</option>)}
        </select>
+       {!instituteBuildings.length&&<small className="field-help">Tutti gli edifici dell’ente sono già associati a un istituto. Aggiungi l’edificio dalla sezione Edifici.</small>}
       </label>
       <label>Denominazione istituto<input value={schoolName} onChange={e=>setSchoolName(e.target.value)} disabled={!sourceBuildingId}/></label>
       <label>Codice meccanografico<input value={code} onChange={e=>setCode(e.target.value)} disabled={!sourceBuildingId}/></label>

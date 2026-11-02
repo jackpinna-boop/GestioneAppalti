@@ -233,6 +233,18 @@ export const tests = [
     expect(text.length > 200, 'Pagina amministrazione vuota')
   }),
 
+  t('B9 Scuole e delegati: elenco istituti con gli edifici non ancora associati', async ({ page, base, expect }) => {
+    await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'] })
+    await open(page, base, 'amministrazione')
+    await mainHeading(page)
+    const select = page.locator('label', { hasText: 'Istituto disponibile nella sezione Edifici' }).locator('select')
+    if (!(await select.count())) { const t = page.locator('main.main button', { hasText: /Scuole e delegati|Portale Scuola/ }).first(); if (await t.count()) { await t.click(); await settle(page) } }
+    await select.waitFor()
+    const opts = (await select.locator('option').allInnerTexts()).slice(1)
+    expect(opts.some((o) => o.includes('Olivetti')), 'L\'edificio non associato (Olivetti) deve essere proposto, opzioni: ' + opts.join(' | '))
+    expect(!opts.some((o) => o.includes('Volta')), 'Un edificio già associato a un istituto non deve essere proposto: ' + opts.join(' | '))
+  }),
+
   t('G1 navigazione: refresh, avanti/indietro e URL diretti', async ({ page, base, expect }) => {
     await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'] })
     await open(page, base, 'edifici')
