@@ -1,4 +1,4 @@
--- PROPOSTA (NON APPLICATA) — Agente E, 2026-11-02
+-- Applicata il 2026-11-02 (versione 20261102153802).
 -- Revoca delle sessioni di un utente dopo l'azzeramento della verifica in due
 -- passaggi (azione mfa_reset dell'Edge Function admin-users).
 --
