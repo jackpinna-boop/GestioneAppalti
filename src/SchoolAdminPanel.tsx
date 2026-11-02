@@ -1,7 +1,8 @@
-import React,{useEffect,useMemo,useState} from 'react'
+import React,{useEffect,useMemo,useRef,useState} from 'react'
 import {Building2,Plus,Save,Trash2,Users,Pencil,UserPlus,X,ShieldCheck} from 'lucide-react'
 import {FunctionsHttpError} from '@supabase/supabase-js'
 import {supabase} from './lib/supabase'
+import {useDialog} from './Modal'
 
 type Props={access:any[]}
 type SchoolUser={id:string;scuola_id:string;user_id:string;ruolo:string;attivo:boolean;data_inizio:string;data_fine:string|null}
@@ -41,6 +42,8 @@ export default function SchoolAdminPanel({access}:Props){
  const [userForm,setUserForm]=useState({nome:'',cognome:'',email:'',telefono:'',password:'',ruolo:'dirigente_scolastico',attivo:true,data_fine:''})
  const [selectedBuildings,setSelectedBuildings]=useState<string[]>([])
  const [userSaving,setUserSaving]=useState(false)
+ const userDialogRef=useRef<HTMLDivElement>(null)
+ useDialog(userDialogRef,()=>setUserModal(false),userModal&&!!selected)
 
  const load=async()=>{
    if(!enteId)return
@@ -292,7 +295,7 @@ export default function SchoolAdminPanel({access}:Props){
       <div className="school-admin-assignments">
        {schoolUsers.length?schoolUsers.map(u=><div className="school-admin-item" key={u.id}>
          <Users size={16}/><span><b>{profileName(u.user_id)}</b><small>{roleLabel(u.ruolo)} · {u.attivo?'Attivo':'Disattivato'}</small>{assignments.filter(a=>a.scuola_utente_id===u.id&&a.attivo).map(a=><small key={a.id}>• {buildingName(a.edificio_id)}</small>)}</span>
-         <div className="row-actions"><button className="icon-btn dark-icon" title="Modifica utente" onClick={()=>openEditUser(managedUsers.find(x=>x.id===u.user_id) as ManagedUser)}><Pencil size={15}/></button><button className="icon-btn dark-icon" title="Rimuovi dall’istituto" onClick={()=>void removeSchoolUser(u)}><Trash2 size={15}/></button></div>
+         <div className="row-actions"><button className="icon-btn dark-icon" title="Modifica utente" onClick={()=>openEditUser(managedUsers.find(x=>x.id===u.user_id) as ManagedUser)} aria-label="Modifica utente"><Pencil size={15}/></button><button className="icon-btn dark-icon" title="Rimuovi dall’istituto" onClick={()=>void removeSchoolUser(u)} aria-label="Rimuovi dall’istituto"><Trash2 size={15}/></button></div>
        </div>):<div className="empty"><Users size={25}/><strong>Nessun utente associato</strong><span>Crea un nuovo account oppure associa un utente già presente nel sistema.</span></div>}
       </div>
     </>:<div className="empty"><Building2 size={25}/><strong>Seleziona un istituto</strong><span>Gli utenti saranno gestiti esclusivamente per l’istituto selezionato.</span></div>}
@@ -308,14 +311,14 @@ export default function SchoolAdminPanel({access}:Props){
    <div className="school-admin-assignments">
     {activeSchoolBuildings.length?activeSchoolBuildings.map(x=><div className="school-admin-item" key={x.id}>
       <Building2 size={16}/><span><small>• {buildingName(x.edificio_id)}</small></span>
-      <div className="row-actions"><button className="icon-btn dark-icon" title="Rimuovi edificio" onClick={()=>void removeBuilding(x.edificio_id)}><Trash2 size={15}/></button></div>
+      <div className="row-actions"><button className="icon-btn dark-icon" title="Rimuovi edificio" onClick={()=>void removeBuilding(x.edificio_id)} aria-label="Rimuovi edificio"><Trash2 size={15}/></button></div>
     </div>):<div className="school-admin-item"><Building2 size={16}/><span><small>Nessun edificio associato</small></span></div>}
    </div>
   </div>}
 
   {userModal&&selected&&<div className="modal-backdrop">
-   <div className="modal" style={{maxWidth:760}}>
-    <div className="modal-head"><h2>{userMode==='create'?'Crea nuovo utente':userMode==='associate'?'Associa utente esistente':'Modifica utente'}</h2><button className="icon-btn" onClick={()=>setUserModal(false)}><X size={18}/></button></div>
+   <div className="modal" style={{maxWidth:760}} ref={userDialogRef} role="dialog" aria-modal="true" aria-labelledby="scuola-utente-titolo" tabIndex={-1}>
+    <div className="modal-head"><h2 id="scuola-utente-titolo">{userMode==='create'?'Crea nuovo utente':userMode==='associate'?'Associa utente esistente':'Modifica utente'}</h2><button className="icon-btn" onClick={()=>setUserModal(false)} aria-label="Chiudi"><X size={18}/></button></div>
     <div className="notice info">I dati dell’account vengono gestiti tramite il sistema utenti già in uso. L’associazione scolastica è separata dall’account globale.</div>
     {message&&<div className="notice warning">{message}</div>}
     {userMode==='associate'?<div className="form-grid">

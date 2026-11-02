@@ -16,13 +16,16 @@ type Step =
 type Props = { session: any; onLogout: () => Promise<void>; children: ReactNode }
 
 export default function MfaGate({ session, onLogout, children }: Props) {
-  const [step, setStep] = useState<Step>({ kind: MFA_REQUIRED ? 'checking' : 'ok' })
+  // Utenze di prova (app_metadata.mfa_exempt, impostabile solo lato server): esenti dalla verifica.
+  const exempt = session?.user?.app_metadata?.mfa_exempt === true
+  const required = MFA_REQUIRED && !exempt
+  const [step, setStep] = useState<Step>({ kind: required ? 'checking' : 'ok' })
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!MFA_REQUIRED) return
+    if (!required) { setStep({ kind: 'ok' }); return }
     let cancelled = false
     const evaluate = async () => {
       try {

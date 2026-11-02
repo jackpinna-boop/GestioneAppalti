@@ -1,0 +1,44 @@
+name: E2E smoke test
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Supabase è interamente simulato dai mock in e2e/mocks: l'URL deve restare questo.
+      VITE_SUPABASE_URL: https://x.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: e2e-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-fund
+      - run: npm run build
+      - name: Installa Playwright (senza modificare package.json)
+        run: |
+          npm i --no-save --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Avvia anteprima
+        run: |
+          npx vite preview --port 4173 --strictPort > /tmp/preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/GestioneAppalti/ > /dev/null && exit 0; sleep 1; done
+          cat /tmp/preview.log; exit 1
+      - name: Esegui la suite E2E
+        env:
+          E2E_BASE_URL: http://localhost:4173/GestioneAppalti/
+        run: node e2e/run.mjs
+      - name: Screenshot dei test falliti
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshot
+          path: e2e/artifacts/
+          if-no-files-found: ignore
