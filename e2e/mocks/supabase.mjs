@@ -151,7 +151,19 @@ export async function installSupabaseMock(page, sc) {
     if ((m = path.match(/^\/auth\/v1\/factors\/([^/]+)$/)) && method === 'DELETE') { done(200); factors = []; return json(route, 200, { id: m[1] }) }
 
     // ---------- REST ----------
-    if (path.startsWith('/rest/v1/rpc/')) { done(200); log.writes.push({ method, path, body: req.postData() }); return json(route, 200, null) }
+    if (path.startsWith('/rest/v1/rpc/')) {
+      // Replica i vincoli CHECK del database reale sulle richieste di intervento.
+      if (path.endsWith('/school_create_request_multi_school') || path.endsWith('/school_create_request_multi')) {
+        let body = {}; try { body = JSON.parse(req.postData() || '{}') } catch {}
+        const priorita = ['programmabile', 'non_urgente', 'media', 'urgente']
+        const tipo = ['ordinaria', 'straordinaria', 'da_valutare']
+        if ((body.p_priorita != null && !priorita.includes(body.p_priorita)) || (body.p_tipo_intervento != null && !tipo.includes(body.p_tipo_intervento))) {
+          done(400); log.writes.push({ method, path, body: req.postData(), rejected: true })
+          return json(route, 400, { code: '23514', message: 'new row for relation "richieste_intervento" violates check constraint' })
+        }
+      }
+      done(200); log.writes.push({ method, path, body: req.postData() }); return json(route, 200, null)
+    }
     if (path.startsWith('/rest/v1/')) {
       const table = path.slice('/rest/v1/'.length)
       if (method !== 'GET' && method !== 'HEAD') {

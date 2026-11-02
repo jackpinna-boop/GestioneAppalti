@@ -335,6 +335,24 @@ export const tests = [
     expect(log.writes.some((w) => w.table === 'scuola_access_log' && String(w.body).includes('APERTURA_PORTALE')), 'Nessuna INSERT su scuola_access_log con azione APERTURA_PORTALE')
   }),
 
+  t('E4 dirigente scolastico: nuova segnalazione accettata dai vincoli del database', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.dirigente_scolastico, roles: ['dirigente_scolastico'] })
+    await open(page, base)
+    await page.getByRole('heading', { name: 'Gestione segnalazioni' }).waitFor()
+    await page.getByRole('button', { name: 'Segnala intervento' }).click()
+    await page.locator('select[name=scuola]').selectOption({ index: 1 })
+    const edificio = page.locator('select[name=edificio]')
+    const values = await edificio.locator('option').evaluateAll((o) => o.map((x) => x.value).filter(Boolean))
+    await edificio.selectOption(values.slice(0, 1))
+    await page.locator('input[name=titolo]').fill('Perdita d\'acqua nei bagni')
+    await page.locator('textarea[name=descrizione]').fill('Perdita visibile sotto i lavabi del primo piano.')
+    await page.getByRole('button', { name: 'Registra segnalazione' }).click()
+    await settle(page)
+    const call = log.writes.find((w) => String(w.path || '').includes('school_create_request_multi_school'))
+    expect(call, 'Nessuna chiamata a school_create_request_multi_school')
+    expect(!call.rejected, 'Segnalazione rifiutata dai vincoli del database: ' + call.body)
+  }),
+
   t('E2 dirigente scolastico: dettaglio richiesta e annullamento', async ({ page, base, expect }) => {
     const log = await installSupabaseMock(page, { user: USERS.dirigente_scolastico, roles: ['dirigente_scolastico'] })
     await open(page, base)

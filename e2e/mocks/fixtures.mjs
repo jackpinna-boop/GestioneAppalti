@@ -66,14 +66,14 @@ export const ambiti_richiesta_intervento = [
 
 const R = (n) => `00000000-0000-4000-8000-00000012000${n}`
 const req = (n, edificio, titolo, tipo, stato, data, extra = {}) => ({
-  id: R(n), ente_id: ENTE_ID, numero_progressivo: n, codice_richiesta: `RIC-2026-${String(n).padStart(4, '0')}`, titolo_sintetico: titolo, descrizione_estesa: `Descrizione dettagliata della segnalazione: ${titolo.toLowerCase()}.`, numero_protocollo: `${12000 + n}`, data_protocollo: data, tipo_intervento: tipo, risolto: stato === 'risolta', data_risoluzione: stato === 'risolta' ? '2026-10-05' : null, note_immobile: null, note_risoluzione: stato === 'risolta' ? 'Intervento eseguito dalla ditta incaricata' : null, data_richiesta: data, created_by: null, created_at: ts, updated_at: ts, stato_risoluzione: stato, priorita: 'ordinaria', allegati_presenti: false, edificio_origine: null, codice_identificativo_locale: null, origine_sistema: 'GESTIONALE',
+  id: R(n), ente_id: ENTE_ID, numero_progressivo: n, codice_richiesta: `RIC-2026-${String(n).padStart(4, '0')}`, titolo_sintetico: titolo, descrizione_estesa: `Descrizione dettagliata della segnalazione: ${titolo.toLowerCase()}.`, numero_protocollo: `${12000 + n}`, data_protocollo: data, tipo_intervento: tipo, risolto: stato === 'risolta', data_risoluzione: stato === 'risolta' ? '2026-10-05' : null, note_immobile: null, note_risoluzione: stato === 'risolta' ? 'Intervento eseguito dalla ditta incaricata' : null, data_richiesta: data, created_by: null, created_at: ts, updated_at: ts, stato_risoluzione: stato, priorita: 'media', allegati_presenti: false, edificio_origine: null, codice_identificativo_locale: null, origine_sistema: 'GESTIONALE',
   richieste_intervento_sedi: [{ id: `00000000-0000-4000-8000-00000013000${n}`, edificio_id: edificio.id, edifici: { id: edificio.id, codice_edificio: edificio.codice_edificio, denominazione: edificio.denominazione, indirizzo: edificio.indirizzo, comune: edificio.comune } }],
   richieste_intervento_ambiti: [{ id: `00000000-0000-4000-8000-00000014000${n}`, ambito_id: ambiti_richiesta_intervento[n % 4].id, ambiti_richiesta_intervento: ambiti_richiesta_intervento[n % 4] }],
   richiesta_intervento_documenti: [],
   ...extra,
 })
 export const richieste_intervento = [
-  req(1, edifici[0], 'Infiltrazione dal solaio aula 12', 'straordinaria', 'aperta', '2026-10-20', { priorita: 'alta' }),
+  req(1, edifici[0], 'Infiltrazione dal solaio aula 12', 'straordinaria', 'aperta', '2026-10-20', { priorita: 'urgente' }),
   req(2, edifici[0], 'Lampade guaste corridoio primo piano', 'ordinaria', 'risolta', '2026-09-28'),
   req(3, edifici[1], 'Termosifone non funzionante laboratorio', 'ordinaria', 'aperta', '2026-10-25'),
   req(4, edifici[2], 'Verifica crepa muro perimetrale', 'da_valutare', 'da_valutare', '2026-10-27'),
