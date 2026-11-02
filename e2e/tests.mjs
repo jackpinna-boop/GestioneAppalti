@@ -223,6 +223,32 @@ export const tests = [
     await settle(page)
   }),
 
+  t('B10 tecnico: nel dettaglio richiesta vede gli allegati inviati dalla scuola', async ({ page, base, expect }) => {
+    await installSupabaseMock(page, { user: USERS.tecnico, roles: ['tecnico'] })
+    await open(page, base, 'richieste')
+    await page.getByText('Infiltrazione dal solaio aula 12').first().click()
+    await page.locator('.modal').waitFor()
+    await page.locator('.modal button', { hasText: 'Documenti' }).first().click()
+    await page.getByRole('heading', { name: 'Allegati inviati dalla scuola' }).waitFor()
+    expect(await page.getByText('foto-infiltrazione.jpg').isVisible(), 'Allegato della scuola non visibile')
+  }),
+
+  t('A10 recupero password: schermata per la nuova password dopo il link', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.tecnico, roles: ['tecnico'] })
+    await page.goto(base + '#type=recovery')
+    await page.getByRole('heading', { name: 'Imposta una nuova password' }).waitFor()
+    await page.getByLabel('Nuova password').fill('NuovaPassword-2026')
+    await page.getByLabel('Conferma password').fill('Diversa-2026')
+    await page.getByRole('button', { name: 'Salva la nuova password' }).click()
+    await page.getByText('Le due password non coincidono.').waitFor()
+    await page.getByLabel('Conferma password').fill('NuovaPassword-2026')
+    await page.getByRole('button', { name: 'Salva la nuova password' }).click()
+    await page.getByText('Password aggiornata correttamente.').waitFor()
+    expect(log.calls.some((c) => c.path === '/auth/v1/user' && c.method === 'PUT'), 'Nessuna chiamata di aggiornamento password')
+    await page.getByRole('button', { name: 'Continua' }).click()
+    await page.locator('aside.sidebar').waitFor()
+  }),
+
   t('B6 superadmin: amministrazione apre tutte le sezioni', async ({ page, base, expect }) => {
     await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'] })
     await open(page, base, 'amministrazione')

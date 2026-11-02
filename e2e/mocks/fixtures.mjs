@@ -149,6 +149,7 @@ export function tables(opts = {}) {
     dashboard_interventi, dashboard_ritardi, dashboard_avanzamento,
     dashboard_config: opts.dashboardConfig === 'frontend' ? dashboard_config_frontend : dashboard_config_db,
     permessi_ruoli, profiles, audit_log,
+    richieste_intervento_allegati: [{ id: '00000000-0000-4000-8000-0000001a0001', richiesta_id: R(1), created_by: USERS.dirigente_scolastico.id, nome_file: 'foto-infiltrazione.jpg', mime_type: 'image/jpeg', dimensione_bytes: 245760, storage_path: R(1) + '/foto-infiltrazione.jpg', created_at: '2026-10-20T09:00:00+00:00' }],
     richieste_intervento_sedi: richieste_intervento.flatMap((r) => r.richieste_intervento_sedi.map((s) => ({ ...s, ente_id: ENTE_ID, richiesta_id: r.id }))),
     richieste_intervento_ambiti: richieste_intervento.flatMap((r) => r.richieste_intervento_ambiti.map((s) => ({ ...s, ente_id: ENTE_ID, richiesta_id: r.id }))),
   }
