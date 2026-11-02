@@ -271,6 +271,30 @@ export const tests = [
     expect(!opts.some((o) => o.includes('Volta')), 'Un edificio già associato a un istituto non deve essere proposto: ' + opts.join(' | '))
   }),
 
+  t('B11 permessi per edificio: assegnazione a un tecnico', async ({ page, base, expect }) => {
+    const log = await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'] })
+    await open(page, base, 'amministrazione')
+    await mainHeading(page)
+    await page.getByRole('heading', { name: 'Permessi per edificio' }).waitFor()
+    const panel = page.locator('#admin-permessi-edifici')
+    const userSelect = panel.locator('label', { hasText: 'Utente' }).locator('select')
+    const options = await userSelect.locator('option').allInnerTexts()
+    expect(!options.some((o) => /Admin ente|Superadmin/.test(o)), 'Superadmin e admin ente non devono essere proposti: ' + options.join(' | '))
+    expect(!options.some((o) => /Dirigente scolastico/.test(o)), 'Gli utenti del Portale Scuola non devono essere proposti: ' + options.join(' | '))
+    const tecnico = options.findIndex((o) => /Tecnico/.test(o))
+    expect(tecnico > 0, 'Il tecnico deve essere proposto: ' + options.join(' | '))
+    await userSelect.selectOption({ index: tecnico })
+    await panel.getByText('Nessuna limitazione').waitFor()
+    await panel.locator('label', { hasText: 'Edificio' }).locator('select').selectOption({ index: 1 })
+    await panel.getByLabel('Può eliminare').check()
+    await panel.getByRole('button', { name: 'Aggiungi permesso' }).click()
+    await settle(page)
+    const w = log.writes.find((x) => x.table === 'edifici_permessi')
+    expect(w, 'Nessuna scrittura su edifici_permessi')
+    const body = JSON.parse(w.body)
+    expect(body.edificio_id && body.all_buildings === false && body.can_update === true && body.can_delete === true, 'Payload inatteso: ' + w.body)
+  }),
+
   t('G1 navigazione: refresh, avanti/indietro e URL diretti', async ({ page, base, expect }) => {
     await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'] })
     await open(page, base, 'edifici')
