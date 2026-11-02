@@ -44,7 +44,7 @@ viene salvato uno screenshot in `e2e/artifacts/` (ignorata da git; in CI è cari
 |---|---|
 | `run.mjs` | runner: server statico, browser, raccolta errori, report |
 | `tests.mjs` | definizione dei test |
-| `mocks/supabase.mjs` | mock di Auth (JWT finto con claim `aal`), MFA (enroll/challenge/verify), PostgREST (filtri `eq/in/is/...`, `select`, `single`, `count`), Storage, Edge Function |
+| `mocks/supabase.mjs` | mock di Auth (JWT finto con claim `aal`), MFA (enroll/challenge/verify), PostgREST (filtri `eq/in/is/...`, `select`, `single`, `count`), Storage, Edge Function `admin-users` (azioni amministrative, delegati del dirigente con stato in memoria, `mfa_reset`; corpi delle chiamate in `log.functions`) |
 | `mocks/fixtures.mjs` | dati finti (ente, edifici, impianti, interventi, richieste, scuole) e matrice `permessi_ruoli` copiata dalla migrazione `20261031135049` |
 
 Scenari del mock (`installSupabaseMock(page, {...})`): `user`, `roles`, `loggedIn` (sessione
@@ -57,6 +57,7 @@ già presente in `localStorage`), `mfa` (`aal2` | `enroll` | `challenge`), `inac
 |---|---|
 | A. Accesso | A1 credenziali errate · A2 utente senza ruoli non entra · A3 messaggio per utente senza ruoli · A4 informativa privacy · A5 registrazione MFA · A6 login + verifica MFA · A7 uscita dalla schermata MFA |
 | Gestionale superadmin | B1 tutte le voci di menu · B2 dashboard · B3 edifici e fascicolo · B4 scheda intervento e schede · B5 richieste e notifiche · B6 amministrazione · B7 configurazione dashboard reale |
+| Delegati e verifica in due passaggi | E5 dirigente: sezione Delegati e aggiunta con password temporanea · E6 dirigente: sospensione, revoca, azzeramento MFA del delegato · E7 il delegato non vede la sezione · B8 amministrazione: azzeramento MFA di un utente (non del proprio) |
 | Ruoli | C1 consultatore: menu e nessun comando di modifica · C2 URL non autorizzati · C3 scheda intervento in sola lettura · C4 manutentore · C5 tecnico |
 | E. Portale Scuola | E1 perimetro dirigente · E2 dettaglio e annullamento · E3 registro accessi |
 | G. Regressione | G1 refresh/avanti/indietro · G2 smartphone · G3 logout |
