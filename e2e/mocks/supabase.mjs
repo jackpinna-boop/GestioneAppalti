@@ -22,7 +22,7 @@ export function fakeJwt(user, aal = 'aal2') {
 export function authUser(user, factors = []) {
   return {
     id: user.id, aud: 'authenticated', role: 'authenticated', email: user.email, email_confirmed_at: '2026-09-01T08:00:00Z',
-    app_metadata: { provider: 'email', providers: ['email'] }, user_metadata: { full_name: `${user.nome} ${user.cognome}` },
+    app_metadata: { provider: 'email', providers: ['email'], ...(user.app_metadata || {}) }, user_metadata: { full_name: `${user.nome} ${user.cognome}` },
     factors, created_at: '2026-09-01T08:00:00Z', updated_at: '2026-10-01T08:00:00Z',
   }
 }

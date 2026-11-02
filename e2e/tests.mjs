@@ -117,6 +117,20 @@ export const tests = [
     expect((await menuLabels(page)).includes('Amministrazione'), 'Dopo la registrazione MFA l\'admin ente deve vedere il gestionale')
   }, { allowConsoleErrors: false }),
 
+  t('A8 utenza di prova esente dalla verifica in due passaggi (app_metadata.mfa_exempt)', async ({ page, base, expect }) => {
+    await installSupabaseMock(page, { user: { ...USERS.tecnico, app_metadata: { demo: true, mfa_exempt: true } }, roles: ['tecnico'], mfa: 'enroll' })
+    await open(page, base)
+    await page.locator('aside.sidebar').waitFor()
+    expect(!(await page.getByRole('heading', { name: 'Attiva la verifica in due passaggi' }).count()), 'L\'utenza di prova non deve passare dalla verifica in due passaggi')
+  }),
+
+  t('A9 l\'esenzione in user_metadata (modificabile dall\'utente) non vale', async ({ page, base, expect }) => {
+    await installSupabaseMock(page, { user: { ...USERS.tecnico }, roles: ['tecnico'], mfa: 'enroll' })
+    await page.addInitScript(() => {})
+    await open(page, base)
+    await page.getByRole('heading', { name: 'Attiva la verifica in due passaggi' }).waitFor()
+  }),
+
   t('A6 login completo con verifica MFA (fattore già registrato)', async ({ page, base, expect }) => {
     await installSupabaseMock(page, { user: USERS.superadmin, roles: ['superadmin'], loggedIn: false, mfa: 'challenge' })
     await open(page, base)
