@@ -507,6 +507,13 @@ export type Database = {
             referencedRelation: "edifici"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dati_catastali_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
         ]
       }
       documenti: {
@@ -722,6 +729,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documenti_immobile_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
+          {
             foreignKeyName: "documenti_immobile_ente_id_fkey"
             columns: ["ente_id"]
             isOneToOne: false
@@ -862,6 +876,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "edifici"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edifici_permessi_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
           },
           {
             foreignKeyName: "edifici_permessi_ente_id_fkey"
@@ -1192,6 +1213,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "impianti_manutentivi_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
+          {
             foreignKeyName: "impianti_manutentivi_ente_id_fkey"
             columns: ["ente_id"]
             isOneToOne: false
@@ -1401,6 +1429,13 @@ export type Database = {
             referencedRelation: "edifici"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "import_righe_impianti_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
         ]
       }
       incarichi_intervento: {
@@ -1557,6 +1592,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "interventi_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
+          {
             foreignKeyName: "interventi_ente_id_fkey"
             columns: ["ente_id"]
             isOneToOne: false
@@ -1608,6 +1650,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "edifici"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
           },
           {
             foreignKeyName: "interventi_edifici_ente_id_fkey"
@@ -1683,6 +1732,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "edifici"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventi_edifici_quote_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
           },
           {
             foreignKeyName: "interventi_edifici_quote_ente_id_fkey"
@@ -1785,6 +1841,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "manutenzione_documenti_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
+          {
             foreignKeyName: "manutenzione_documenti_ente_id_fkey"
             columns: ["ente_id"]
             isOneToOne: false
@@ -1885,6 +1948,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "edifici"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutenzioni_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
           },
           {
             foreignKeyName: "manutenzioni_ente_id_fkey"
@@ -2873,6 +2943,13 @@ export type Database = {
             referencedColumns: ["id", "ente_id"]
           },
           {
+            foreignKeyName: "richieste_intervento_sedi_edificio_ente_fkey"
+            columns: ["edificio_id", "ente_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id", "ente_id"]
+          },
+          {
             foreignKeyName: "richieste_intervento_sedi_ente_id_fkey"
             columns: ["ente_id"]
             isOneToOne: false
@@ -2988,6 +3065,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "scuola_access_log_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
+          {
             foreignKeyName: "scuola_access_log_ente_id_fkey"
             columns: ["ente_id"]
             isOneToOne: false
@@ -3091,6 +3175,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "scuola_utenti_edifici_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
+          },
+          {
             foreignKeyName: "scuola_utenti_edifici_scuola_utente_id_fkey"
             columns: ["scuola_utente_id"]
             isOneToOne: false
@@ -3169,6 +3260,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "edifici"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scuole_edifici_edificio_id_fkey"
+            columns: ["edificio_id"]
+            isOneToOne: false
+            referencedRelation: "v_fascicoli_edifici"
+            referencedColumns: ["edificio_id"]
           },
           {
             foreignKeyName: "scuole_edifici_scuola_id_fkey"
@@ -3593,6 +3691,50 @@ export type Database = {
           },
         ]
       }
+      v_fascicoli_edifici: {
+        Row: {
+          edificio_id: string | null
+          ente_id: string | null
+          impianti: number | null
+          interventi: number | null
+          manutenzioni: number | null
+          richieste: number | null
+          richieste_annullate: number | null
+          richieste_aperte: number | null
+          richieste_chiuse: number | null
+        }
+        Insert: {
+          edificio_id?: string | null
+          ente_id?: string | null
+          impianti?: never
+          interventi?: never
+          manutenzioni?: never
+          richieste?: never
+          richieste_annullate?: never
+          richieste_aperte?: never
+          richieste_chiuse?: never
+        }
+        Update: {
+          edificio_id?: string | null
+          ente_id?: string | null
+          impianti?: never
+          interventi?: never
+          manutenzioni?: never
+          richieste?: never
+          richieste_annullate?: never
+          richieste_aperte?: never
+          richieste_chiuse?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edifici_ente_id_fkey"
+            columns: ["ente_id"]
+            isOneToOne: false
+            referencedRelation: "enti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_access_ente: { Args: { p_ente_id: string }; Returns: boolean }
@@ -3647,6 +3789,19 @@ export type Database = {
           p_ente_id: string
           p_note_immobile?: string
           p_priorita?: string
+          p_tipo_intervento?: string
+          p_titolo: string
+        }
+        Returns: string
+      }
+      school_create_request_multi_school: {
+        Args: {
+          p_descrizione: string
+          p_edificio_ids: string[]
+          p_ente_id: string
+          p_note_immobile?: string
+          p_priorita?: string
+          p_scuola_id: string
           p_tipo_intervento?: string
           p_titolo: string
         }
